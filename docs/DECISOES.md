@@ -50,7 +50,7 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
 - Observacao: na Vercel, todo arquivo .ts dentro de api/ vira endpoint publico;
   por isso a logica compartilhada fica em shared/ e api/ contem apenas os handlers.
 
-## D08 - Modelos: Gemini principal + Groq, Cerebras, OpenRouter
+## D08 - Modelos: Gemini principal + Groq, GitHub Models, OpenRouter
 
 - Decisao: fila de 4 modelos gratuitos configuravel por env; catalogo e limites
   tambem persistidos no PostgreSQL (modelos_ia, cotas_modelos).

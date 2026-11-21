@@ -28,7 +28,7 @@ export function supabaseServiceKey(): string {
 }
 
 // Catalogo dos 4 modelos gratuitos na ordem de prioridade
-// Provedor 1 Gemini (principal); 2 Groq, 3 Cerebras e 4 OpenRouter (contingencia)
+// Provedor 1 Gemini (principal); 2 Groq, 3 GitHub Models e 4 OpenRouter (contingencia)
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo
 export function catalogoModelos(): ModeloConfig[] {
   return [
@@ -50,10 +50,10 @@ export function catalogoModelos(): ModeloConfig[] {
     },
     {
       id: 3,
-      provedor: 'cerebras',
-      nomeModelo: env('CEREBRAS_MODEL', 'llama-3.3-70b')!,
-      apiKey: env('CEREBRAS_API_KEY'),
-      endpoint: 'https://api.cerebras.ai/v1/chat/completions',
+      provedor: 'github-models',
+      nomeModelo: env('GITHUB_MODEL', 'openai/gpt-4o-mini')!,
+      apiKey: env('GITHUB_TOKEN'),
+      endpoint: 'https://models.github.ai/inference/chat/completions',
       prioridade: 3,
     },
     {
