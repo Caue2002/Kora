@@ -22,10 +22,24 @@ interface CorpoRequisicao {
   mensagem?: unknown;
   historico?: unknown;
   stream?: unknown;
+  imagem?: unknown;
 }
 
 const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
+const MIMES_IMAGEM = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const TAMANHO_MAX_IMAGEM_B64 = 8_000_000; // ~6MB em base64
+
+// Valida o anexo de imagem opcional (evidencia fotografica da disputa)
+function normalizarImagem(imagem: unknown): { base64: string; mime: string } | undefined {
+  if (typeof imagem !== 'object' || imagem === null) return undefined;
+  const { base64, mime } = imagem as { base64?: unknown; mime?: unknown };
+  if (typeof base64 !== 'string' || typeof mime !== 'string') return undefined;
+  if (!MIMES_IMAGEM.has(mime)) return undefined;
+  if (base64.length === 0 || base64.length > TAMANHO_MAX_IMAGEM_B64) return undefined;
+  if (!/^[A-Za-z0-9+/=\s]+$/.test(base64)) return undefined;
+  return { base64, mime };
+}
 
 // Normaliza o historico recebido do cliente para o formato interno
 function normalizarHistorico(historico: unknown): MensagemChat[] {
@@ -128,6 +142,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const historico = normalizarHistorico(corpo.historico);
+  const imagem = normalizarImagem(corpo.imagem);
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
 
@@ -156,7 +171,7 @@ export default async function handler(req: Request): Promise<Response> {
   const mensagens: MensagemChat[] = [
     { role: 'system', content: promptSistema },
     ...historicoJanela,
-    { role: 'user', content: mensagem },
+    { role: 'user', content: mensagem + (imagem ? '\n[O usuario anexou uma foto como evidencia.]' : ''), imagem },
   ];
 
   // Estimativa de entrada com teto de seguranca antes de escolher o modelo

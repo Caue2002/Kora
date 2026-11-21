@@ -5,9 +5,15 @@
 import type { ModeloConfig } from './env.js';
 import { maxTokensSaida } from './env.js';
 
+export interface ImagemAnexo {
+  base64: string;
+  mime: string;
+}
+
 export interface MensagemChat {
   role: 'system' | 'user' | 'assistant';
   content: string;
+  imagem?: ImagemAnexo;
 }
 
 export interface RespostaLLM {
@@ -35,6 +41,23 @@ function ehErroLimite(status: number, corpo: string): boolean {
   );
 }
 
+// Monta as partes de uma mensagem para o formato Gemini (texto + imagem inline)
+function partesGemini(m: MensagemChat): Array<Record<string, unknown>> {
+  const partes: Array<Record<string, unknown>> = [{ text: m.content }];
+  if (m.imagem) {
+    partes.push({ inline_data: { mime_type: m.imagem.mime, data: m.imagem.base64 } });
+  }
+  return partes;
+}
+
+// Provedores OpenAI-compat configurados sao textuais; a imagem vira uma nota textual
+function mensagensOpenAI(mensagens: MensagemChat[]): Array<Record<string, unknown>> {
+  return mensagens.map((m) => ({
+    role: m.role,
+    content: m.imagem ? `${m.content}\n[O usuario anexou uma imagem (${m.imagem.mime}) que este modelo nao consegue analisar visualmente.]` : m.content,
+  }));
+}
+
 async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number): Promise<RespostaLLM> {
   // Gemini usa systemInstruction + contents; o system vai separado das mensagens
   const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
@@ -42,7 +65,7 @@ async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], tem
     .filter((m) => m.role !== 'system')
     .map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
+      parts: partesGemini(m),
     }));
   const url = `${modelo.endpoint}/${modelo.nomeModelo}:generateContent?key=${modelo.apiKey}`;
   const res = await fetch(url, {
@@ -77,7 +100,7 @@ async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[
     },
     body: JSON.stringify({
       model: modelo.nomeModelo,
-      messages: mensagens,
+      messages: mensagensOpenAI(mensagens),
       temperature: temperatura,
       max_tokens: maxTokens,
     }),
@@ -160,7 +183,7 @@ async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Pro
       .filter((m) => m.role !== 'system')
       .map((m) => ({
         role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }],
+        parts: partesGemini(m),
       }));
     const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
     return fetch(url, {
@@ -181,7 +204,7 @@ async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Pro
     },
     body: JSON.stringify({
       model: modelo.nomeModelo,
-      messages: mensagens,
+      messages: mensagensOpenAI(mensagens),
       temperature: 0.1,
       max_tokens: maxTokensSaida(),
       stream: true,

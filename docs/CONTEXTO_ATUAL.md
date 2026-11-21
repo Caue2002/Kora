@@ -109,7 +109,17 @@ de entrega.
   resposta (TTS Web Speech API) nas mensagens da Nori; respostas encurtadas
   para 1-3 frases com no maximo uma pergunta por turno; paleta migrada de
   laranja para azul (#2563EB/#1D4ED8/#06B6D4) e logo aplicada em PNG
-  (emblema azul glossy, fundo transparente)
+  (emblema azul glossy, fundo transparente); microfone de ditado movido
+  para a esquerda do input
+- Afinidade com o atendimento real do iFood: politicas de disputa
+  reescritas no estilo das regras publicas do iFood (12 regras: tabela
+  reembolsa/nao-reembolsa por seguranca alimentar, prazo de contestacao
+  48h restaurantes / 7 dias demais verticais, evidencias exigidas —
+  foto do item + embalagem + nota fiscal — e prazos de estorno por forma
+  de pagamento); upload de foto como evidencia: botao clipe no input envia
+  imagem base64 ao /api/chat, Gemini analisa visualmente (inline_data),
+  provedores OpenAI-compat recebem nota textual; marcador de imagem entra
+  na extracao do caso
 
 ## Em andamento
 

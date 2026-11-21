@@ -16,6 +16,7 @@ import {
   type Conversa,
   type EstadoCaso,
   type Fonte,
+  type ImagemAnexo,
   type Mensagem,
 } from './api';
 import { formatarHoraRelativa, mdParaHtml } from './utils';
@@ -221,6 +222,17 @@ const iconeSom = (
     <path d="M18.5 5.5a9 9 0 0 1 0 13" />
   </Icone>
 );
+const iconeClipe = (
+  <Icone size={16}>
+    <path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+  </Icone>
+);
+const iconeFechar = (
+  <Icone size={11}>
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </Icone>
+);
 
 // Tipo minimo da Web Speech API para o ditado por voz
 interface ReconhecimentoVoz {
@@ -253,9 +265,11 @@ export default function App() {
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [falandoId, setFalandoId] = useState<string | null>(null);
+  const [anexo, setAnexo] = useState<{ imagem: ImagemAnexo; nome: string; preview: string } | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const comentarioRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
   const conversasRef = useRef(conversas);
@@ -339,6 +353,28 @@ export default function App() {
     rec.start();
   }
 
+  // Le uma imagem do dispositivo como evidencia do caso (base64 para a API)
+  function selecionarAnexo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setErro({ mensagem: 'Envie apenas imagens (foto da evidencia).', retryTexto: '' });
+      return;
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      setErro({ mensagem: 'Imagem muito grande (maximo 6MB).', retryTexto: '' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result ?? '');
+      const base64 = dataUrl.split(',')[1] ?? '';
+      if (base64) setAnexo({ imagem: { base64, mime: file.type }, nome: file.name, preview: dataUrl });
+    };
+    reader.readAsDataURL(file);
+  }
+
   // Le a resposta em voz alta usando a Web Speech API (TTS do navegador)
   function falar(texto: string, msgId: string) {
     if (!('speechSynthesis' in window)) return;
@@ -380,6 +416,7 @@ export default function App() {
     setEtapaStream('contexto');
     let primeiroDelta = true;
     let textoStream = '';
+    const imagemEnvio = anexo?.imagem;
 
     try {
       const r = await enviarMensagemStream(texto, mensagens, (delta) => {
@@ -391,7 +428,7 @@ export default function App() {
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
-      });
+      }, imagemEnvio);
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
         setErro({ mensagem: r.erro, retryTexto: texto });
@@ -414,6 +451,13 @@ export default function App() {
           doUsuario,
           { id: assistId, role: 'assistant', content: textoStream, ts: Date.now() },
         ];
+        // A extracao do caso e textual: registra a presenca da foto como marcador
+        if (imagemEnvio) {
+          msgsFinais[msgsFinais.length - 2] = {
+            ...doUsuario,
+            content: `${doUsuario.content}\n[O usuario anexou uma foto como evidencia.]`,
+          };
+        }
         void atualizarCaso(cid, msgsFinais).then((c) => {
           if (c) setCaso(c);
         });
@@ -424,6 +468,7 @@ export default function App() {
     } finally {
       setEnviando(false);
       setEtapaStream(null);
+      setAnexo(null);
     }
   }
 
@@ -865,6 +910,16 @@ export default function App() {
           </div>
         )}
 
+        {anexo && (
+          <div className="anexo-preview">
+            <img src={anexo.preview} alt={anexo.nome} className="anexo-thumb" />
+            <span className="anexo-nome">{anexo.nome}</span>
+            <button className="anexo-remover" onClick={() => setAnexo(null)} title="Remover anexo" aria-label="Remover anexo">
+              {iconeFechar}
+            </button>
+          </div>
+        )}
+
         <form
           className="chat-form"
           onSubmit={(e) => {
@@ -872,6 +927,22 @@ export default function App() {
             enviar();
           }}
         >
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="input-arquivo"
+            onChange={selecionarAnexo}
+          />
+          <button
+            type="button"
+            className="btn-mic"
+            onClick={() => fileRef.current?.click()}
+            title="Anexar foto como evidencia"
+            aria-label="Anexar foto"
+          >
+            {iconeClipe}
+          </button>
           <button
             type="button"
             className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}

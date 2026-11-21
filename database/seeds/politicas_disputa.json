@@ -3,7 +3,7 @@
     {
       "titulo": "Item faltante ou quantidade divergente no pedido",
       "categoria": "quantidade",
-      "conteudo": "Quando o cliente relata que itens do pedido nao chegaram, colete: codigo do pedido, itens esperados e itens efetivamente recebidos. Verifique o protocolo de entrega e a foto da sacola gerada pelo entregador. Divergencia confirmada gera reposicao do item ou credito parcial do valor, conforme preferencia do cliente. Acima de 20% do valor do pedido, o caso deve ser marcado para analise de reincidencia do restaurante."
+      "conteudo": "Quando o cliente relata que itens do pedido nao chegaram, colete: codigo do pedido, itens esperados e itens efetivamente recebidos. Exija evidencias: foto do que chegou e, se possivel, foto da nota fiscal ou do conteudo da sacola. Divergencia confirmada por evidencia gera reembolso do item faltante ou reposicao, conforme preferencia do cliente. Acima de 20% do valor do pedido, o caso deve ser marcado para analise de reincidencia do restaurante."
     },
     {
       "titulo": "Conferencia de itens na retirada pelo entregador",
@@ -13,37 +13,52 @@
     {
       "titulo": "Item errado ou substituido sem aviso",
       "categoria": "troca_item",
-      "conteudo": "Compare o item recebido com o cardapio fotografado no pedido. Substituicao so e valida quando o restaurante avisou o cliente antes da entrega (push, SMS ou ligacao registrada) e o cliente aceitou. Item trocado sem aviso gera credito do valor do item ou reposicao, e o ocorrido deve ser registrado na ficha do restaurante para acompanhamento."
+      "conteudo": "Compare o item recebido com o cardapio fotografado no pedido e exija foto do item recebido. Substituicao so e valida quando o restaurante avisou o cliente antes da entrega (push, SMS ou ligacao registrada) e o cliente aceitou. Item trocado sem aviso gera credito do valor do item ou reposicao, e o ocorrido deve ser registrado na ficha do restaurante para acompanhamento."
     },
     {
-      "titulo": "Qualidade do alimento: frio, derramado ou estragado",
+      "titulo": "O que reembolsa e o que nao reembolsa por qualidade",
       "categoria": "status_avaria",
-      "conteudo": "Report de qualidade exige foto do alimento e do estado da embalagem. Pedido deve ser reportado em ate 24h apos a entrega. Alimento frio e aceitavel se o tempo de entrega estimado foi respeitado; se o atraso foi causado pelo restaurante (preparo lento), a responsabilidade e dele. Reincidencia de qualidade no mesmo restaurante em 30 dias escala o caso para o time de qualidade."
+      "conteudo": "Criterio de qualidade do iFood: NAO reembolsamos problemas de preferencia ou aspecto que nao afetam seguranca alimentar — comida fria ou gelada, item pequeno ou porcao pequena, ponto do prato (cru, mal passado), seco, sem sabor, gosto (doce, amargo, salgado), aspect (gorduroso, oleoso, murcho, queimado, aguado), congelado. REEMBOLSAMOS casos de seguranca alimentar: alimento estragado, contaminado, com corpo estranho (bicho, cabelo, plastico), podre, bolor/embolsado, azedo, vencido ou relacionado a alergia. Nao prometa reembolso para queixas de preferencia; ofereca cortesia (cupom) quando a politica permitir."
+    },
+    {
+      "titulo": "Prazo de contestacao apos a entrega",
+      "categoria": "status_avaria",
+      "conteudo": "O cliente tem prazo para contestar problemas do pedido: para restaurantes, ate 48 horas apos a entrega; para as demais verticais (mercado, farmacia, pet shop, bebidas, shopping), ate 7 dias corridos. Fora do prazo, o pedido nao e mais elegivel a cancelamento ou reembolso por disputa. Se o relato do usuario estiver fora do prazo, avise com clareza e nao prometa reembolso."
+    },
+    {
+      "titulo": "Evidencias exigidas para disputa de qualidade",
+      "categoria": "status_avaria",
+      "conteudo": "Para analisar problema de qualidade ou item com defeito, solicite fotos do item afetado, da embalagem e, se possivel, da nota fiscal. Descricao detalhada do motivo e obrigatoria. Sem foto do item e embalagem, o caso fica pendente de evidencia e nao avanca para reembolso. Oriente o cliente a fotografar antes de descartar os itens."
     },
     {
       "titulo": "Status do pedido inconsistente ou pedido nao recebido",
       "categoria": "status_avaria",
-      "conteudo": "Se o sistema marca o pedido como entregue mas o cliente afirma nao ter recebido, verifique a foto de entrega do entregador e o nome do recebedor registrado. Sem evidencia valida de entrega, o caso segue para reembolso integral ou credito. Nunca afirmar que o pedido foi entregue apenas pelo status do sistema."
+      "conteudo": "Se o sistema marca o pedido como entregue mas o cliente afirma nao ter recebido, verifique a foto de entrega do entregador e o nome do recebedor registrado. Sem evidencia valida de entrega, o caso segue para analise e possivel reembolso integral ou credito. Nunca afirmar que o pedido foi entregue apenas pelo status do sistema. Em entrega marcada sem foto nem recebedor, priorize o cliente."
     },
     {
       "titulo": "Atraso na entrega e quem e o responsavel",
       "categoria": "prazo_roteamento",
-      "conteudo": "Compare o tempo estimado com o tempo real de entrega e identifique a etapa do atraso: preparo no restaurante (acima do tempo medio do estabelecimento), deslocamento do entregador ou falha de roteamento da plataforma. Atraso por preparo gera cupom de desconto para o cliente; atraso logistico pode gerar credito parcial. Atraso superior a 60 minutos sem justificativa abre avaliacao de penalidade para o responsavel."
+      "conteudo": "Compare o tempo estimado com o tempo real de entrega e identifique a etapa do atraso: preparo no restaurante (acima do tempo medio do estabelecimento), deslocamento do entregador ou falha de roteamento da plataforma. Em delivery, atraso relevante e superior a 30 minutos acima do prazo estimado. Atraso por preparo gera cupom de desconto para o cliente; atraso logistico pode gerar credito parcial. Atraso superior a 60 minutos sem justificativa abre avaliacao de penalidade para o responsavel."
     },
     {
       "titulo": "Pedido cancelado pelo restaurante ou pelo cliente",
       "categoria": "prazo_roteamento",
-      "conteudo": "Cancelamento pelo restaurante sem motivo aceito gera reembolso integral e pode afetar o indicador do estabelecimento. Cancelamento pelo cliente apos o preparo iniciar pode gerar taxa de cancelamento conforme a politica vigente. Em caso de cancelamento, confirme quem iniciou o cancelamento no historico do pedido antes de definir a compensacao."
+      "conteudo": "Cancelamento pelo cliente e permitido sem custo enquanto o estabelecimento nao confirmou o inicio do preparo; depois do preparo iniciado, pode haver taxa de cancelamento conforme a politica vigente. Cancelamento iniciado pelo restaurante sem motivo aceito gera reembolso integral e pode afetar o indicador do estabelecimento. Em caso de cancelamento, confirme no historico do pedido quem iniciou antes de definir a compensacao."
+    },
+    {
+      "titulo": "Prazos de reembolso por forma de pagamento",
+      "categoria": "status_avaria",
+      "conteudo": "Quando o reembolso for aprovado, o prazo para o valor voltar depende do pagamento: Pix e saldo iFood caem no mesmo dia; cartao de credito em ate 2 faturas; cartao de debito, credito pre-pago e pagamento via app em ate 30 dias; vale-refeicao ou alimentacao em ate 48 horas. O cliente pode optar por receber como saldo iFood, que e imediato. Sempre informe o prazo estimado ao comunicar a decisao de reembolso."
     },
     {
       "titulo": "Criterio de responsabilidade na conciliacao",
       "categoria": "quantidade",
-      "conteudo": "Na conciliacao de disputas, separe fatos confirmados de hipoteses: o restaurante responde por erro de montagem do pedido e qualidade do alimento; o entregador responde por extravio ou avaria durante o transporte; a plataforma responde por falhas de sistema, cobranca indevida e problemas de roteamento. Nao atribua responsabilidade sem evidencia — a funcao do agente e apontar o que precisa ser confirmado."
+      "conteudo": "Na conciliacao de disputas, separe fatos confirmados de hipoteses: o restaurante responde por erro de montagem do pedido, substituicao nao autorizada e qualidade do alimento; o entregador responde por extravio ou avaria durante o transporte; a plataforma responde por falhas de sistema, cobranca indevida, problemas de roteamento e pela decisao final de reembolso. Nao atribua responsabilidade sem evidencia — a funcao do agente e apontar o que precisa ser confirmado."
     },
     {
       "titulo": "Politica de compensacao por tipo de disputa",
       "categoria": "troca_item",
-      "conteudo": "Compensacao padrao: item faltante ou errado gera credito do valor do item ou reposicao; problema de qualidade gera cupom de desconto ou reembolso parcial do pedido; pedido inteiro nao recebido ou cancelado indevidamente gera reembolso integral. A compensacao final depende da categoria confirmada e pode ser ajustada pelo time de suporte em casos de reincidencia ou excecao."
+      "conteudo": "Compensacao padrao: item faltante ou errado gera reembolso do valor do item ou reposicao; problema de qualidade por seguranca alimentar gera reembolso parcial ou integral do pedido; pedido inteiro nao recebido ou cancelado indevidamente gera reembolso integral; atraso gera cupom de desconto ou credito parcial. O cliente pode escolher receber como saldo iFood (imediato) ou estorno na forma de pagamento original. A compensacao final depende da categoria confirmada e pode ser ajustada pelo time de suporte em casos de reincidencia ou excecao."
     }
   ]
 }

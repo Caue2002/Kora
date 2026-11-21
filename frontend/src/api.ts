@@ -108,10 +108,16 @@ export async function enviarMensagem(mensagem: string, historico: Mensagem[]): P
 
 // Envia a mensagem em modo streaming: chama onDelta a cada trecho recebido
 // Retorna os metadados (modelo, fontes) lidos dos headers da resposta
+export interface ImagemAnexo {
+  base64: string;
+  mime: string;
+}
+
 export async function enviarMensagemStream(
   mensagem: string,
   historico: Mensagem[],
   onDelta: (texto: string) => void,
+  imagem?: ImagemAnexo,
 ): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -120,6 +126,7 @@ export async function enviarMensagemStream(
       mensagem,
       historico: historico.map((m) => ({ role: m.role, content: m.content })),
       stream: true,
+      imagem,
     }),
   });
 

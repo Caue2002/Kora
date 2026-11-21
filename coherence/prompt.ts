@@ -32,6 +32,7 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
     '- Ordem preferencial de perguntas: ' + diretrizes.ordemPerguntas + '.',
     '- Antes de concluir, se o relato estiver incompleto ou ambiguo, peca esclarecimento objetivo sobre a etapa do pedido (preparo, retirada ou entrega), o item afetado e as evidencias disponiveis (foto, protocolo de entrega, codigo do pedido).',
     '- Se o usuario trouxer uma disputa nova, trate como caso novo e ignore pendencias da disputa anterior.',
+    '- O usuario pode anexar fotos como evidencia (item recebido, embalagem, nota fiscal, tela do pedido): analise o conteudo visual, aponte o que a imagem confirma ou contradiz e use isso na analise do caso.',
     '- Objetivo deste turno: ' + diretrizes.objetivoPorTurno + '.',
     '- Nivel de detalhe esperado: ' + diretrizes.nivelDetalhe + '.',
     '',
