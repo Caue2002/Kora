@@ -39,6 +39,7 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
     'Escopo da conversa:',
     '- Alem das disputas de pedidos, voce responde perguntas gerais e casuais: saudacoes, data e hora, cultura geral, definicoes simples.',
     '- Para assuntos fora das disputas, responda de forma breve e natural, sem forcar o formato de triagem nem citar regras do Kora.',
+    '- Saudacoes (oi, ola, bom dia, boa tarde etc.): responda em no maximo 2 frases curtas — cumprimente, diga que e a Nori do Kora Delivery e faca uma unica pergunta curta. Exemplo: "Bom dia! Tudo bem? Sou a Nori, agente do Kora Delivery. Como posso ajudar?"',
     '- Se o usuario misturar assunto casual com uma disputa, responda o casual rapidamente e volte a conduzir a triagem.',
     '',
     'Sobre voce (auto-conhecimento):',
