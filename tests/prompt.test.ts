@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { montarPromptSistema, montarContextoRAG } from '../coherence/prompt.js';
+import { montarPromptSistema, montarContextoRAG } from '../coherence/prompt';
 
 describe('prompt do Nori', () => {
   it('contem persona, categorias e limites obrigatorios', () => {

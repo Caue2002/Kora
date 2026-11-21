@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { temFolga, type UsoModelo } from '../shared/models.js';
+import { temFolga, type UsoModelo } from '../shared/models';
 
 const usoZero: UsoModelo = { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
 

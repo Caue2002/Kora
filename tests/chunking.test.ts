@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chunkText } from '../rag/chunking.js';
+import { chunkText } from '../rag/chunking';
 
 describe('chunkText', () => {
   it('retorna vazio para texto vazio', () => {

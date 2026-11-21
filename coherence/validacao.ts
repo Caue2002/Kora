@@ -2,9 +2,9 @@
 // Verifica consistencia logica da resposta contra fatos do usuario e regras recuperadas
 // Duas camadas: heuristica local (rapida, sem custo) e verificacao via LLM (opcional)
 
-import { chamarLLM } from '../shared/llm.js';
-import type { ModeloConfig } from '../shared/env.js';
-import type { MensagemChat } from '../shared/llm.js';
+import { chamarLLM } from '../shared/llm';
+import type { ModeloConfig } from '../shared/env';
+import type { MensagemChat } from '../shared/llm';
 
 export interface ResultadoValidacao {
   ok: boolean;

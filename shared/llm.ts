@@ -2,8 +2,8 @@
 // Suporta os provedores: Gemini (formato proprio) e Groq/Pollinations (formato OpenAI)
 // Todas as chamadas usam temperatura baixa (0 a 0.1) conforme a especificacao
 
-import type { ModeloConfig } from './env.js';
-import { maxTokensSaida } from './env.js';
+import type { ModeloConfig } from './env';
+import { maxTokensSaida } from './env';
 
 export interface ImagemAnexo {
   base64: string;

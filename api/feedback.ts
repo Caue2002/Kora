@@ -2,8 +2,8 @@
 // Registra avaliacoes do usuario (util, confuso, incompleto, prolixo) para o loop adaptativo
 // Aceita comentario opcional (requer migracao 0005_feedback_comentario.sql)
 
-import { inserir } from '../shared/supabase.js';
-import { verificarLimite } from '../shared/ratelimit.js';
+import { inserir } from '../shared/supabase';
+import { verificarLimite } from '../shared/ratelimit';
 
 const AVALIACOES = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 type Avaliacao = (typeof AVALIACOES)[number];

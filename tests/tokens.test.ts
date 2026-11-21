@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
+import { estimarMensagens, estimarTokens } from '../shared/tokens';
 
 describe('estimacao de tokens', () => {
   it('estima aproximadamente 4 caracteres por token', () => {

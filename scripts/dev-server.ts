@@ -7,10 +7,10 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import chatHandler from '../api/chat.js';
-import feedbackHandler from '../api/feedback.js';
-import parecerHandler from '../api/parecer.js';
-import casoHandler from '../api/caso.js';
+import chatHandler from '../api/chat';
+import feedbackHandler from '../api/feedback';
+import parecerHandler from '../api/parecer';
+import casoHandler from '../api/caso';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 

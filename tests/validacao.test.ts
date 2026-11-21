@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validarHeuristico } from '../coherence/validacao.js';
+import { validarHeuristico } from '../coherence/validacao';
 
 describe('validacao heuristica de coerencia', () => {
   it('aprova resposta normal', () => {

@@ -3,20 +3,20 @@
 // geracao com temperatura baixa, validacao de coerencia e registro de consumo
 // Aceita { stream: true } para resposta token a token (sem validacao pos-geracao)
 
-import { catalogoModelos, janelaHistorico } from '../shared/env.js';
-import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm.js';
-import type { ModeloConfig } from '../shared/env.js';
-import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
-import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
-import { verificarLimite } from '../shared/ratelimit.js';
-import { buscaHibrida } from '../rag/search.js';
+import { catalogoModelos, janelaHistorico } from '../shared/env';
+import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm';
+import type { ModeloConfig } from '../shared/env';
+import { estimarMensagens, estimarTokens } from '../shared/tokens';
+import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models';
+import { verificarLimite } from '../shared/ratelimit';
+import { buscaHibrida } from '../rag/search';
 import {
   carregarDiretrizes,
   montarContextoRAG,
   montarPromptSistema,
   validarComLLM,
   validarHeuristico,
-} from '../coherence/index.js';
+} from '../coherence/index';
 
 interface CorpoRequisicao {
   mensagem?: unknown;

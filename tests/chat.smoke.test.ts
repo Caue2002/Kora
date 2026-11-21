@@ -5,7 +5,7 @@
 import { describe, expect, it, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import handler from '../api/chat.js';
+import handler from '../api/chat';
 
 // Carrega o .env local no process.env para o teste
 function carregarEnv() {

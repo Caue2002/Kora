@@ -5,10 +5,10 @@
 // POST /api/caso { conversaId, encerrar: true } -> marca o caso como encerrado
 //      sem chamada ao modelo (usado pelo botao "Encerrar atendimento")
 
-import { catalogoModelos } from '../shared/env.js';
-import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm.js';
-import { verificarLimite } from '../shared/ratelimit.js';
-import { consultar, upsert } from '../shared/supabase.js';
+import { catalogoModelos } from '../shared/env';
+import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm';
+import { verificarLimite } from '../shared/ratelimit';
+import { consultar, upsert } from '../shared/supabase';
 
 interface CorpoRequisicao {
   conversaId?: unknown;
