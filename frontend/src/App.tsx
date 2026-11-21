@@ -485,7 +485,18 @@ export default function App() {
           {conversaVazia && (
             <div className="chat-vazio">
               <img src="/logo.svg" alt="Nori" className="chat-vazio-logo" />
-              <p>Relate o problema com o seu pedido.</p>
+              <div className="msg msg-assistant msg-entra">
+                <img src="/logo.svg" alt="" className="msg-avatar" />
+                <div className="msg-assistant-corpo">
+                  <div className="msg-balao">
+                    <Markdown
+                      texto={
+                        'Oi! Eu sou a **Nori**, a agente de IA do **Kora** — o app de delivery que conecta clientes, restaurantes e entregadores.\n\nMe conta o que aconteceu com o seu pedido (item faltando, errado, gelado ou atrasado) que eu ajudo a resolver. Você também pode me perguntar qualquer coisa sobre mim.'
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
               <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
               <div className="chat-sugestoes">
                 {SUGESTOES.map((s) => (
@@ -517,7 +528,7 @@ export default function App() {
                           <span className="dot" />
                         </span>
                         <span className="msg-status-texto">
-                          {etapaStream === 'gerando' ? 'Gerando resposta...' : 'Consultando a base de conhecimento...'}
+                          {etapaStream === 'gerando' ? 'Gerando resposta...' : 'Pensando...'}
                         </span>
                       </span>
                     ) : (
