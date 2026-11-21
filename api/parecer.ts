@@ -2,6 +2,8 @@
 // Gera um parecer de conciliacao estruturado a partir da conversa ativa
 // Chamado sob demanda pelo botao Exportar do frontend
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { tratarRequisicaoNode } from '../shared/http';
 import { catalogoModelos } from '../shared/env';
 import { chamarLLM, ErroLimiteModelo } from '../shared/llm';
 import type { ModeloConfig } from '../shared/env';
@@ -42,7 +44,7 @@ async function gerarParecer(modeloInicial: ModeloConfig, mensagens: MensagemChat
   return null;
 }
 
-export default async function handler(req: Request): Promise<Response> {
+async function webHandler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
@@ -99,4 +101,21 @@ export default async function handler(req: Request): Promise<Response> {
   await registrarConsumo(gerado.modelo.id, tokensUso);
 
   return json(200, { parecer: gerado.texto });
+}
+
+// Despacha: Vercel chama com (req Node, res); dev-server/testes chamam com Request Web
+export default async function handler(req: Request): Promise<Response>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void> {
+  if (res) {
+    await tratarRequisicaoNode(req as IncomingMessage, res, webHandler);
+    return;
+  }
+  return webHandler(req as Request);
 }

@@ -3,6 +3,8 @@
 // geracao com temperatura baixa, validacao de coerencia e registro de consumo
 // Aceita { stream: true } para resposta token a token (sem validacao pos-geracao)
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { tratarRequisicaoNode } from '../shared/http';
 import { catalogoModelos, janelaHistorico } from '../shared/env';
 import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm';
 import type { ModeloConfig } from '../shared/env';
@@ -133,7 +135,7 @@ async function streamComFailover(
   return null;
 }
 
-export default async function handler(req: Request): Promise<Response> {
+async function webHandler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
 
   // Rate limit simples por IP: 20 requisicoes por minuto (best-effort em serverless)
@@ -267,4 +269,21 @@ export default async function handler(req: Request): Promise<Response> {
     tokens: tokensUso,
     fontes,
   });
+}
+
+// Despacha: Vercel chama com (req Node, res); dev-server/testes chamam com Request Web
+export default async function handler(req: Request): Promise<Response>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void> {
+  if (res) {
+    await tratarRequisicaoNode(req as IncomingMessage, res, webHandler);
+    return;
+  }
+  return webHandler(req as Request);
 }

@@ -5,6 +5,8 @@
 // POST /api/caso { conversaId, encerrar: true } -> marca o caso como encerrado
 //      sem chamada ao modelo (usado pelo botao "Encerrar atendimento")
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { tratarRequisicaoNode } from '../shared/http';
 import { catalogoModelos } from '../shared/env';
 import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm';
 import { verificarLimite } from '../shared/ratelimit';
@@ -154,7 +156,7 @@ async function buscarCaso(conversaId: string): Promise<EstadoCaso | null> {
   return linhas[0] ?? null;
 }
 
-export default async function handler(req: Request): Promise<Response> {
+async function webHandler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
   // ===== GET: consulta o estado persistido do caso =====
@@ -265,4 +267,21 @@ export default async function handler(req: Request): Promise<Response> {
       },
     });
   }
+}
+
+// Despacha: Vercel chama com (req Node, res); dev-server/testes chamam com Request Web
+export default async function handler(req: Request): Promise<Response>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void> {
+  if (res) {
+    await tratarRequisicaoNode(req as IncomingMessage, res, webHandler);
+    return;
+  }
+  return webHandler(req as Request);
 }

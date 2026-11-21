@@ -2,6 +2,8 @@
 // Registra avaliacoes do usuario (util, confuso, incompleto, prolixo) para o loop adaptativo
 // Aceita comentario opcional (requer migracao 0005_feedback_comentario.sql)
 
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { tratarRequisicaoNode } from '../shared/http';
 import { inserir } from '../shared/supabase';
 import { verificarLimite } from '../shared/ratelimit';
 
@@ -15,7 +17,7 @@ function json(status: number, corpo: unknown): Response {
   });
 }
 
-export default async function handler(req: Request): Promise<Response> {
+async function webHandler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
@@ -57,4 +59,21 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   return json(200, { ok: true });
+}
+
+// Despacha: Vercel chama com (req Node, res); dev-server/testes chamam com Request Web
+export default async function handler(req: Request): Promise<Response>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void>;
+export default async function handler(
+  req: Request | IncomingMessage,
+  res?: ServerResponse,
+): Promise<Response | void> {
+  if (res) {
+    await tratarRequisicaoNode(req as IncomingMessage, res, webHandler);
+    return;
+  }
+  return webHandler(req as Request);
 }
