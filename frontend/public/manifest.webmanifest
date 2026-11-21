@@ -4,8 +4,8 @@
   "description": "Agente de IA para triagem e conciliacao de disputas de pedidos em app de delivery",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFF6F0",
-  "theme_color": "#F04E23",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
   "icons": [
     {
       "src": "/icon.svg",

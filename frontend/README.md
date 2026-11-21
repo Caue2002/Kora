@@ -10,8 +10,8 @@ Interface do chat com o agente Nori — React + Vite + TypeScript, mobile-first.
   rapidos Resumir caso e Checklist
 - PWA instalavel (manifest + service worker)
 
-Paleta delivery quente: fundo creme #FFF6F0, usuario em gradiente laranja,
-agente branco com borda pessego, acentos #F04E23/#F72585.
+Paleta azul tech: fundo branco, usuario em gradiente azul, agente branco
+com borda azul-clara, acentos #2563EB/#1D4ED8/#06B6D4.
 
 ## Scripts
 
