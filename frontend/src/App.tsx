@@ -469,7 +469,6 @@ export default function App() {
         atualId={conversaId}
         aberta={sidebarAberta}
         onSelecionar={selecionarConversa}
-        onNova={novaConversa}
         onExcluir={excluirConversa}
         onRenomear={renomearConversa}
         onFechar={() => setSidebarAberta(false)}

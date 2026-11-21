@@ -9,13 +9,12 @@ interface Props {
   atualId: string | null;
   aberta: boolean;
   onSelecionar: (c: Conversa) => void;
-  onNova: () => void;
   onExcluir: (id: string) => void;
   onRenomear: (id: string, titulo: string) => void;
   onFechar: () => void;
 }
 
-export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNova, onExcluir, onRenomear, onFechar }: Props) {
+export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onExcluir, onRenomear, onFechar }: Props) {
   return (
     <>
       {aberta && <div className="sidebar-backdrop" onClick={onFechar} />}
@@ -24,13 +23,6 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
           <img src="/logo.svg" alt="Nori" className="sidebar-logo" />
           <span className="sidebar-nome">Nori</span>
         </div>
-
-        <button className="sidebar-novo" onClick={onNova}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          Novo chat
-        </button>
 
         <div className="sidebar-lista">
           {conversas.length === 0 && <p className="sidebar-vazio">Nenhum chat ainda.</p>}
