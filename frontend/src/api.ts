@@ -1,4 +1,5 @@
-// Cliente da API do chat e persistencia da sessao na aba (sessionStorage)
+// Cliente da API do chat e persistencia das conversas no navegador (localStorage)
+// Permite historico de chats estilo Gemini: varias conversas salvas localmente
 
 export interface Fonte {
   titulo: string;
@@ -16,6 +17,14 @@ export interface Mensagem {
   tokens?: number;
 }
 
+// Conversa completa persistida para o historico lateral
+export interface Conversa {
+  id: string;
+  titulo: string;
+  mensagens: Mensagem[];
+  atualizadoEm: number;
+}
+
 export interface RespostaChat {
   resposta: string;
   modelo?: string;
@@ -26,30 +35,58 @@ export interface RespostaChat {
   erro?: string;
 }
 
-const CHAVE_SESSAO = 'kora-chat-v1';
+const CHAVE_CONVERSAS = 'kora-conversas-v1';
+const CHAVE_LEGADO = 'kora-chat-v1';
 
-// Carrega o historico visual da aba; retorna vazio se nao houver ou estiver corrompido
-export function carregarSessao(): Mensagem[] {
+// Le as conversas salvas; na primeira vez migra o chat unico da versao anterior
+export function listarConversas(): Conversa[] {
   try {
-    const bruto = sessionStorage.getItem(CHAVE_SESSAO);
-    if (!bruto) return [];
-    const dados = JSON.parse(bruto) as Mensagem[];
-    return Array.isArray(dados) ? dados : [];
+    const bruto = localStorage.getItem(CHAVE_CONVERSAS);
+    if (bruto) {
+      const dados = JSON.parse(bruto) as Conversa[];
+      return Array.isArray(dados) ? dados : [];
+    }
   } catch {
-    return [];
+    // segue para a migracao legado
+  }
+
+  // Migracao: importa a conversa unica salva em sessionStorage pela versao anterior
+  try {
+    const antigo = sessionStorage.getItem(CHAVE_LEGADO);
+    if (antigo) {
+      const msgs = JSON.parse(antigo) as Mensagem[];
+      if (Array.isArray(msgs) && msgs.length > 0) {
+        const conversa: Conversa = {
+          id: `${Date.now()}`,
+          titulo: tituloDe(msgs),
+          mensagens: msgs,
+          atualizadoEm: Date.now(),
+        };
+        salvarConversas([conversa]);
+        sessionStorage.removeItem(CHAVE_LEGADO);
+        return [conversa];
+      }
+    }
+  } catch {
+    // ignora falha de migracao
+  }
+  return [];
+}
+
+export function salvarConversas(conversas: Conversa[]): void {
+  try {
+    localStorage.setItem(CHAVE_CONVERSAS, JSON.stringify(conversas));
+  } catch {
+    // armazenamento cheio ou indisponivel
   }
 }
 
-export function salvarSessao(mensagens: Mensagem[]): void {
-  try {
-    sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(mensagens));
-  } catch {
-    // armazenamento cheio ou indisponivel: segue sem persistir
-  }
-}
-
-export function limparSessao(): void {
-  sessionStorage.removeItem(CHAVE_SESSAO);
+// Deriva o titulo da conversa a partir da primeira mensagem do usuario
+export function tituloDe(mensagens: Mensagem[]): string {
+  const primeira = mensagens.find((m) => m.role === 'user');
+  if (!primeira) return 'Nova conversa';
+  const t = primeira.content.replace(/\s+/g, ' ').trim();
+  return t.length > 42 ? `${t.slice(0, 42)}...` : t;
 }
 
 // Envia a mensagem ao endpoint /api/chat com a janela recente do historico

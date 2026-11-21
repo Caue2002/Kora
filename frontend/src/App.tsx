@@ -1,17 +1,19 @@
-// Tela exclusiva de chat com o agente Nori
-// Mobile-first: area de mensagens + campo de envio fixo; sem menus ou widgets paralelos
+// Tela principal do chat com o agente Nori
+// Layout com barra lateral de historico (estilo Gemini) + area de chat mobile-first
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  carregarSessao,
   enviarFeedback,
   enviarMensagem,
-  limparSessao,
-  salvarSessao,
+  listarConversas,
+  salvarConversas,
+  tituloDe,
+  type Conversa,
   type Fonte,
   type Mensagem,
 } from './api';
 import { renderMarkdown } from './markdown';
+import Sidebar from './Sidebar';
 
 const AVISOS = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 
@@ -44,11 +46,6 @@ function novoId(): string {
 function formatarHora(ts?: number): string {
   if (!ts) return '';
   return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
-
-function formatarTokens(n?: number): string {
-  if (!n) return '';
-  return n >= 1000 ? `≈${(n / 1000).toFixed(1)}k` : `≈${n}`;
 }
 
 // Extrai a categoria mais frequente entre as fontes recuperadas pelo RAG
@@ -98,6 +95,13 @@ const iconeMicrofone = (
     <line x1="12" y1="19" x2="12" y2="23" />
   </Icone>
 );
+const iconeMenu = (
+  <Icone>
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </Icone>
+);
 const iconeSol = (
   <Icone size={16}>
     <circle cx="12" cy="12" r="5" />
@@ -145,21 +149,30 @@ interface ReconhecimentoVoz {
 }
 
 export default function App() {
-  const [mensagens, setMensagens] = useState<Mensagem[]>(() => carregarSessao());
+  const [conversas, setConversas] = useState<Conversa[]>(() => listarConversas());
+  const [conversaId, setConversaId] = useState<string | null>(null);
+  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [entrada, setEntrada] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [escuro, setEscuro] = useState<boolean>(() => localStorage.getItem(CHAVE_TEMA) === 'escuro');
   const [ouvindo, setOuvindo] = useState(false);
+  const [sidebarAberta, setSidebarAberta] = useState(false);
   const fimRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
+  const conversasRef = useRef(conversas);
+  conversasRef.current = conversas;
 
-  const totalTokens = mensagens.reduce((acc, m) => acc + (m.tokens ?? 0), 0);
-  // conta ocorrencias relatadas (exclui as acoes rapidas de resumo/checklist)
-  const totalOcorrencias = mensagens.filter(
-    (m) => m.role === 'user' && m.content !== ACAO_RESUMO && m.content !== ACAO_CHECKLIST,
-  ).length;
+  // Na primeira carga, abre a conversa mais recente se existir
+  useEffect(() => {
+    if (conversaId === null && conversas.length > 0) {
+      const maisRecente = [...conversas].sort((a, b) => b.atualizadoEm - a.atualizadoEm)[0]!;
+      setConversaId(maisRecente.id);
+      setMensagens(maisRecente.mensagens);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Aplica o tema escuro/claro no elemento raiz e persiste a escolha
   useEffect(() => {
@@ -167,11 +180,27 @@ export default function App() {
     localStorage.setItem(CHAVE_TEMA, escuro ? 'escuro' : 'claro');
   }, [escuro]);
 
-  // Persiste a conversa na aba e rola para a mensagem mais recente
+  // Persiste a conversa atual na lista de conversas a cada mudanca de mensagens
   useEffect(() => {
-    salvarSessao(mensagens);
+    if (!conversaId || mensagens.length === 0) return;
+    const conversa: Conversa = {
+      id: conversaId,
+      titulo: tituloDe(mensagens),
+      mensagens,
+      atualizadoEm: Date.now(),
+    };
+    setConversas((atual) => {
+      const demais = atual.filter((c) => c.id !== conversaId);
+      const nova = [conversa, ...demais];
+      salvarConversas(nova);
+      return nova;
+    });
+  }, [mensagens, conversaId]);
+
+  // Rola para a mensagem mais recente
+  useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [mensagens]);
+  }, [mensagens, enviando]);
 
   // Mantem o foco no campo apos cada resposta
   useEffect(() => {
@@ -212,6 +241,11 @@ export default function App() {
     if (!texto || enviando) return;
     setErro(null);
     setEntrada('');
+    setSidebarAberta(false);
+
+    // garante um id de conversa antes do primeiro envio
+    const cid = conversaId ?? novoId();
+    if (!conversaId) setConversaId(cid);
 
     const doUsuario: Mensagem = { id: novoId(), role: 'user', content: texto, ts: Date.now() };
     setMensagens((atual) => [...atual, doUsuario]);
@@ -247,10 +281,28 @@ export default function App() {
     processarEnvio(entrada.trim());
   }
 
-  function novoCaso() {
-    limparSessao();
+  // Abre uma conversa existente do historico
+  function selecionarConversa(c: Conversa) {
+    setConversaId(c.id);
+    setMensagens(c.mensagens);
+    setErro(null);
+    setSidebarAberta(false);
+  }
+
+  // Inicia uma conversa nova (a anterior fica salva no historico)
+  function novaConversa() {
+    setConversaId(novoId());
     setMensagens([]);
     setErro(null);
+    setSidebarAberta(false);
+  }
+
+  // Exclui uma conversa do historico
+  function excluirConversa(id: string) {
+    const restante = conversasRef.current.filter((c) => c.id !== id);
+    setConversas(restante);
+    salvarConversas(restante);
+    if (id === conversaId) novaConversa();
   }
 
   function exportarParecer() {
@@ -270,163 +322,164 @@ export default function App() {
   const conversaVazia = mensagens.length === 0 && !enviando;
 
   return (
-    <div className="chat">
-      <header className="chat-topo">
-        <div className="chat-titulo-bloco">
-          <span className="chat-avatar-topo">N</span>
-          <span className="chat-titulo">Nori</span>
-          {totalOcorrencias > 0 && <span className="chat-tokens">{totalOcorrencias} ocorrências</span>}
-          {totalTokens > 0 && <span className="chat-tokens">{formatarTokens(totalTokens)} tokens</span>}
-        </div>
-        <div className="chat-acoes">
-          <button
-            className="btn-icon"
-            onClick={() => setEscuro((v) => !v)}
-            title={escuro ? 'Modo claro' : 'Modo escuro'}
-            aria-label="Alternar tema"
-          >
-            {escuro ? iconeSol : iconeLua}
-          </button>
-          {mensagens.length > 0 && (
-            <button className="btn-icon" onClick={exportarParecer} title="Exportar parecer" aria-label="Exportar">
-              {iconeDownload}
+    <div className="layout">
+      <Sidebar
+        conversas={conversas}
+        atualId={conversaId}
+        aberta={sidebarAberta}
+        onSelecionar={selecionarConversa}
+        onNova={novaConversa}
+        onExcluir={excluirConversa}
+        onFechar={() => setSidebarAberta(false)}
+      />
+
+      <div className="chat">
+        <header className="chat-topo">
+          <div className="chat-titulo-bloco">
+            <button
+              className="btn-icon"
+              onClick={() => setSidebarAberta((v) => !v)}
+              title="Historico de conversas"
+              aria-label="Historico"
+            >
+              {iconeMenu}
             </button>
-          )}
-          <button className="btn-icon" onClick={novoCaso} title="Novo caso" aria-label="Novo caso">
-            <Icone>
-              <path d="M12 5v14M5 12h14" />
-            </Icone>
-          </button>
-        </div>
-      </header>
-
-      <main className="chat-mensagens">
-        {conversaVazia && (
-          <div className="chat-vazio">
-            <div className="chat-vazio-avatar">N</div>
-            <p>Descreva a divergência operacional encontrada.</p>
-            <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
-            <div className="chat-sugestoes">
-              {SUGESTOES.map((s) => (
-                <button key={s} className="chip-sugestao" onClick={() => processarEnvio(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
+            <img src="/logo.svg" alt="Nori" className="chat-logo" />
+            <span className="chat-titulo">Nori</span>
           </div>
-        )}
+          <div className="chat-acoes">
+            <button
+              className="btn-icon"
+              onClick={() => setEscuro((v) => !v)}
+              title={escuro ? 'Modo claro' : 'Modo escuro'}
+              aria-label="Alternar tema"
+            >
+              {escuro ? iconeSol : iconeLua}
+            </button>
+            {mensagens.length > 0 && (
+              <button className="btn-icon" onClick={exportarParecer} title="Exportar parecer" aria-label="Exportar">
+                {iconeDownload}
+              </button>
+            )}
+          </div>
+        </header>
 
-        {mensagens.map((m) =>
-          m.role === 'user' ? (
-            <div key={m.id} className="msg msg-user msg-entra">
-              <div className="msg-balao">{m.content}</div>
-              <span className="msg-hora">{formatarHora(m.ts)}</span>
-            </div>
-          ) : (
-            <div key={m.id} className="msg msg-assistant msg-entra">
-              <div className="msg-avatar">N</div>
-              <div className="msg-assistant-corpo">
-                <div className="msg-balao">{renderMarkdown(m.content)}</div>
-                {m.categoria && (
-                  <span className={`msg-badge badge-${m.categoria}`}>
-                    {CATEGORIAS[m.categoria] ?? m.categoria}
-                  </span>
-                )}
-                {m.fontes && m.fontes.length > 0 && (
-                  <details className="msg-fontes">
-                    <summary>Fontes consultadas ({m.fontes.length})</summary>
-                    <ol>
-                      {m.fontes.map((f, i) => (
-                        <li key={i}>
-                          {f.titulo}
-                          {f.categoria ? ` · ${CATEGORIAS[f.categoria] ?? f.categoria}` : ''}
-                        </li>
-                      ))}
-                    </ol>
-                  </details>
-                )}
-                <div className="msg-meta">
-                  {m.modelo}
-                  {m.tokens ? ` · ${formatarTokens(m.tokens)} tokens` : ''}
-                  {' · '}
-                  {formatarHora(m.ts)}
-                </div>
-                {m === ultimaResposta && (
-                  <div className="msg-acoes">
-                    <button
-                      className="btn-mini"
-                      onClick={() => navigator.clipboard?.writeText(m.content)}
-                      title="Copiar resposta"
-                    >
-                      {iconeCopiar}
-                    </button>
-                    {AVISOS.map((a) => (
-                      <button key={a} className="btn-mini" onClick={() => enviarFeedback(a)} title={`Avaliar: ${a}`}>
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                )}
+        <main className="chat-mensagens">
+          {conversaVazia && (
+            <div className="chat-vazio">
+              <img src="/logo.svg" alt="Nori" className="chat-vazio-logo" />
+              <p>Descreva a divergência operacional encontrada.</p>
+              <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
+              <div className="chat-sugestoes">
+                {SUGESTOES.map((s) => (
+                  <button key={s} className="chip-sugestao" onClick={() => processarEnvio(s)}>
+                    {s}
+                  </button>
+                ))}
               </div>
             </div>
-          ),
-        )}
+          )}
 
-        {enviando && (
-          <div className="msg msg-assistant">
-            <div className="msg-avatar">N</div>
-            <div className="msg-balao msg-digitando">
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
+          {mensagens.map((m) =>
+            m.role === 'user' ? (
+              <div key={m.id} className="msg msg-user msg-entra">
+                <div className="msg-balao">{m.content}</div>
+                <span className="msg-hora">{formatarHora(m.ts)}</span>
+              </div>
+            ) : (
+              <div key={m.id} className="msg msg-assistant msg-entra">
+                <img src="/logo.svg" alt="" className="msg-avatar" />
+                <div className="msg-assistant-corpo">
+                  <div className="msg-balao">{renderMarkdown(m.content)}</div>
+                  {m.categoria && (
+                    <span className={`msg-badge badge-${m.categoria}`}>
+                      {CATEGORIAS[m.categoria] ?? m.categoria}
+                    </span>
+                  )}
+                  <div className="msg-meta">
+                    {m.modelo}
+                    {' · '}
+                    {formatarHora(m.ts)}
+                  </div>
+                  {m === ultimaResposta && (
+                    <div className="msg-acoes">
+                      <button
+                        className="btn-mini"
+                        onClick={() => navigator.clipboard?.writeText(m.content)}
+                        title="Copiar resposta"
+                      >
+                        {iconeCopiar}
+                      </button>
+                      {AVISOS.map((a) => (
+                        <button key={a} className="btn-mini" onClick={() => enviarFeedback(a)} title={`Avaliar: ${a}`}>
+                          {a}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          )}
+
+          {enviando && (
+            <div className="msg msg-assistant">
+              <img src="/logo.svg" alt="" className="msg-avatar" />
+              <div className="msg-balao msg-digitando">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </div>
             </div>
+          )}
+
+          {erro && <div className="chat-erro">{erro}</div>}
+          <div ref={fimRef} />
+        </main>
+
+        {mensagens.length > 0 && (
+          <div className="chat-quick">
+            <button className="btn-quick" onClick={() => processarEnvio(ACAO_RESUMO)} disabled={enviando}>
+              {iconeResumo}
+              <span className="quick-label">Resumir caso</span>
+            </button>
+            <button className="btn-quick" onClick={() => processarEnvio(ACAO_CHECKLIST)} disabled={enviando}>
+              {iconeChecklist}
+              <span className="quick-label">Checklist</span>
+            </button>
           </div>
         )}
 
-        {erro && <div className="chat-erro">{erro}</div>}
-        <div ref={fimRef} />
-      </main>
-
-      {mensagens.length > 0 && (
-        <div className="chat-quick">
-          <button className="btn-quick" onClick={() => processarEnvio(ACAO_RESUMO)} disabled={enviando}>
-            {iconeResumo} Resumir caso
-          </button>
-          <button className="btn-quick" onClick={() => processarEnvio(ACAO_CHECKLIST)} disabled={enviando}>
-            {iconeChecklist} Checklist
-          </button>
-        </div>
-      )}
-
-      <form
-        className="chat-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          enviar();
-        }}
-      >
-        <input
-          ref={inputRef}
-          className="chat-input"
-          value={entrada}
-          onChange={(e) => setEntrada(e.target.value)}
-          placeholder="Descreva a ocorrência..."
-          maxLength={4000}
-          enterKeyHint="send"
-        />
-        <button
-          type="button"
-          className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
-          onClick={alternarDitado}
-          title="Ditar mensagem"
-          aria-label="Ditar mensagem"
+        <form
+          className="chat-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            enviar();
+          }}
         >
-          {iconeMicrofone}
-        </button>
-        <button className="chat-enviar" type="submit" disabled={enviando || entrada.trim().length === 0}>
-          Enviar
-        </button>
-      </form>
+          <input
+            ref={inputRef}
+            className="chat-input"
+            value={entrada}
+            onChange={(e) => setEntrada(e.target.value)}
+            placeholder="Descreva a ocorrência..."
+            maxLength={4000}
+            enterKeyHint="send"
+          />
+          <button
+            type="button"
+            className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
+            onClick={alternarDitado}
+            title="Ditar mensagem"
+            aria-label="Ditar mensagem"
+          >
+            {iconeMicrofone}
+          </button>
+          <button className="chat-enviar" type="submit" disabled={enviando || entrada.trim().length === 0}>
+            Enviar
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

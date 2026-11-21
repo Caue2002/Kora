@@ -4,9 +4,14 @@
 
 import type { ReactNode } from 'react';
 
-// Converte texto inline com **negrito**, *italico* e citacoes [n] em nos React
+// Remove citacoes numericas [n] do texto (a lista de fontes nao e exibida na tela)
+function limparCitacoes(texto: string): string {
+  return texto.replace(/\s?\[\d+\]/g, '');
+}
+
+// Converte texto inline com **negrito** e *italico* em nos React
 function inline(texto: string, chaveBase: string): ReactNode[] {
-  const partes = texto.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[\d+\])/g);
+  const partes = limparCitacoes(texto).split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
   return partes.map((p, i) => {
     const chave = `${chaveBase}-${i}`;
     if (p.startsWith('**') && p.endsWith('**')) {
@@ -14,9 +19,6 @@ function inline(texto: string, chaveBase: string): ReactNode[] {
     }
     if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
       return <em key={chave}>{p.slice(1, -1)}</em>;
-    }
-    if (/^\[\d+\]$/.test(p)) {
-      return <sup key={chave} className="cite">{p}</sup>;
     }
     return <span key={chave}>{p}</span>;
   });
