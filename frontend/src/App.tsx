@@ -1,6 +1,6 @@
 // Tela principal do chat com o agente Nori
 // Layout com barra lateral de historico (estilo Gemini) + area de chat mobile-first
-// Respostas em streaming token a token, parecer estruturado e feedback com comentario
+// Respostas em streaming token a token e resumo estruturado do caso
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
@@ -9,7 +9,6 @@ import {
   encerrarCaso,
   enviarFeedback,
   enviarMensagemStream,
-  gerarParecer,
   listarConversas,
   salvarConversas,
   tituloDe,
@@ -19,7 +18,7 @@ import {
   type ImagemAnexo,
   type Mensagem,
 } from './api';
-import { formatarHoraMensagem, mdParaHtml } from './utils';
+import { formatarHoraMensagem } from './utils';
 import { Markdown } from './markdown';
 import Sidebar from './Sidebar';
 
@@ -583,37 +582,44 @@ export default function App() {
     });
   }
 
-  // Exporta a conversa como parecer estruturado em HTML (fallback: texto)
-  async function exportarParecer() {
+  // Exporta um resumo do caso em HTML: estado estruturado + transcricao da conversa
+  function exportarResumo() {
     if (exportando || mensagens.length === 0) return;
     setExportando(true);
-    try {
-      const r = await gerarParecer(mensagens);
-      if (r.parecer) {
-        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Parecer de Conciliacao - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#1d4ed8}h2{color:#2563eb;border-bottom:1px solid #bfdbfe;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Parecer de Conciliacao</h1><p><em>Gerado pela agente Nori - Kora</em></p><pre>${mdParaHtml(r.parecer)}</pre></body></html>`;
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'parecer-conciliacao.html';
-        a.click();
-        URL.revokeObjectURL(url);
-        return;
-      }
-    } catch {
-      // cai no fallback de texto
-    }
-    // Fallback: exporta a conversa bruta em texto
-    const texto = mensagens
-      .map((m) => `${m.role === 'user' ? 'USUARIO' : 'NORI'}:\n${m.content}`)
-      .join('\n\n---\n\n');
-    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const secao = (titulo: string, itens?: string[]) =>
+      itens && itens.length > 0
+        ? `<h2>${titulo}</h2><ul>${itens.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`
+        : '';
+    const perfilLabel = perfil ? (PERFIS.find((p) => p.id === perfil)?.label ?? perfil) : null;
+
+    const corpo = [
+      caso?.resumo ? `<h2>Resumo</h2><p>${esc(caso.resumo)}</p>` : '',
+      caso
+        ? `<p><strong>Etapa:</strong> ${ETAPAS_CASO[caso.etapa] ?? caso.etapa} · <strong>Status:</strong> ${caso.status}${caso.categoria ? ` · <strong>Categoria:</strong> ${CATEGORIAS_CASO[caso.categoria] ?? caso.categoria}` : ''}</p>`
+        : '',
+      secao('Fatos confirmados', caso?.fatos),
+      secao('Evidências', caso?.evidencias),
+      secao('Pendências', caso?.pendencias),
+      '<h2>Conversa</h2><pre>' +
+        mensagens
+          .map((m) => `${m.role === 'user' ? 'USUÁRIO' : 'NORI'}:\n${m.content}`)
+          .join('\n\n---\n\n')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;') +
+        '</pre>',
+    ].join('\n');
+
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo do Caso - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#1d4ed8}h2{color:#2563eb;border-bottom:1px solid #bfdbfe;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Resumo do Caso</h1><p><em>Gerado pela agente Nori - Kora Delivery${perfilLabel ? ` · Perfil: ${perfilLabel}` : ''}</em></p>${corpo}</body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'parecer-conciliacao.txt';
+    a.download = 'resumo-caso.html';
     a.click();
     URL.revokeObjectURL(url);
+    setExportando(false);
   }
 
   // Envia a avaliacao escolhida; comentario e opcional
@@ -671,7 +677,7 @@ export default function App() {
               {escuro ? iconeSol : iconeLua}
             </button>
             {mensagens.length > 0 && (
-              <button className="btn-icon" onClick={exportarParecer} title="Exportar parecer" aria-label="Exportar" disabled={exportando}>
+              <button className="btn-icon" onClick={exportarResumo} title="Gerar resumo" aria-label="Gerar resumo" disabled={exportando}>
                 {iconeDownload}
               </button>
             )}
@@ -945,11 +951,11 @@ export default function App() {
                     disabled={exportando}
                     onClick={() => {
                       setMenuAcoes(false);
-                      exportarParecer();
+                      exportarResumo();
                     }}
                   >
                     {iconeDownload}
-                    Gerar parecer
+                    Gerar resumo
                   </button>
                   <button
                     className="menu-item menu-item-perigo"
