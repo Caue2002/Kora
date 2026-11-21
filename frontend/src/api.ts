@@ -25,16 +25,6 @@ export interface Conversa {
   atualizadoEm: number;
 }
 
-export interface RespostaChat {
-  resposta: string;
-  modelo?: string;
-  provedor?: string;
-  aviso?: string;
-  tokens?: number;
-  fontes?: Fonte[];
-  erro?: string;
-}
-
 const CHAVE_CONVERSAS = 'kora-conversas-v1';
 const CHAVE_LEGADO = 'kora-chat-v1';
 
@@ -89,23 +79,6 @@ export function tituloDe(mensagens: Mensagem[]): string {
   return t.length > 42 ? `${t.slice(0, 42)}...` : t;
 }
 
-// Envia a mensagem ao endpoint /api/chat com a janela recente do historico
-export async function enviarMensagem(mensagem: string, historico: Mensagem[]): Promise<RespostaChat> {
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mensagem,
-      historico: historico.map((m) => ({ role: m.role, content: m.content })),
-    }),
-  });
-  const dados = (await res.json()) as RespostaChat;
-  if (!res.ok) {
-    return { resposta: '', erro: dados.erro ?? 'Falha ao contatar o agente.' };
-  }
-  return dados;
-}
-
 // Envia a mensagem em modo streaming: chama onDelta a cada trecho recebido
 // Retorna os metadados (modelo, fontes) lidos dos headers da resposta
 export interface ImagemAnexo {
@@ -154,20 +127,6 @@ export async function enviarMensagemStream(
     onDelta(decoder.decode(value, { stream: true }));
   }
   return { modelo, fontes };
-}
-
-// Gera o parecer de conciliacao estruturado no backend
-export async function gerarParecer(mensagens: Mensagem[]): Promise<{ parecer?: string; erro?: string }> {
-  const res = await fetch('/api/parecer', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      mensagens: mensagens.map((m) => ({ role: m.role, content: m.content })),
-    }),
-  });
-  const dados = (await res.json()) as { parecer?: string; erro?: string };
-  if (!res.ok) return { erro: dados.erro ?? 'Falha ao gerar parecer.' };
-  return dados;
 }
 
 // ===== Estado estruturado do caso =====

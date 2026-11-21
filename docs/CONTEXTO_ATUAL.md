@@ -133,11 +133,16 @@ de entrega.
 - Acoes da mensagem (fontes, copiar, avaliar, ouvir) dentro da bolha em
   todas as respostas, menores e sempre visiveis a direita; voz do TTS
   prioriza vozes pt-BR naturais (Google/Microsoft/Amazon)
+- Pedidos ficticios deterministicos: shared/pedidos.ts gera um pedido por
+  hash do codigo informado (catalogo variado de 14 lojas); /api/chat responde
+  a confirmacao sem LLM quando a mensagem e so o codigo, e injeta os dados
+  no prompt quando ha relato de problema junto
 
 ## Em andamento
 
-- Nenhuma implementacao em curso; aguardando migrations 0005/0006/0007 no
-  Supabase e deploy
+- Deploy em producao na Vercel: https://kora-frontend-jade.vercel.app
+- Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
+  `_rodar_uma_vez_0005_0008.sql`
 
 ## Decisoes tecnicas tomadas
 
@@ -148,18 +153,15 @@ de entrega.
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Aplicar database/migrations/0005_feedback_comentario.sql,
-   0006_categorias_disputa.sql, 0007_casos.sql e 0008_rate_limit.sql no
-   SQL Editor do Supabase (sem a 0007 o card "Caso" nao persiste; sem a
-   0008 o rate limit cai no fallback em memoria por instancia)
-3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
-   do .env no painel da Vercel e fazer deploy do repositorio
-   (verificar se streaming e /api/parecer funcionam no ambiente serverless)
-4. Obter chaves de API opcionais (Groq, Pollinations) se quiser failover
-5. Testar o chat no navegador com cenarios de disputa reais e ajustar prompt/politicas
-6. Rate limit persistente ja implementado (migration 0008); se quiser
-   endurecer mais, avaliar Cloudflare Turnstile (gratuito, sem login) no chat
-7. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
+1. ~~Aplicar migrations 0005-0008~~ FEITO (via `_rodar_uma_vez_0005_0008.sql`)
+2. ~~Deploy na Vercel~~ FEITO: https://kora-frontend-jade.vercel.app
+   (Root Directory = raiz do repo; env vars SUPABASE_URL,
+   SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, GROQ_API_KEY)
+3. Testar o chat em producao com cenarios de disputa reais e ajustar
+   prompt/politicas conforme necessario
+4. Endurecer abuso: Cloudflare Turnstile (gratuito, sem login) e/ou
+   lista de dominios permitidos no CORS se o site for embutido
+5. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
    avaliar ativacao permanente conforme custo de tokens
 
 ## Handoff para outra conta/sessao
@@ -176,9 +178,12 @@ de entrega.
   https://uzkiayjqcjztzrwestcg.supabase.co (Project Settings -> API)
 - `.env` NAO vai para o Git (contem segredos): recriar a partir de
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
-- Estado do banco: tabelas/modelos/cotas/feedback ok; 9 politicas de disputa
-  ingeridas (politicas_disputa_exemplo); migrations 0005, 0006, 0007 e 0008
-  pendentes de aplicacao manual no SQL Editor
+- Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
+  9 politicas de disputa ingeridas (politicas_disputa_exemplo);
+  migrations 0005-0008 aplicadas via `_rodar_uma_vez_0005_0008.sql`
+- Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
+  para Web Request/Response (imports relativos usam extensao .js pois a
+  Vercel transpila TS->JS por arquivo sem bundlear)
 - Para subir local: npm install + npm --prefix frontend install, preencher
   .env, rodar `npm run dev:api` (porta 3000) e `npm run dev:web` (porta 5173)
 
