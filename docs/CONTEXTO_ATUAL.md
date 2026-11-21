@@ -83,6 +83,10 @@ de entrega.
   limites reais do Gemini
 - Testes de integracao ganharam retry em 429 (espera 65s) e IPs unicos por
   chamada para nao trombar no rate limit nem no RPM do free tier
+- Repaginacao visual delivery/IA: nova logo (sacola termica + sparkles + glow),
+  paleta laranja-coral quente, titulo "Nori" em gradiente, botao enviar em
+  gradiente, glow pulsante na logo, busca removida da sidebar e botao
+  renomeado para "Novo chat"
 - Conjunto fixo de cenarios de teste (tests/cenarios.test.ts): completo,
   incompleto/ambiguo, contraditorio e fora do escopo — 20 testes passando
 - Validacao: typecheck limpo, 20 testes ok, vite build ok, streaming e

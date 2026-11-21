@@ -45,8 +45,9 @@ e compensacao sugerida.
 
 - Layout estilo Gemini: sidebar de historico (busca, renomear, excluir) + chat.
 - Mobile-first: sidebar vira overlay no mobile; acoes rapidas compactas.
-- Paleta: fundo branco gelo #F8FAFC; usuario em verde-esmeralda #065F46;
-  agente em branco com borda cinza-ardosia; acentos #047817; tema escuro.
+- Paleta delivery quente: fundo creme #FFF6F0; usuario em gradiente laranja
+  #FF7A3D->#E8500F; agente em branco com borda pessego #F3E2D8; acentos
+  #F04E23/#F72585; tema escuro quente; logo da sacola termica com sparkles.
 - Streaming token a token com status contextual ("Consultando a base...",
   "Gerando resposta..."); markdown completo (tabelas, codigo, checklist
   clicavel, citacoes); popover de fontes do RAG sob demanda.

@@ -1,8 +1,7 @@
-// Barra lateral de historico de conversas, no estilo do Gemini
-// Lista as conversas salvas com busca, permite abrir, renomear, excluir e criar nova
+// Barra lateral de historico de chats, no estilo do Gemini
+// Lista os chats salvos e permite abrir, renomear, excluir e criar novo
 
-import { useState } from 'react';
-import type { Conversa, Mensagem } from './api';
+import type { Conversa } from './api';
 import { formatarDataCurta } from './utils';
 
 interface Props {
@@ -16,20 +15,7 @@ interface Props {
   onFechar: () => void;
 }
 
-// Verifica se a conversa combina com o termo de busca (titulo ou conteudo)
-function combinaBusca(c: Conversa, termo: string): boolean {
-  const t = termo.toLowerCase();
-  if (c.titulo.toLowerCase().includes(t)) return true;
-  return c.mensagens.some((m: Mensagem) => m.content.toLowerCase().includes(t));
-}
-
 export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNova, onExcluir, onRenomear, onFechar }: Props) {
-  const [busca, setBusca] = useState('');
-
-  const filtradas = busca.trim()
-    ? conversas.filter((c) => combinaBusca(c, busca.trim()))
-    : conversas;
-
   return (
     <>
       {aberta && <div className="sidebar-backdrop" onClick={onFechar} />}
@@ -43,25 +29,12 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          Nova conversa
+          Novo chat
         </button>
 
-        <div className="sidebar-busca">
-          <input
-            className="sidebar-busca-input"
-            placeholder="Buscar conversas..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
         <div className="sidebar-lista">
-          {filtradas.length === 0 && (
-            <p className="sidebar-vazio">
-              {conversas.length === 0 ? 'Nenhuma conversa ainda.' : 'Nenhuma conversa encontrada.'}
-            </p>
-          )}
-          {[...filtradas]
+          {conversas.length === 0 && <p className="sidebar-vazio">Nenhum chat ainda.</p>}
+          {[...conversas]
             .sort((a, b) => b.atualizadoEm - a.atualizadoEm)
             .map((c) => (
               <div
@@ -76,10 +49,10 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
                 <span className="sidebar-item-data">{formatarDataCurta(c.atualizadoEm)}</span>
                 <button
                   className="sidebar-item-renomear"
-                  title="Renomear conversa"
+                  title="Renomear chat"
                   onClick={(e) => {
                     e.stopPropagation();
-                    const novo = window.prompt('Novo nome da conversa:', c.titulo);
+                    const novo = window.prompt('Novo nome do chat:', c.titulo);
                     if (novo && novo.trim() && novo.trim() !== c.titulo) onRenomear(c.id, novo.trim());
                   }}
                 >
@@ -87,7 +60,7 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
                 </button>
                 <button
                   className="sidebar-item-excluir"
-                  title="Excluir conversa"
+                  title="Excluir chat"
                   onClick={(e) => {
                     e.stopPropagation();
                     onExcluir(c.id);
