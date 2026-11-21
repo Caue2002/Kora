@@ -1,7 +1,8 @@
 // Barra lateral de historico de conversas, no estilo do Gemini
-// Lista as conversas salvas, permite abrir, excluir e iniciar uma nova
+// Lista as conversas salvas com busca, permite abrir, renomear, excluir e criar nova
 
-import type { Conversa } from './api';
+import { useState } from 'react';
+import type { Conversa, Mensagem } from './api';
 import { formatarDataCurta } from './utils';
 
 interface Props {
@@ -11,10 +12,24 @@ interface Props {
   onSelecionar: (c: Conversa) => void;
   onNova: () => void;
   onExcluir: (id: string) => void;
+  onRenomear: (id: string, titulo: string) => void;
   onFechar: () => void;
 }
 
-export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNova, onExcluir, onFechar }: Props) {
+// Verifica se a conversa combina com o termo de busca (titulo ou conteudo)
+function combinaBusca(c: Conversa, termo: string): boolean {
+  const t = termo.toLowerCase();
+  if (c.titulo.toLowerCase().includes(t)) return true;
+  return c.mensagens.some((m: Mensagem) => m.content.toLowerCase().includes(t));
+}
+
+export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNova, onExcluir, onRenomear, onFechar }: Props) {
+  const [busca, setBusca] = useState('');
+
+  const filtradas = busca.trim()
+    ? conversas.filter((c) => combinaBusca(c, busca.trim()))
+    : conversas;
+
   return (
     <>
       {aberta && <div className="sidebar-backdrop" onClick={onFechar} />}
@@ -31,9 +46,22 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
           Nova conversa
         </button>
 
+        <div className="sidebar-busca">
+          <input
+            className="sidebar-busca-input"
+            placeholder="Buscar conversas..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
+
         <div className="sidebar-lista">
-          {conversas.length === 0 && <p className="sidebar-vazio">Nenhuma conversa ainda.</p>}
-          {[...conversas]
+          {filtradas.length === 0 && (
+            <p className="sidebar-vazio">
+              {conversas.length === 0 ? 'Nenhuma conversa ainda.' : 'Nenhuma conversa encontrada.'}
+            </p>
+          )}
+          {[...filtradas]
             .sort((a, b) => b.atualizadoEm - a.atualizadoEm)
             .map((c) => (
               <div
@@ -46,6 +74,17 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onNo
               >
                 <span className="sidebar-item-titulo">{c.titulo}</span>
                 <span className="sidebar-item-data">{formatarDataCurta(c.atualizadoEm)}</span>
+                <button
+                  className="sidebar-item-renomear"
+                  title="Renomear conversa"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const novo = window.prompt('Novo nome da conversa:', c.titulo);
+                    if (novo && novo.trim() && novo.trim() !== c.titulo) onRenomear(c.id, novo.trim());
+                  }}
+                >
+                  ✎
+                </button>
                 <button
                   className="sidebar-item-excluir"
                   title="Excluir conversa"

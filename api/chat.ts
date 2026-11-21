@@ -1,12 +1,14 @@
 // Endpoint POST /api/chat
 // Orquestra o fluxo do Nori: validacao, RAG, selecao de modelo com cota,
 // geracao com temperatura baixa, validacao de coerencia e registro de consumo
+// Aceita { stream: true } para resposta token a token (sem validacao pos-geracao)
 
 import { catalogoModelos, janelaHistorico } from '../shared/env.js';
-import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm.js';
+import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm.js';
 import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
+import { verificarLimite } from '../shared/ratelimit.js';
 import { buscaHibrida } from '../rag/search.js';
 import {
   carregarDiretrizes,
@@ -19,6 +21,7 @@ import {
 interface CorpoRequisicao {
   mensagem?: unknown;
   historico?: unknown;
+  stream?: unknown;
 }
 
 const TAMANHO_MAX_MENSAGEM = 4000;
@@ -54,7 +57,6 @@ function json(status: number, corpo: unknown): Response {
 async function gerarComFailover(
   modeloInicial: ModeloConfig,
   mensagens: MensagemChat[],
-  tokensEstimados: number,
 ): Promise<{ texto: string; modelo: ModeloConfig; tokensUso?: number } | null> {
   const catalogo = catalogoModelos()
     .filter((m) => m.apiKey)
@@ -71,6 +73,33 @@ async function gerarComFailover(
         continue;
       }
       // falha transitoria: tenta o proximo modelo preservando a conversa
+      console.warn(`[chat] falha no modelo ${modelo.provedor}:`, erro);
+      continue;
+    }
+  }
+  return null;
+}
+
+// Tenta abrir o stream percorrendo a fila; retorna stream + modelo ou null
+async function streamComFailover(
+  modeloInicial: ModeloConfig,
+  mensagens: MensagemChat[],
+): Promise<{ stream: ReadableStream<Uint8Array>; modelo: ModeloConfig } | null> {
+  const catalogo = catalogoModelos()
+    .filter((m) => m.apiKey)
+    .sort((a, b) => a.prioridade - b.prioridade);
+  const fila = catalogo.filter((m) => m.prioridade >= modeloInicial.prioridade);
+
+  for (const modelo of fila) {
+    try {
+      const stream = await streamLLM(modelo, mensagens);
+      return { stream, modelo };
+    } catch (erro) {
+      if (erro instanceof ErroLimiteModelo) {
+        await marcarEsgotado(modelo.id);
+        continue;
+      }
+      console.warn(`[chat] stream falhou no modelo ${modelo.provedor}:`, erro);
       continue;
     }
   }
@@ -79,6 +108,12 @@ async function gerarComFailover(
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
+
+  // Rate limit simples por IP: 20 requisicoes por minuto (best-effort em serverless)
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  if (!verificarLimite(`chat:${ip}`, 20, 60_000)) {
+    return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
+  }
 
   let corpo: CorpoRequisicao;
   try {
@@ -134,7 +169,26 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
-  const gerado = await gerarComFailover(modelo, mensagens, tokensEntrada);
+  const fontes = busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria }));
+
+  // ===== Modo streaming: resposta token a token =====
+  // Nao roda a validacao pos-geracao (texto ja foi enviado); heuristica fica para o modo normal
+  if (corpo.stream === true) {
+    const gerado = await streamComFailover(modelo, mensagens);
+    if (!gerado) {
+      return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
+    }
+    return new Response(gerado.stream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'x-modelo': gerado.modelo.nomeModelo,
+        'x-fontes': encodeURIComponent(JSON.stringify(fontes)),
+      },
+    });
+  }
+
+  const gerado = await gerarComFailover(modelo, mensagens);
   if (!gerado) {
     return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
   }
@@ -148,6 +202,7 @@ export default async function handler(req: Request): Promise<Response> {
   let aviso: string | undefined;
   const heuristica = validarHeuristico(resposta);
   if (!heuristica.ok) {
+    console.warn('[chat] heuristica de coerencia falhou:', heuristica.problemas);
     // Uma tentativa de regeneracao apontando os problemas detectados
     const correcao: MensagemChat[] = [
       ...mensagens,
@@ -166,7 +221,8 @@ export default async function handler(req: Request): Promise<Response> {
       } else {
         aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
       }
-    } catch {
+    } catch (erro) {
+      console.warn('[chat] regeneracao de coerencia falhou:', erro);
       aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
     }
   }
@@ -177,6 +233,6 @@ export default async function handler(req: Request): Promise<Response> {
     provedor: gerado.modelo.provedor,
     aviso,
     tokens: tokensUso,
-    fontes: busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria })),
+    fontes,
   });
 }

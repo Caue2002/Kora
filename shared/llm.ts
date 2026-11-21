@@ -110,3 +110,104 @@ export async function chamarLLM(
   }
   return chamarOpenAICompat(modelo, mensagens, temperatura, maxTokens);
 }
+
+// ===== Streaming de resposta token a token =====
+// Bomba os deltas SSE do provedor para um ReadableStream de texto puro,
+// permitindo que o frontend exiba a resposta conforme ela e gerada
+
+// Processa um corpo SSE e chama onDelta para cada trecho de texto recebido
+async function bombearSSE(
+  corpo: ReadableStream<Uint8Array>,
+  ehGemini: boolean,
+  onDelta: (texto: string) => void,
+): Promise<void> {
+  const reader = corpo.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  const processarLinha = (linha: string) => {
+    if (!linha.startsWith('data:')) return;
+    const json = linha.slice(5).trim();
+    if (!json || json === '[DONE]') return;
+    try {
+      const ev = JSON.parse(json) as {
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        choices?: Array<{ delta?: { content?: string } }>;
+      };
+      const t = ehGemini
+        ? (ev.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '')
+        : (ev.choices?.[0]?.delta?.content ?? '');
+      if (t) onDelta(t);
+    } catch {
+      // ignora linhas malformadas do stream
+    }
+  };
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const linhas = buffer.split('\n');
+    buffer = linhas.pop() ?? '';
+    for (const linha of linhas) processarLinha(linha);
+  }
+  if (buffer.trim()) processarLinha(buffer);
+}
+
+// Abre a conexao de streaming com o provedor
+async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Promise<Response> {
+  if (modelo.provedor === 'gemini') {
+    const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
+    const contents = mensagens
+      .filter((m) => m.role !== 'system')
+      .map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      }));
+    const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+        contents,
+        generationConfig: { temperature: 0.1, maxOutputTokens: maxTokensSaida() },
+      }),
+    });
+  }
+  return fetch(modelo.endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${modelo.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: modelo.nomeModelo,
+      messages: mensagens,
+      temperature: 0.1,
+      max_tokens: maxTokensSaida(),
+      stream: true,
+    }),
+  });
+}
+
+// Gera a resposta em streaming real; lanca ErroLimiteModelo em falha de cota
+export async function streamLLM(modelo: ModeloConfig, mensagens: MensagemChat[]): Promise<ReadableStream<Uint8Array>> {
+  const res = await abrirStream(modelo, mensagens);
+  if (!res.ok || !res.body) {
+    const corpo = await res.text().catch(() => '');
+    if (ehErroLimite(res.status, corpo)) throw new ErroLimiteModelo(`stream ${modelo.provedor} limite`);
+    throw new Error(`stream ${modelo.provedor} ${res.status}: ${corpo.slice(0, 300)}`);
+  }
+  const encoder = new TextEncoder();
+  const ehGemini = modelo.provedor === 'gemini';
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        await bombearSSE(res.body!, ehGemini, (texto) => controller.enqueue(encoder.encode(texto)));
+      } catch {
+        // stream interrompido: encerra o que ja foi enviado
+      } finally {
+        controller.close();
+      }
+    },
+  });
+}

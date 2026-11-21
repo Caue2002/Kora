@@ -798,3 +798,95 @@ body {
     padding: 8px;
   }
 }
+
+/* ===== busca e renomear no historico ===== */
+.sidebar-busca {
+  padding: 4px 12px 8px;
+}
+
+.sidebar-busca-input {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--agente-borda);
+  border-radius: 10px;
+  background: var(--fundo);
+  color: var(--texto);
+  outline: none;
+}
+
+.sidebar-busca-input:focus {
+  border-color: var(--acento);
+}
+
+.sidebar-item-renomear {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--texto-suave);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+
+.sidebar-item:hover .sidebar-item-renomear,
+.sidebar-item-renomear:focus {
+  opacity: 1;
+}
+
+/* ===== comentario de feedback ===== */
+.msg-comentario {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.comentario-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 7px 10px;
+  font-size: 12px;
+  border: 1px solid var(--agente-borda);
+  border-radius: 10px;
+  background: var(--fundo);
+  color: var(--texto);
+  outline: none;
+}
+
+.comentario-input:focus {
+  border-color: var(--acento);
+}
+
+/* ===== retentativa de erro ===== */
+.btn-retry {
+  margin-top: 8px;
+  display: inline-block;
+  background: #b91c1c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-retry:hover {
+  background: #991b1b;
+}
+
+/* ===== indicadores de digitacao inline (streaming) ===== */
+.msg-digitando-inline {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 2px;
+}
+
+.msg-digitando-inline .dot {
+  width: 6px;
+  height: 6px;
+}

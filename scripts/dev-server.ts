@@ -9,6 +9,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chatHandler from '../api/chat.js';
 import feedbackHandler from '../api/feedback.js';
+import parecerHandler from '../api/parecer.js';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,6 +27,7 @@ try {
 const rotas: Record<string, (req: Request) => Promise<Response>> = {
   '/api/chat': chatHandler,
   '/api/feedback': feedbackHandler,
+  '/api/parecer': parecerHandler,
 };
 
 const servidor = createServer(async (req, res) => {
@@ -51,8 +53,20 @@ const servidor = createServer(async (req, res) => {
   try {
     const response = await handler(request);
     res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-    res.end(Buffer.from(await response.arrayBuffer()));
+    // Encaminha o body em streaming quando presente (respostas token a token)
+    if (response.body) {
+      const reader = response.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(Buffer.from(value));
+      }
+      res.end();
+    } else {
+      res.end(Buffer.from(await response.arrayBuffer()));
+    }
   } catch (erro) {
+    console.error('[dev-server] erro no handler:', erro);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ erro: String(erro) }));
   }

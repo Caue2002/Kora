@@ -1,10 +1,12 @@
 // Tela principal do chat com o agente Nori
 // Layout com barra lateral de historico (estilo Gemini) + area de chat mobile-first
+// Respostas em streaming token a token, parecer estruturado e feedback com comentario
 
 import { useEffect, useRef, useState } from 'react';
 import {
   enviarFeedback,
-  enviarMensagem,
+  enviarMensagemStream,
+  gerarParecer,
   listarConversas,
   salvarConversas,
   tituloDe,
@@ -12,6 +14,7 @@ import {
   type Fonte,
   type Mensagem,
 } from './api';
+import { mdParaHtml } from './utils';
 import { renderMarkdown } from './markdown';
 import Sidebar from './Sidebar';
 
@@ -154,12 +157,16 @@ export default function App() {
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [entrada, setEntrada] = useState('');
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState<{ mensagem: string; retryTexto: string } | null>(null);
+  const [exportando, setExportando] = useState(false);
   const [escuro, setEscuro] = useState<boolean>(() => localStorage.getItem(CHAVE_TEMA) === 'escuro');
   const [ouvindo, setOuvindo] = useState(false);
   const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [avaliacaoPendente, setAvaliacaoPendente] = useState<{ msgId: string; avaliacao: string } | null>(null);
+  const [comentario, setComentario] = useState('');
   const fimRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const comentarioRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
   const conversasRef = useRef(conversas);
   conversasRef.current = conversas;
@@ -181,17 +188,18 @@ export default function App() {
   }, [escuro]);
 
   // Persiste a conversa atual na lista de conversas a cada mudanca de mensagens
+  // Preserva o titulo existente (permite renomear sem ser sobrescrito)
   useEffect(() => {
     if (!conversaId || mensagens.length === 0) return;
-    const conversa: Conversa = {
-      id: conversaId,
-      titulo: tituloDe(mensagens),
-      mensagens,
-      atualizadoEm: Date.now(),
-    };
     setConversas((atual) => {
-      const demais = atual.filter((c) => c.id !== conversaId);
-      const nova = [conversa, ...demais];
+      const existente = atual.find((c) => c.id === conversaId);
+      const conversa: Conversa = {
+        id: conversaId,
+        titulo: existente?.titulo ?? tituloDe(mensagens),
+        mensagens,
+        atualizadoEm: Date.now(),
+      };
+      const nova = [conversa, ...atual.filter((c) => c.id !== conversaId)];
       salvarConversas(nova);
       return nova;
     });
@@ -201,6 +209,11 @@ export default function App() {
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [mensagens, enviando]);
+
+  // Foca o campo de comentario quando uma avaliacao fica pendente
+  useEffect(() => {
+    if (avaliacaoPendente) comentarioRef.current?.focus();
+  }, [avaliacaoPendente]);
 
   // Mantem o foco no campo apos cada resposta
   useEffect(() => {
@@ -215,7 +228,7 @@ export default function App() {
     };
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) {
-      setErro('Ditado por voz nao suportado neste navegador.');
+      setErro({ mensagem: 'Ditado por voz nao suportado neste navegador.', retryTexto: '' });
       return;
     }
     if (ouvindo) {
@@ -236,42 +249,53 @@ export default function App() {
     rec.start();
   }
 
-  // Fluxo unico de envio: usado pelo campo, pelas sugestoes e pelas acoes rapidas
+  // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
   async function processarEnvio(texto: string) {
     if (!texto || enviando) return;
     setErro(null);
     setEntrada('');
     setSidebarAberta(false);
+    setAvaliacaoPendente(null);
 
     // garante um id de conversa antes do primeiro envio
     const cid = conversaId ?? novoId();
     if (!conversaId) setConversaId(cid);
 
     const doUsuario: Mensagem = { id: novoId(), role: 'user', content: texto, ts: Date.now() };
-    setMensagens((atual) => [...atual, doUsuario]);
+    const assistId = novoId();
+    setMensagens((atual) => [
+      ...atual,
+      doUsuario,
+      { id: assistId, role: 'assistant', content: '', ts: Date.now() },
+    ]);
     setEnviando(true);
 
     try {
-      const r = await enviarMensagem(texto, mensagens);
+      const r = await enviarMensagemStream(texto, mensagens, (delta) => {
+        setMensagens((atual) =>
+          atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
+        );
+      });
       if (r.erro) {
-        setErro(r.erro);
+        setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
+        setErro({ mensagem: r.erro, retryTexto: texto });
       } else {
-        setMensagens((atual) => [
-          ...atual,
-          {
-            id: novoId(),
-            role: 'assistant',
-            content: r.resposta,
-            ts: Date.now(),
-            modelo: r.modelo,
-            categoria: categoriaPredominante(r.fontes),
-            fontes: r.fontes,
-            tokens: r.tokens,
-          },
-        ]);
+        setMensagens((atual) =>
+          atual.map((m) =>
+            m.id === assistId
+              ? {
+                  ...m,
+                  modelo: r.modelo,
+                  categoria: categoriaPredominante(r.fontes),
+                  fontes: r.fontes,
+                }
+              : m,
+          ),
+        );
       }
     } catch {
-      setErro('Falha de conexao com o servidor. Tente novamente.');
+      setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
+      setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: texto });
     } finally {
       setEnviando(false);
     }
@@ -295,6 +319,7 @@ export default function App() {
     setMensagens([]);
     setErro(null);
     setSidebarAberta(false);
+    setAvaliacaoPendente(null);
   }
 
   // Exclui uma conversa do historico
@@ -305,7 +330,36 @@ export default function App() {
     if (id === conversaId) novaConversa();
   }
 
-  function exportarParecer() {
+  // Renomeia uma conversa do historico
+  function renomearConversa(id: string, titulo: string) {
+    setConversas((atual) => {
+      const nova = atual.map((c) => (c.id === id ? { ...c, titulo } : c));
+      salvarConversas(nova);
+      return nova;
+    });
+  }
+
+  // Exporta a conversa como parecer estruturado em HTML (fallback: texto)
+  async function exportarParecer() {
+    if (exportando || mensagens.length === 0) return;
+    setExportando(true);
+    try {
+      const r = await gerarParecer(mensagens);
+      if (r.parecer) {
+        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Parecer de Conciliacao - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#047857}h2{color:#065f46;border-bottom:1px solid #e2e8f0;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Parecer de Conciliacao</h1><p><em>Gerado pelo agente Nori - Kora</em></p><pre>${mdParaHtml(r.parecer)}</pre></body></html>`;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'parecer-conciliacao.html';
+        a.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+    } catch {
+      // cai no fallback de texto
+    }
+    // Fallback: exporta a conversa bruta em texto
     const texto = mensagens
       .map((m) => `${m.role === 'user' ? 'USUARIO' : 'NORI'}:\n${m.content}`)
       .join('\n\n---\n\n');
@@ -316,6 +370,18 @@ export default function App() {
     a.download = 'parecer-conciliacao.txt';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // Envia a avaliacao escolhida; comentario e opcional
+  function confirmarAvaliacao(comComentario: boolean) {
+    if (!avaliacaoPendente) return;
+    enviarFeedback(
+      avaliacaoPendente.avaliacao as 'util' | 'confuso' | 'incompleto' | 'prolixo',
+      undefined,
+      comComentario ? comentario.trim() || undefined : undefined,
+    );
+    setAvaliacaoPendente(null);
+    setComentario('');
   }
 
   const ultimaResposta = [...mensagens].reverse().find((m) => m.role === 'assistant');
@@ -330,6 +396,7 @@ export default function App() {
         onSelecionar={selecionarConversa}
         onNova={novaConversa}
         onExcluir={excluirConversa}
+        onRenomear={renomearConversa}
         onFechar={() => setSidebarAberta(false)}
       />
 
@@ -357,7 +424,7 @@ export default function App() {
               {escuro ? iconeSol : iconeLua}
             </button>
             {mensagens.length > 0 && (
-              <button className="btn-icon" onClick={exportarParecer} title="Exportar parecer" aria-label="Exportar">
+              <button className="btn-icon" onClick={exportarParecer} title="Exportar parecer" aria-label="Exportar" disabled={exportando}>
                 {iconeDownload}
               </button>
             )}
@@ -390,7 +457,17 @@ export default function App() {
               <div key={m.id} className="msg msg-assistant msg-entra">
                 <img src="/logo.svg" alt="" className="msg-avatar" />
                 <div className="msg-assistant-corpo">
-                  <div className="msg-balao">{renderMarkdown(m.content)}</div>
+                  <div className="msg-balao">
+                    {m.content === '' ? (
+                      <span className="msg-digitando-inline">
+                        <span className="dot" />
+                        <span className="dot" />
+                        <span className="dot" />
+                      </span>
+                    ) : (
+                      renderMarkdown(m.content)
+                    )}
+                  </div>
                   {m.categoria && (
                     <span className={`msg-badge badge-${m.categoria}`}>
                       {CATEGORIAS[m.categoria] ?? m.categoria}
@@ -401,7 +478,7 @@ export default function App() {
                     {' · '}
                     {formatarHora(m.ts)}
                   </div>
-                  {m === ultimaResposta && (
+                  {m === ultimaResposta && !enviando && (
                     <div className="msg-acoes">
                       <button
                         className="btn-mini"
@@ -411,10 +488,36 @@ export default function App() {
                         {iconeCopiar}
                       </button>
                       {AVISOS.map((a) => (
-                        <button key={a} className="btn-mini" onClick={() => enviarFeedback(a)} title={`Avaliar: ${a}`}>
+                        <button
+                          key={a}
+                          className="btn-mini"
+                          onClick={() => {
+                            setAvaliacaoPendente({ msgId: m.id, avaliacao: a });
+                            setComentario('');
+                          }}
+                          title={`Avaliar: ${a}`}
+                        >
                           {a}
                         </button>
                       ))}
+                    </div>
+                  )}
+                  {avaliacaoPendente?.msgId === m.id && (
+                    <div className="msg-comentario">
+                      <input
+                        ref={comentarioRef}
+                        className="comentario-input"
+                        placeholder="Comentário opcional sobre esta avaliação..."
+                        value={comentario}
+                        onChange={(e) => setComentario(e.target.value)}
+                        maxLength={500}
+                      />
+                      <button className="btn-mini" onClick={() => confirmarAvaliacao(true)}>
+                        Enviar
+                      </button>
+                      <button className="btn-mini" onClick={() => confirmarAvaliacao(false)}>
+                        Pular
+                      </button>
                     </div>
                   )}
                 </div>
@@ -422,18 +525,16 @@ export default function App() {
             ),
           )}
 
-          {enviando && (
-            <div className="msg msg-assistant">
-              <img src="/logo.svg" alt="" className="msg-avatar" />
-              <div className="msg-balao msg-digitando">
-                <span className="dot" />
-                <span className="dot" />
-                <span className="dot" />
-              </div>
+          {erro && (
+            <div className="chat-erro">
+              {erro.mensagem}
+              {erro.retryTexto && (
+                <button className="btn-retry" onClick={() => processarEnvio(erro.retryTexto)}>
+                  Tentar novamente
+                </button>
+              )}
             </div>
           )}
-
-          {erro && <div className="chat-erro">{erro}</div>}
           <div ref={fimRef} />
         </main>
 

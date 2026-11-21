@@ -72,3 +72,29 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
   modelo padrao trocado para gemini-3.1-flash-lite por latencia.
 - Motivo: feedback do usuario — agente estava restrito demais ao operacional,
   formal demais e lento; flash-lite responde em ~4s vs ~7-14s do flash.
+
+## D11 - Streaming token a token nas respostas
+
+- Decisao: /api/chat aceita { stream: true } e devolve texto puro via
+  ReadableStream alimentado pelo SSE do provedor (streamGenerateContent?alt=sse
+  no Gemini, stream:true no formato OpenAI); frontend preenche a bolha por deltas.
+- Motivo: latencia percebida cai drasticamente; o usuario ve a resposta nascer.
+- Ressalva: no modo streaming nao roda a validacao pos-geracao de coerencia
+  (o texto ja foi entregue); modo JSON classico mantido com validacao completa.
+
+## D12 - Rate limit em memoria por IP
+
+- Decisao: shared/ratelimit.ts com janela deslizante em Map; /api/chat 20 req/min,
+  /api/parecer 10 req/min, /api/feedback 30 req/min por IP (x-forwarded-for).
+- Motivo: endpoints publicos sem protecao sao alvo de abuso; solucao sem custo.
+- Ressalva: em serverless cada instancia tem contador proprio — best-effort,
+  suficiente contra abuso casual; se precisar de limite global, migrar para
+  tabela no Postgres ou Upstash.
+
+## D13 - Parecer de conciliacao estruturado
+
+- Decisao: POST /api/parecer recebe o historico da conversa e gera documento
+  markdown com secoes fixas (Resumo, Fatos, Evidencias, Divergencia, Plano,
+  Pendencias); frontend exporta como HTML formatado.
+- Motivo: transforma o chat em entregavel operacional auditavel, conforme a
+  proposta do agente de conciliacao.

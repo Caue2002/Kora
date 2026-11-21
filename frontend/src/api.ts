@@ -106,14 +106,70 @@ export async function enviarMensagem(mensagem: string, historico: Mensagem[]): P
   return dados;
 }
 
+// Envia a mensagem em modo streaming: chama onDelta a cada trecho recebido
+// Retorna os metadados (modelo, fontes) lidos dos headers da resposta
+export async function enviarMensagemStream(
+  mensagem: string,
+  historico: Mensagem[],
+  onDelta: (texto: string) => void,
+): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string }> {
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mensagem,
+      historico: historico.map((m) => ({ role: m.role, content: m.content })),
+      stream: true,
+    }),
+  });
+
+  if (!res.ok || !res.body) {
+    const dados = (await res.json().catch(() => ({}))) as { erro?: string };
+    return { erro: dados.erro ?? 'Falha ao contatar o agente.' };
+  }
+
+  const modelo = res.headers.get('x-modelo') ?? undefined;
+  const fontesBruto = res.headers.get('x-fontes');
+  let fontes: Fonte[] | undefined;
+  try {
+    fontes = fontesBruto ? (JSON.parse(decodeURIComponent(fontesBruto)) as Fonte[]) : undefined;
+  } catch {
+    fontes = undefined;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    onDelta(decoder.decode(value, { stream: true }));
+  }
+  return { modelo, fontes };
+}
+
+// Gera o parecer de conciliacao estruturado no backend
+export async function gerarParecer(mensagens: Mensagem[]): Promise<{ parecer?: string; erro?: string }> {
+  const res = await fetch('/api/parecer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      mensagens: mensagens.map((m) => ({ role: m.role, content: m.content })),
+    }),
+  });
+  const dados = (await res.json()) as { parecer?: string; erro?: string };
+  if (!res.ok) return { erro: dados.erro ?? 'Falha ao gerar parecer.' };
+  return dados;
+}
+
 // Registra a avaliacao do usuario sobre uma resposta do agente
 export async function enviarFeedback(
   avaliacao: 'util' | 'confuso' | 'incompleto' | 'prolixo',
   modeloId?: number,
+  comentario?: string,
 ): Promise<void> {
   await fetch('/api/feedback', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ avaliacao, modeloId }),
+    body: JSON.stringify({ avaliacao, modeloId, comentario: comentario || undefined }),
   }).catch(() => undefined);
 }

@@ -9,3 +9,21 @@ export function formatarDataCurta(ts: number): string {
   const min = String(d.getMinutes()).padStart(2, '0');
   return `${dia}/${mes} ${hora}:${min}`;
 }
+
+// Converte markdown simples em HTML para o arquivo de parecer exportado
+// Cobre: escape de HTML, titulos ##, negrito ** e quebras de linha
+export function mdParaHtml(md: string): string {
+  const escapado = md
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escapado
+    .split('\n')
+    .map((linha) => {
+      let html = linha.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      if (html.startsWith('## ')) return `<h2>${html.slice(3)}</h2>`;
+      if (html.startsWith('# ')) return `<h1>${html.slice(2)}</h1>`;
+      return html || '<br>';
+    })
+    .join('\n');
+}

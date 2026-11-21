@@ -1,0 +1,32 @@
+name: Testes e Validacao
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias do servidor
+        run: npm ci
+
+      - name: Instalar dependencias do frontend
+        run: npm --prefix frontend ci
+
+      - name: Typecheck do servidor
+        run: npm run typecheck
+
+      - name: Testes unitarios
+        run: npm test
+
+      - name: Build do frontend
+        run: npm --prefix frontend run build
