@@ -872,6 +872,15 @@ export default function App() {
             enviar();
           }}
         >
+          <button
+            type="button"
+            className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
+            onClick={alternarDitado}
+            title="Ditar mensagem"
+            aria-label="Ditar mensagem"
+          >
+            {iconeMicrofone}
+          </button>
           <div className="chat-input-bloco">
             <input
               ref={inputRef}
@@ -886,15 +895,6 @@ export default function App() {
               <span className="contador-chars">{entrada.length}/4000</span>
             )}
           </div>
-          <button
-            type="button"
-            className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
-            onClick={alternarDitado}
-            title="Ditar mensagem"
-            aria-label="Ditar mensagem"
-          >
-            {iconeMicrofone}
-          </button>
           <button className="chat-enviar" type="submit" disabled={enviando || entrada.trim().length === 0}>
             Enviar
           </button>
