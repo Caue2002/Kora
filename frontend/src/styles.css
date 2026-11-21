@@ -1397,7 +1397,7 @@ body {
 
 .perfis-grade {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -1468,10 +1468,38 @@ body {
 }
 
 @media (max-width: 640px) {
-  .perfis-grade {
-    grid-template-columns: 1fr;
-  }
   .chat-sugestoes {
     max-width: 100%;
+  }
+}
+
+/* telas baixas (celular deitado, janelas pequenas): compacta a tela inicial
+   para saudacao + perfil + sugestoes caberem sem corte */
+@media (max-height: 700px) {
+  .chat-vazio {
+    padding: 12px;
+  }
+  .chat-vazio-dica {
+    margin-top: 8px;
+  }
+  .perfis-bloco {
+    margin-top: 10px;
+  }
+  .perfis-grade {
+    margin-top: 8px;
+    gap: 8px;
+  }
+  .perfil-card {
+    padding: 8px 10px;
+  }
+  .perfil-chip {
+    margin-top: 10px;
+  }
+  .chat-sugestoes {
+    margin-top: 8px;
+    gap: 4px;
+  }
+  .chip-sugestao {
+    padding: 6px 12px;
   }
 }
