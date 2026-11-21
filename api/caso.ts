@@ -34,6 +34,8 @@ const STATUS = ['em_andamento', 'resolvido', 'encerrado'] as const;
 
 const MAX_MENSAGENS = 16;
 const MAX_CHARS_MENSAGEM = 1500;
+// Ids de conversa sao gerados no frontend como `${timestamp}-${aleatorio}`
+const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
 
 function json(status: number, corpo: unknown): Response {
   return new Response(JSON.stringify(corpo), {
@@ -158,11 +160,11 @@ export default async function handler(req: Request): Promise<Response> {
   // ===== GET: consulta o estado persistido do caso =====
   if (req.method === 'GET') {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-    if (!verificarLimite(`caso-get:${ip}`, 60, 60_000)) {
+    if (!(await verificarLimite(`caso-get:${ip}`, 60, 60_000))) {
       return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
     }
     const conversaId = url.searchParams.get('conversaId') ?? '';
-    if (!conversaId || conversaId.length > 100) {
+    if (!CONVERSA_ID_VALIDO.test(conversaId)) {
       return json(400, { erro: 'conversaId ausente ou invalido' });
     }
     try {
@@ -177,7 +179,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Rate limit: a extracao roda apos cada resposta do agente
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  if (!verificarLimite(`caso:${ip}`, 30, 60_000)) {
+  if (!(await verificarLimite(`caso:${ip}`, 30, 60_000))) {
     return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
   }
 
@@ -189,7 +191,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const conversaId = typeof corpo.conversaId === 'string' ? corpo.conversaId.trim() : '';
-  if (!conversaId || conversaId.length > 100) {
+  if (!CONVERSA_ID_VALIDO.test(conversaId)) {
     return json(400, { erro: 'conversaId ausente ou invalido' });
   }
 

@@ -19,7 +19,7 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  if (!verificarLimite(`feedback:${ip}`, 30, 60_000)) {
+  if (!(await verificarLimite(`feedback:${ip}`, 30, 60_000))) {
     return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
   }
 

@@ -52,8 +52,15 @@ de entrega.
 - Streaming de respostas token a token: shared/llm.ts (streamLLM + parser SSE
   Gemini/OpenAI), /api/chat aceita { stream: true }, frontend preenche a bolha
   por deltas; metadados (modelo/fontes) via headers x-modelo/x-fontes
-- Rate limit em memoria por IP (shared/ratelimit.ts): chat 20/min,
-  parecer 10/min, feedback 30/min
+- Rate limit por IP em duas camadas (shared/ratelimit.ts): persistente no
+  Postgres via RPC verificar_rate_limit (migration 0008, janela fixa
+  atomica compartilhada entre instancias) com fallback em memoria;
+  chat 20/min, caso-get 60/min, caso 30/min, parecer 10/min, feedback 30/min
+- Camadas de seguranca: validacao estrita de entrada (tamanho, enums,
+  whitelist de MIME/tamanho de imagem ~3MB), conversaId validado por regex,
+  prompt do sistema com regra anti-injecao, saida do LLM sanitizada por
+  dominio, segredos apenas server-side, headers de seguranca no vercel.json
+  (CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy)
 - Endpoint POST /api/parecer: parecer de conciliacao estruturado (markdown
   com secoes fixas) gerado sob demanda; frontend exporta HTML formatado
 - Feedback com comentario opcional: migracao 0005_feedback_comentario.sql
@@ -142,15 +149,16 @@ de entrega.
 ## Pendencias (proximos passos, em ordem)
 
 1. Aplicar database/migrations/0005_feedback_comentario.sql,
-   0006_categorias_disputa.sql e 0007_casos.sql no SQL Editor do Supabase
-   (sem a 0007 o card "Caso" funciona mas nao persiste entre sessoes)
+   0006_categorias_disputa.sql, 0007_casos.sql e 0008_rate_limit.sql no
+   SQL Editor do Supabase (sem a 0007 o card "Caso" nao persiste; sem a
+   0008 o rate limit cai no fallback em memoria por instancia)
 3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
    do .env no painel da Vercel e fazer deploy do repositorio
    (verificar se streaming e /api/parecer funcionam no ambiente serverless)
 4. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
 5. Testar o chat no navegador com cenarios de disputa reais e ajustar prompt/politicas
-6. Se necessario, substituir rate limit em memoria por limitador persistente
-   (tabela Postgres ou Upstash) para cobrir multiplas instancias serverless
+6. Rate limit persistente ja implementado (migration 0008); se quiser
+   endurecer mais, avaliar Cloudflare Turnstile (gratuito, sem login) no chat
 7. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
    avaliar ativacao permanente conforme custo de tokens
 
@@ -169,8 +177,8 @@ de entrega.
 - `.env` NAO vai para o Git (contem segredos): recriar a partir de
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback ok; 9 politicas de disputa
-  ingeridas (politicas_disputa_exemplo); migrations 0005, 0006 e 0007 pendentes
-  de aplicacao manual no SQL Editor
+  ingeridas (politicas_disputa_exemplo); migrations 0005, 0006, 0007 e 0008
+  pendentes de aplicacao manual no SQL Editor
 - Para subir local: npm install + npm --prefix frontend install, preencher
   .env, rodar `npm run dev:api` (porta 3000) e `npm run dev:web` (porta 5173)
 

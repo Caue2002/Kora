@@ -41,7 +41,7 @@ const CONTEXTO_PERFIL: Record<string, string> = {
 const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
 const MIMES_IMAGEM = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const TAMANHO_MAX_IMAGEM_B64 = 8_000_000; // ~6MB em base64
+const TAMANHO_MAX_IMAGEM_B64 = 4_200_000; // ~3MB em base64 (body total fica abaixo do limite da Vercel)
 
 // Valida o anexo de imagem opcional (evidencia fotografica da disputa)
 function normalizarImagem(imagem: unknown): { base64: string; mime: string } | undefined {
@@ -138,7 +138,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Rate limit simples por IP: 20 requisicoes por minuto (best-effort em serverless)
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
-  if (!verificarLimite(`chat:${ip}`, 20, 60_000)) {
+  if (!(await verificarLimite(`chat:${ip}`, 20, 60_000))) {
     return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
   }
 

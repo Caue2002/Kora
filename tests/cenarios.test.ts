@@ -64,7 +64,10 @@ describe('Cenarios fixos da Kora', () => {
     expect(r.status).toBe(200);
     expect(r.resposta).toBeTruthy();
     // deve reconhecer item faltante e conduzir conciliacao
-    expect(r.resposta!.toLowerCase()).toMatch(/item|faltante|quantidade|diverg|concilia|reembolso|credito/);
+    // (aceita variacoes naturais: "faltou", "nao chegou", "só veio um")
+    expect(r.resposta!.toLowerCase()).toMatch(
+      /item|faltante|faltou|quantidade|diverg|concilia|reembolso|credito|nao chegou|so veio|chegou so/,
+    );
   }, 150000);
 
   it('Cenario incompleto/ambiguo: deve pedir esclarecimentos', async () => {

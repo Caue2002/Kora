@@ -408,8 +408,8 @@ export default function App() {
       setErro({ mensagem: 'Envie apenas imagens (foto da evidencia).', retryTexto: '' });
       return;
     }
-    if (file.size > 6 * 1024 * 1024) {
-      setErro({ mensagem: 'Imagem muito grande (maximo 6MB).', retryTexto: '' });
+    if (file.size > 3 * 1024 * 1024) {
+      setErro({ mensagem: 'Imagem muito grande (maximo 3MB).', retryTexto: '' });
       return;
     }
     const reader = new FileReader();
