@@ -1355,6 +1355,7 @@ body {
 .perfis-bloco {
   width: 100%;
   max-width: 560px;
+  margin-top: 18px;
 }
 
 .perfis-grade {
