@@ -259,10 +259,11 @@ const iconeFechar = (
 // Tipo minimo da Web Speech API para o ditado por voz
 interface ReconhecimentoVoz {
   lang: string;
+  continuous: boolean;
   interimResults: boolean;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((e?: { error?: string }) => void) | null;
   start: () => void;
   stop: () => void;
 }
@@ -374,13 +375,25 @@ export default function App() {
     }
     const rec = new Ctor();
     rec.lang = 'pt-BR';
-    rec.interimResults = false;
+    rec.continuous = true;
+    rec.interimResults = true;
+    const base = entrada;
     rec.onresult = (e) => {
-      const texto = e.results[0]?.[0]?.transcript;
-      if (texto) setEntrada((atual) => (atual ? `${atual} ${texto}` : texto));
+      // Reconstrui a transcricao completa: results acumula todas as frases ditadas
+      let texto = '';
+      for (let i = 0; i < e.results.length; i++) {
+        texto += e.results[i]?.[0]?.transcript ?? '';
+      }
+      const combinado = `${base} ${texto}`.trim();
+      setEntrada(combinado);
     };
     rec.onend = () => setOuvindo(false);
-    rec.onerror = () => setOuvindo(false);
+    rec.onerror = (ev) => {
+      setOuvindo(false);
+      if (ev?.error === 'not-allowed' || ev?.error === 'service-not-allowed') {
+        setErro({ mensagem: 'Microfone bloqueado. Permita o acesso nas configuracoes do navegador e tente de novo.', retryTexto: '' });
+      }
+    };
     reconhecimentoRef.current = rec;
     setOuvindo(true);
     rec.start();
@@ -443,6 +456,8 @@ export default function App() {
   // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
   async function processarEnvio(texto: string) {
     if (!texto || enviando) return;
+    reconhecimentoRef.current?.stop();
+    setOuvindo(false);
     setErro(null);
     setEntrada('');
     setSidebarAberta(false);
