@@ -29,6 +29,11 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 - Regras de exemplo da RotaLeve criadas em database/seeds/regras_rotaleve.json
   (7 regras nas 4 categorias) + script scripts/ingerir_conhecimento.mjs
   para gerar embeddings e popular conhecimento_chunks
+- .env configurado (Supabase + Gemini); chaves antigas revogadas e substituidas
+- RAG populado: 7 chunks com embeddings 1536 dims em conhecimento_chunks
+- Teste de integracao real do /api/chat passando (Gemini + Supabase + RAG)
+- Servidor de dev local criado: scripts/dev-server.ts (npm run dev:api, porta 3000)
+  + vite proxy; chat testado de ponta a ponta em http://localhost:5173
 
 ## Em andamento
 
@@ -43,10 +48,10 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Finalizar .env local (SUPABASE_URL + chaves) e rodar
-   `node scripts/ingerir_conhecimento.mjs` para popular o RAG com as regras de exemplo
+1. Testar o chat no navegador com cenarios reais da RotaLeve e ajustar prompt/regras
 2. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
-3. Deploy na Vercel e teste de ponta a ponta do chat
+3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
+   do .env no painel da Vercel e fazer deploy do repositorio
 4. Implementar resumo de contexto/fatos confirmados na troca de modelo (janela atual e basica)
 5. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
    avaliar ativacao permanente conforme custo de tokens
