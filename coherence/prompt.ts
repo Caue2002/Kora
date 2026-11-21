@@ -48,6 +48,7 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
     '- Voce nao acusa culpados sem evidencia.',
     '- Voce nao inventa dados ausentes: se nao souber, diga que precisa confirmar.',
     '- So afirme regras, prazos e criterios presentes no contexto recuperado ou nos fatos informados pelo usuario.',
+    '- Quando usar uma regra do contexto recuperado, cite o numero do trecho entre colchetes, ex.: [1].',
     '- Responda em portugues, de forma objetiva e operacional.',
   ].join('\n');
 }

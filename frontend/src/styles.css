@@ -10,6 +10,7 @@
   --acento-claro: #d1fae5;
   --texto: #0f172a;
   --texto-suave: #475569;
+  --cartao: #ffffff;
   --sombra: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
@@ -52,7 +53,7 @@ body {
   justify-content: space-between;
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
   border-bottom: 1px solid var(--agente-borda);
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--cartao) 90%, transparent);
   backdrop-filter: blur(6px);
 }
 
@@ -151,7 +152,7 @@ body {
 }
 
 .chip-sugestao {
-  background: #ffffff;
+  background: var(--cartao);
   border: 1px solid var(--agente-borda);
   color: var(--texto);
   font-size: 13px;
@@ -224,7 +225,7 @@ body {
 }
 
 .msg-assistant .msg-balao {
-  background: #ffffff;
+  background: var(--cartao);
   border: 1px solid var(--agente-borda);
   border-bottom-left-radius: 4px;
   box-shadow: var(--sombra);
@@ -344,7 +345,7 @@ body {
 
 .btn-quick {
   flex: 1;
-  background: #ffffff;
+  background: var(--cartao);
   border: 1px solid var(--agente-borda);
   color: var(--acento);
   font-size: 12px;
@@ -364,7 +365,7 @@ body {
   display: flex;
   gap: 8px;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.95);
+  background: color-mix(in srgb, var(--cartao) 95%, transparent);
   border-top: 1px solid var(--agente-borda);
 }
 
@@ -447,4 +448,130 @@ body {
   .chat-mensagens {
     padding: 24px 20%;
   }
+}
+
+/* ===== tema escuro ===== */
+[data-theme='escuro'] {
+  --fundo: #0f172a;
+  --cartao: #1e293b;
+  --usuario: #065f46;
+  --agente-borda: #334155;
+  --acento: #10b981;
+  --acento-claro: #064e3b;
+  --texto: #e2e8f0;
+  --texto-suave: #94a3b8;
+  --sombra: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='escuro'] body {
+  background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+}
+
+[data-theme='escuro'] .chat-input {
+  background: #0b1220;
+  color: var(--texto);
+}
+
+/* ===== animacao de entrada das mensagens ===== */
+.msg-entra {
+  animation: entra 0.25s ease-out;
+}
+
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== botoes de icone no cabecalho ===== */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--agente-borda);
+  background: var(--cartao);
+  color: var(--acento);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-icon:hover {
+  background: var(--acento-claro);
+}
+
+/* ===== botao de ditado por voz ===== */
+.btn-mic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--agente-borda);
+  background: var(--cartao);
+  color: var(--texto-suave);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-mic:hover {
+  color: var(--acento);
+  border-color: var(--acento);
+}
+
+.btn-mic.ouvindo {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+  animation: pulsa-mic 1.2s infinite;
+}
+
+@keyframes pulsa-mic {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+  }
+}
+
+/* ===== citacoes [n] inline e fontes numeradas ===== */
+.cite {
+  color: var(--acento);
+  font-weight: 700;
+  font-size: 0.75em;
+}
+
+.msg-fontes ol {
+  margin: 6px 0 0 18px;
+}
+
+.msg-fontes li {
+  margin-bottom: 3px;
+}
+
+/* icones dentro dos botoes de acao rapida */
+.btn-quick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* mini botoes com icone */
+.btn-mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 30px;
+  justify-content: center;
 }

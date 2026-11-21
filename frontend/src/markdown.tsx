@@ -4,9 +4,9 @@
 
 import type { ReactNode } from 'react';
 
-// Converte texto inline com **negrito** e *italico* em nos React
+// Converte texto inline com **negrito**, *italico* e citacoes [n] em nos React
 function inline(texto: string, chaveBase: string): ReactNode[] {
-  const partes = texto.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+  const partes = texto.split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[\d+\])/g);
   return partes.map((p, i) => {
     const chave = `${chaveBase}-${i}`;
     if (p.startsWith('**') && p.endsWith('**')) {
@@ -14,6 +14,9 @@ function inline(texto: string, chaveBase: string): ReactNode[] {
     }
     if (p.startsWith('*') && p.endsWith('*') && p.length > 2) {
       return <em key={chave}>{p.slice(1, -1)}</em>;
+    }
+    if (/^\[\d+\]$/.test(p)) {
+      return <sup key={chave} className="cite">{p}</sup>;
     }
     return <span key={chave}>{p}</span>;
   });
