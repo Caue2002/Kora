@@ -1134,14 +1134,4 @@ body {
   pointer-events: none;
 }
 
-/* ===== modo foco: esconde chrome para leitura ===== */
-.layout.foco .sidebar,
-.layout.foco .sidebar-backdrop,
-.layout.foco .chat-topo,
-.layout.foco .chat-quick {
-  display: none;
-}
-
-.layout.foco .chat {
-  max-width: 760px;
-}
+/* ===== modo foco removido: funcao descontinuada a pedido do usuario ===== */

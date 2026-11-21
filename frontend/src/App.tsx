@@ -170,14 +170,6 @@ const iconeFontes = (
     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
   </Icone>
 );
-const iconeFoco = (
-  <Icone size={16}>
-    <polyline points="15 3 21 3 21 9" />
-    <polyline points="9 21 3 21 3 15" />
-    <line x1="21" y1="3" x2="14" y2="10" />
-    <line x1="3" y1="21" x2="10" y2="14" />
-  </Icone>
-);
 const iconeBaixo = (
   <Icone size={16}>
     <polyline points="6 9 12 15 18 9" />
@@ -212,7 +204,6 @@ export default function App() {
   const [avaliacaoAberta, setAvaliacaoAberta] = useState<string | null>(null);
   const [fontesAbertas, setFontesAbertas] = useState<string | null>(null);
   const [mostrarScroll, setMostrarScroll] = useState(false);
-  const [modoFoco, setModoFoco] = useState(false);
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -456,7 +447,7 @@ export default function App() {
   }
 
   return (
-    <div className={`layout ${modoFoco ? 'foco' : ''}`}>
+    <div className="layout">
       <Sidebar
         conversas={conversas}
         atualId={conversaId}
@@ -487,14 +478,6 @@ export default function App() {
                 {iconeDownload}
               </button>
             )}
-            <button
-              className="btn-icon"
-              onClick={() => setModoFoco((v) => !v)}
-              title={modoFoco ? 'Sair do modo foco' : 'Modo foco'}
-              aria-label="Modo foco"
-            >
-              {iconeFoco}
-            </button>
           </div>
         </header>
 
