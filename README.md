@@ -1,99 +1,68 @@
 # Projeto Kora — Agente Nori
 
-Agente de IA para triagem, investigação e conciliação de **disputas de pedidos**
-em um aplicativo de delivery fictício (clientes × restaurantes × entregadores).
+> **Experimente:** https://kora-frontend-jade.vercel.app
 
-O Nori coleta evidências (incluindo fotos), separa fatos de hipóteses, consulta as
-políticas de disputa no PostgreSQL com **busca híbrida** (textual + vetorial/pgvector),
-mantém um **estado estruturado do caso** persistido no banco e guia o usuário até
-um plano de conciliação — sem nunca inventar políticas ou acusar sem evidência.
+Agente de IA conversacional para triagem, investigação e conciliação de
+**disputas de pedidos** em um aplicativo de delivery fictício
+(clientes × restaurantes × entregadores).
 
-**Deploy de demonstração:** https://kora-frontend-jade.vercel.app
+O Nori conversa com três tipos de usuário — cliente, vendedor parceiro e
+entregador — coleta evidências (inclusive fotos), separa fatos confirmados de
+hipóteses, consulta políticas de disputa em uma base de conhecimento com
+**busca híbrida** (textual + vetorial) e conduz o caso até um plano de
+conciliação. Ele nunca inventa políticas, nunca acusa sem evidência e sempre
+deixa claro o que é fato e o que ainda precisa ser confirmado.
+
+## Como funciona
+
+1. O usuário escolhe um perfil e descreve o problema (ou informa o código do
+   pedido — a Nori "encontra" um pedido fictício determinístico e pede
+   confirmação)
+2. A cada mensagem, o backend faz **busca híbrida** no PostgreSQL/pgvector:
+   correspondência textual exata + similaridade semântica por embeddings
+3. O prompt do sistema combina persona, perfil do usuário, data/hora atual,
+   diretrizes de estilo adaptativas (aprendidas com feedback) e os trechos
+   recuperados — tudo com regras rígidas contra alucinação e prompt injection
+4. A resposta é gerada por uma **cadeia de failover** de modelos gratuitos:
+   Gemini → Groq → Gemini reserva → Pollinations, com controle de cota por
+   janela de tokens persistido no banco
+5. Em paralelo, um extrator de caso mantém um **estado estruturado**
+   (etapa, fatos, evidências, pendências, status) persistido no Supabase —
+   base para o resumo exportável da conversa
 
 ## Funcionalidades
 
-- Chat mobile-first com streaming token a token, histórico persistente, busca e
-  renomeação de conversas, dark mode, PWA e ditado por voz (Web Speech API)
-- Três perfis de usuário (Cliente, Vendedor parceiro, Entregador) com contexto
-  e sugestões de disputa próprias
-- Simulação de pedidos: qualquer código informado gera um pedido fictício
-  determinístico e variado para confirmação (mesmo código = mesmo pedido)
-- Estado do caso estruturado (etapa, fatos, evidências, pendências, status) com
-  exportação de resumo — tudo persistido no Supabase
-- Extração de caso via LLM com saída sanitizada contra domínio fixo
-- Failover de 4 camadas de modelos gratuitos: Gemini → Groq → Gemini reserva →
-  Pollinations (sem chave)
-- Camadas de segurança sem login: rate limit persistente no Postgres (compartilhado
-  entre instâncias serverless), validação rigorosa de entrada, segredos só no
-  servidor, headers de segurança (CSP, X-Frame-Options), anti prompt-injection
+- Chat mobile-first com streaming token a token, histórico persistente com
+  busca/renomeação, dark mode, PWA instalável e ditado por voz
+- Três perfis com contexto e sugestões de disputa próprios
+- Estado do caso estruturado e exportável
+- Avaliação de respostas (feedback) que alimenta diretrizes de estilo
+- Failover automático entre provedores de IA
+- Camadas de segurança sem login: rate limit persistente compartilhado entre
+  instâncias serverless, validação rigorosa de entrada, segredos apenas no
+  servidor, headers de segurança (CSP, X-Frame-Options) e mitigação de
+  prompt injection
 
-## Stack
+## Tecnologias
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | React 18 + TypeScript + Vite |
-| API | Vercel Functions (Node.js) em `api/` |
-| Banco | Supabase / PostgreSQL + pgvector |
-| LLM | Gemini (principal), Groq, Pollinations (fallback) |
-| Testes | Vitest (unitários + integração real) |
-| CI | GitHub Actions |
+| Frontend | React 18, TypeScript, Vite, Web Speech API, WebAudio, PWA |
+| Backend | Vercel Functions (Node.js/TypeScript) |
+| Banco de dados | Supabase / PostgreSQL + pgvector |
+| IA | Google Gemini (principal), Groq, Pollinations (fallback), embeddings Gemini |
+| Testes | Vitest — unitários + integração real com LLM e banco |
+| CI/CD | GitHub Actions, deploy automático na Vercel |
 
-## Setup local
+## Objetivo
 
-Pré-requisito: Node.js 20+.
+Projeto de portfólio para demonstrar domínio prático de engenharia de
+sistemas de IA generativa: RAG, streaming, structured outputs, failover de
+provedores, observabilidade de custo (orçamento de tokens), segurança e
+operação serverless — além de uma UX de chat polida e mobile-first.
 
-```bash
-npm install
-npm --prefix frontend install
-```
+## Documentação
 
-1. Crie o `.env` na raiz copiando `.env.example` e preencha as chaves
-   (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`; Groq opcional
-   para failover).
-2. No Supabase, rode no SQL Editor:
-   - `database/migrations/0000_instalacao_completa.sql` (schema inicial completo),
-     **ou** os arquivos `0001` e `0003` se o schema base já existir
-   - `database/migrations/_rodar_uma_vez_0005_0008.sql` (feedback, categorias,
-     tabela `casos` e rate limit — execução única, idempotente)
-3. Popule o conhecimento: `node scripts/ingerir_conhecimento.mjs`
-   (gera embeddings via Gemini a partir de `database/seeds/politicas_disputa.json`).
-4. Suba os servidores:
-
-```bash
-npm run dev:api   # API local na porta 3000
-npm run dev:web   # frontend Vite na porta 5173 (proxy /api -> :3000)
-```
-
-## Comandos
-
-| Comando | Ação |
-|---|---|
-| `npm run dev:api` | API local (porta 3000) |
-| `npm run dev:web` | Frontend Vite (porta 5173) |
-| `npm test` | Testes unitários + integração real (precisa de `.env`) |
-| `npm run typecheck` | Typecheck TypeScript |
-| `npm run build` | Build de produção do frontend |
-
-## Deploy (Vercel)
-
-1. Importe o repositório — **Root Directory deve ser a raiz** (as functions
-   ficam em `api/` na raiz; `vercel.json` já configura install/build/output)
-2. Cadastre as variáveis do `.env` em *Settings → Environment Variables*
-   (somente as 3 obrigatórias + `GROQ_API_KEY` opcional)
-3. Aplique as migrations no Supabase antes do primeiro uso
-
-## Estrutura
-
-```
-api/           # endpoints serverless: chat, caso, feedback, parecer
-shared/        # env, clientes LLM, Supabase, rate limit, pedidos fictícios, adaptador Node
-coherence/     # prompt do sistema, diretrizes adaptativas, validação de coerência
-rag/           # chunking, embeddings, busca híbrida
-frontend/      # SPA React (src/)
-database/      # migrations SQL e seeds de conhecimento
-docs/          # arquitetura, decisões e contexto atual
-scripts/       # dev-server local e ingestão de conhecimento
-```
-
-Documentação completa: `docs/ARQUITETURA.md`, `docs/DECISOES.md` e
-`docs/CONTEXTO_ATUAL.md`.
+- `docs/ARQUITETURA.md` — decisões de arquitetura e fluxo de dados
+- `docs/DECISOES.md` — registro de decisões técnicas (D01–D09)
+- `docs/CONTEXTO_ATUAL.md` — estado atual do projeto e pendências
