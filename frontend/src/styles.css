@@ -278,9 +278,7 @@ body {
 .msg-acoes {
   display: flex;
   gap: 6px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--agente-borda);
+  margin-top: 6px;
   justify-content: flex-end;
   flex-wrap: wrap;
 }
