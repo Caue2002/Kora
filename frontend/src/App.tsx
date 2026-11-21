@@ -285,6 +285,11 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Aquece a lista de vozes do narrador (carrega de forma assincrona no navegador)
+  useEffect(() => {
+    if ('speechSynthesis' in window) speechSynthesis.getVoices();
+  }, []);
+
   // Aplica o tema escuro/claro no elemento raiz e persiste a escolha
   useEffect(() => {
     document.documentElement.dataset.theme = escuro ? 'escuro' : 'claro';
@@ -375,6 +380,14 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 
+  // Escolhe uma voz feminina pt-BR quando disponivel no navegador
+  function vozFeminina(): SpeechSynthesisVoice | null {
+    const vozes = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('pt'));
+    if (vozes.length === 0) return null;
+    const fem = vozes.find((v) => /maria|francisca|female|feminina|google portugu/i.test(v.name));
+    return fem ?? vozes[0] ?? null;
+  }
+
   // Le a resposta em voz alta usando a Web Speech API (TTS do navegador)
   function falar(texto: string, msgId: string) {
     if (!('speechSynthesis' in window)) return;
@@ -386,6 +399,8 @@ export default function App() {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(texto);
     u.lang = 'pt-BR';
+    const voz = vozFeminina();
+    if (voz) u.voice = voz;
     u.rate = 1.05;
     u.onend = () => setFalandoId((v) => (v === msgId ? null : v));
     u.onerror = () => setFalandoId((v) => (v === msgId ? null : v));
@@ -667,11 +682,6 @@ export default function App() {
                       <Markdown texto={m.content} />
                     )}
                   </div>
-                  {m.categoria && (
-                    <span className={`msg-badge badge-${m.categoria}`}>
-                      {CATEGORIAS[m.categoria] ?? m.categoria}
-                    </span>
-                  )}
                   <div className="msg-meta">
                     {m.modelo}
                     {' · '}
