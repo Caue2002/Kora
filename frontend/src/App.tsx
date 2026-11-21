@@ -19,7 +19,7 @@ import {
   type ImagemAnexo,
   type Mensagem,
 } from './api';
-import { formatarHoraRelativa, mdParaHtml } from './utils';
+import { formatarHoraMensagem, mdParaHtml } from './utils';
 import { Markdown } from './markdown';
 import Sidebar from './Sidebar';
 
@@ -150,7 +150,7 @@ function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-const formatarHora = formatarHoraRelativa;
+const formatarHora = formatarHoraMensagem;
 
 // Extrai a categoria mais frequente entre as fontes recuperadas pelo RAG
 function categoriaPredominante(fontes?: Fonte[]): string | null {
@@ -233,12 +233,6 @@ const iconeChecklist = (
     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
   </Icone>
 );
-const iconeFontes = (
-  <Icone size={13}>
-    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-  </Icone>
-);
 const iconeBaixo = (
   <Icone size={16}>
     <polyline points="6 9 12 15 18 9" />
@@ -303,7 +297,6 @@ export default function App() {
   const [comentario, setComentario] = useState('');
   const [etapaStream, setEtapaStream] = useState<'contexto' | 'gerando' | null>(null);
   const [avaliacaoAberta, setAvaliacaoAberta] = useState<string | null>(null);
-  const [fontesAbertas, setFontesAbertas] = useState<string | null>(null);
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
@@ -758,16 +751,6 @@ export default function App() {
                         <Markdown texto={m.content} />
                         {!(enviando && m === ultimaResposta) && (
                           <div className="msg-acoes">
-                            {m.fontes && m.fontes.length > 0 && (
-                              <button
-                                className="btn-mini"
-                                onClick={() => setFontesAbertas((v) => (v === m.id ? null : m.id))}
-                                title="Regras consultadas"
-                              >
-                                {iconeFontes}
-                                <span>{m.fontes.length}</span>
-                              </button>
-                            )}
                             <button
                               className="btn-mini"
                               onClick={() => navigator.clipboard?.writeText(m.content)}
@@ -801,18 +784,6 @@ export default function App() {
                     {' · '}
                     {formatarHora(m.ts)}
                   </div>
-                  {fontesAbertas === m.id && m.fontes && (
-                    <div className="fontes-popover">
-                      <p className="fontes-popover-titulo">Regras consultadas</p>
-                      <ol>
-                        {m.fontes.map((f, j) => (
-                          <li key={j}>
-                            <span className="fonte-cat">{CATEGORIAS[f.categoria ?? ''] ?? f.categoria}</span> {f.titulo}
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
                   {avaliacaoAberta === m.id && m.content !== '' && (
                     <div className="msg-avaliacoes">
                       {AVISOS.map((a) => (

@@ -29,6 +29,18 @@ export function formatarHoraRelativa(ts?: number): string {
   return `${dia}/${mes} ${hora}:${min}`;
 }
 
+// Formata timestamp de mensagem como hora exata: "14:32" (hoje) ou "21/11 14:32"
+export function formatarHoraMensagem(ts?: number): string {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const hora = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  if (d.toDateString() === new Date().toDateString()) return `${hora}:${min}`;
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes} ${hora}:${min}`;
+}
+
 // Converte markdown simples em HTML para o arquivo de parecer exportado
 // Cobre: escape de HTML, titulos ##, negrito ** e quebras de linha
 export function mdParaHtml(md: string): string {
