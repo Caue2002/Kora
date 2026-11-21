@@ -60,6 +60,12 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
   da conversa em caso de falha para nao duplicar no retry
 - CI no GitHub Actions (.github/workflows/testes.yml): typecheck + testes +
   build do frontend a cada push/PR
+- Visual alinhado as principais IAs: markdown completo (tabelas, blocos de
+  codigo, titulos, citacoes, checklist clicavel), acoes da mensagem no hover,
+  popover de fontes consultadas sob demanda, status contextual no streaming
+  ("Consultando a base..." / "Gerando resposta..."), icones nos chips de
+  sugestao, botao voltar ao fim, contador de caracteres, timestamps relativos
+  e modo foco (esconde sidebar/header para leitura)
 - Conjunto fixo de cenarios de teste (tests/cenarios.test.ts): completo,
   incompleto/ambiguo, contraditorio e fora do escopo — 20 testes passando
 - Validacao: typecheck limpo, 20 testes ok, vite build ok, streaming e

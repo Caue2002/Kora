@@ -10,6 +10,25 @@ export function formatarDataCurta(ts: number): string {
   return `${dia}/${mes} ${hora}:${min}`;
 }
 
+// Formata timestamp de forma relativa para mensagens recentes
+// "agora", "ha 5 min", "14:32" (hoje) ou "21/11 14:32" (dias anteriores)
+export function formatarHoraRelativa(ts?: number): string {
+  if (!ts) return '';
+  const agora = Date.now();
+  const diff = agora - ts;
+  if (diff < 60_000) return 'agora';
+  if (diff < 3_600_000) return `há ${Math.floor(diff / 60_000)} min`;
+  const d = new Date(ts);
+  const hoje = new Date();
+  const mesmoDia = d.toDateString() === hoje.toDateString();
+  const hora = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  if (mesmoDia) return `${hora}:${min}`;
+  const dia = String(d.getDate()).padStart(2, '0');
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes} ${hora}:${min}`;
+}
+
 // Converte markdown simples em HTML para o arquivo de parecer exportado
 // Cobre: escape de HTML, titulos ##, negrito ** e quebras de linha
 export function mdParaHtml(md: string): string {

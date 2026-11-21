@@ -2,7 +2,7 @@
 // Layout com barra lateral de historico (estilo Gemini) + area de chat mobile-first
 // Respostas em streaming token a token, parecer estruturado e feedback com comentario
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   enviarFeedback,
   enviarMensagemStream,
@@ -14,18 +14,53 @@ import {
   type Fonte,
   type Mensagem,
 } from './api';
-import { mdParaHtml } from './utils';
-import { renderMarkdown } from './markdown';
+import { formatarHoraRelativa, mdParaHtml } from './utils';
+import { Markdown } from './markdown';
 import Sidebar from './Sidebar';
 
 const AVISOS = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 
 // Sugestoes rapidas de primeiro contato, uma por categoria de divergencia
-const SUGESTOES = [
-  'Divergência de quantidade entre pedido e recebimento',
-  'Item trocado ou substituído indevidamente no pacote',
-  'Inconsistência de status ou avaria entre etapas',
-  'Exceção de prazo ou roteamento',
+const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
+  {
+    texto: 'Divergência de quantidade entre pedido e recebimento',
+    icone: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" />
+        <path d="M3.3 8.3L12 13l8.7-4.7" />
+        <path d="M12 13v9" />
+      </svg>
+    ),
+  },
+  {
+    texto: 'Item trocado ou substituído indevidamente no pacote',
+    icone: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <polyline points="17 1 21 5 17 9" />
+        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+        <polyline points="7 23 3 19 7 15" />
+        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+      </svg>
+    ),
+  },
+  {
+    texto: 'Inconsistência de status ou avaria entre etapas',
+    icone: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    ),
+  },
+  {
+    texto: 'Exceção de prazo ou roteamento',
+    icone: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="3 11 22 2 13 21 11 13 3 11" />
+      </svg>
+    ),
+  },
 ];
 
 // Acoes rapidas sobre o caso em andamento
@@ -46,10 +81,7 @@ function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function formatarHora(ts?: number): string {
-  if (!ts) return '';
-  return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-}
+const formatarHora = formatarHoraRelativa;
 
 // Extrai a categoria mais frequente entre as fontes recuperadas pelo RAG
 function categoriaPredominante(fontes?: Fonte[]): string | null {
@@ -139,6 +171,25 @@ const iconeChecklist = (
     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
   </Icone>
 );
+const iconeFontes = (
+  <Icone size={13}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+  </Icone>
+);
+const iconeFoco = (
+  <Icone size={16}>
+    <polyline points="15 3 21 3 21 9" />
+    <polyline points="9 21 3 21 3 15" />
+    <line x1="21" y1="3" x2="14" y2="10" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  </Icone>
+);
+const iconeBaixo = (
+  <Icone size={16}>
+    <polyline points="6 9 12 15 18 9" />
+  </Icone>
+);
 
 // Tipo minimo da Web Speech API para o ditado por voz
 interface ReconhecimentoVoz {
@@ -164,7 +215,13 @@ export default function App() {
   const [sidebarAberta, setSidebarAberta] = useState(false);
   const [avaliacaoPendente, setAvaliacaoPendente] = useState<{ msgId: string; avaliacao: string } | null>(null);
   const [comentario, setComentario] = useState('');
+  const [etapaStream, setEtapaStream] = useState<'contexto' | 'gerando' | null>(null);
+  const [avaliacaoAberta, setAvaliacaoAberta] = useState<string | null>(null);
+  const [fontesAbertas, setFontesAbertas] = useState<string | null>(null);
+  const [mostrarScroll, setMostrarScroll] = useState(false);
+  const [modoFoco, setModoFoco] = useState(false);
   const fimRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const comentarioRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
@@ -269,9 +326,15 @@ export default function App() {
       { id: assistId, role: 'assistant', content: '', ts: Date.now() },
     ]);
     setEnviando(true);
+    setEtapaStream('contexto');
+    let primeiroDelta = true;
 
     try {
       const r = await enviarMensagemStream(texto, mensagens, (delta) => {
+        if (primeiroDelta) {
+          primeiroDelta = false;
+          setEtapaStream('gerando');
+        }
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
@@ -298,6 +361,7 @@ export default function App() {
       setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: texto });
     } finally {
       setEnviando(false);
+      setEtapaStream(null);
     }
   }
 
@@ -387,8 +451,19 @@ export default function App() {
   const ultimaResposta = [...mensagens].reverse().find((m) => m.role === 'assistant');
   const conversaVazia = mensagens.length === 0 && !enviando;
 
+  // Detecta se o usuario subiu no historico para exibir o botao de voltar ao fim
+  function aoRolar() {
+    const el = scrollRef.current;
+    if (!el) return;
+    setMostrarScroll(el.scrollHeight - el.scrollTop - el.clientHeight > 240);
+  }
+
+  function rolarParaFim() {
+    fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
   return (
-    <div className="layout">
+    <div className={`layout ${modoFoco ? 'foco' : ''}`}>
       <Sidebar
         conversas={conversas}
         atualId={conversaId}
@@ -428,10 +503,18 @@ export default function App() {
                 {iconeDownload}
               </button>
             )}
+            <button
+              className="btn-icon"
+              onClick={() => setModoFoco((v) => !v)}
+              title={modoFoco ? 'Sair do modo foco' : 'Modo foco'}
+              aria-label="Modo foco"
+            >
+              {iconeFoco}
+            </button>
           </div>
         </header>
 
-        <main className="chat-mensagens">
+        <main className="chat-mensagens" ref={scrollRef} onScroll={aoRolar}>
           {conversaVazia && (
             <div className="chat-vazio">
               <img src="/logo.svg" alt="Nori" className="chat-vazio-logo" />
@@ -439,8 +522,9 @@ export default function App() {
               <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
               <div className="chat-sugestoes">
                 {SUGESTOES.map((s) => (
-                  <button key={s} className="chip-sugestao" onClick={() => processarEnvio(s)}>
-                    {s}
+                  <button key={s.texto} className="chip-sugestao" onClick={() => processarEnvio(s.texto)}>
+                    {s.icone}
+                    <span>{s.texto}</span>
                   </button>
                 ))}
               </div>
@@ -459,13 +543,18 @@ export default function App() {
                 <div className="msg-assistant-corpo">
                   <div className="msg-balao">
                     {m.content === '' ? (
-                      <span className="msg-digitando-inline">
-                        <span className="dot" />
-                        <span className="dot" />
-                        <span className="dot" />
+                      <span className="msg-status-stream">
+                        <span className="msg-digitando-inline">
+                          <span className="dot" />
+                          <span className="dot" />
+                          <span className="dot" />
+                        </span>
+                        <span className="msg-status-texto">
+                          {etapaStream === 'gerando' ? 'Gerando resposta...' : 'Consultando a base de conhecimento...'}
+                        </span>
                       </span>
                     ) : (
-                      renderMarkdown(m.content)
+                      <Markdown texto={m.content} />
                     )}
                   </div>
                   {m.categoria && (
@@ -477,7 +566,29 @@ export default function App() {
                     {m.modelo}
                     {' · '}
                     {formatarHora(m.ts)}
+                    {m.fontes && m.fontes.length > 0 && (
+                      <button
+                        className="btn-fontes"
+                        onClick={() => setFontesAbertas((v) => (v === m.id ? null : m.id))}
+                        title="Regras consultadas"
+                      >
+                        {iconeFontes}
+                        <span>{m.fontes.length}</span>
+                      </button>
+                    )}
                   </div>
+                  {fontesAbertas === m.id && m.fontes && (
+                    <div className="fontes-popover">
+                      <p className="fontes-popover-titulo">Regras consultadas</p>
+                      <ol>
+                        {m.fontes.map((f, j) => (
+                          <li key={j}>
+                            <span className="fonte-cat">{CATEGORIAS[f.categoria ?? ''] ?? f.categoria}</span> {f.titulo}
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
                   {m === ultimaResposta && !enviando && (
                     <div className="msg-acoes">
                       <button
@@ -487,6 +598,17 @@ export default function App() {
                       >
                         {iconeCopiar}
                       </button>
+                      <button
+                        className="btn-mini"
+                        onClick={() => setAvaliacaoAberta((v) => (v === m.id ? null : m.id))}
+                        title="Avaliar resposta"
+                      >
+                        Avaliar
+                      </button>
+                    </div>
+                  )}
+                  {avaliacaoAberta === m.id && m === ultimaResposta && !enviando && (
+                    <div className="msg-avaliacoes">
                       {AVISOS.map((a) => (
                         <button
                           key={a}
@@ -494,8 +616,8 @@ export default function App() {
                           onClick={() => {
                             setAvaliacaoPendente({ msgId: m.id, avaliacao: a });
                             setComentario('');
+                            setAvaliacaoAberta(null);
                           }}
-                          title={`Avaliar: ${a}`}
                         >
                           {a}
                         </button>
@@ -536,6 +658,11 @@ export default function App() {
             </div>
           )}
           <div ref={fimRef} />
+          {mostrarScroll && mensagens.length > 0 && (
+            <button className="btn-scroll-fim" onClick={rolarParaFim} title="Ir para a mensagem mais recente" aria-label="Ir para o fim">
+              {iconeBaixo}
+            </button>
+          )}
         </main>
 
         {mensagens.length > 0 && (
@@ -558,15 +685,20 @@ export default function App() {
             enviar();
           }}
         >
-          <input
-            ref={inputRef}
-            className="chat-input"
-            value={entrada}
-            onChange={(e) => setEntrada(e.target.value)}
-            placeholder="Descreva a ocorrência..."
-            maxLength={4000}
-            enterKeyHint="send"
-          />
+          <div className="chat-input-bloco">
+            <input
+              ref={inputRef}
+              className="chat-input"
+              value={entrada}
+              onChange={(e) => setEntrada(e.target.value)}
+              placeholder="Descreva a ocorrência..."
+              maxLength={4000}
+              enterKeyHint="send"
+            />
+            {entrada.length > 3200 && (
+              <span className="contador-chars">{entrada.length}/4000</span>
+            )}
+          </div>
           <button
             type="button"
             className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
