@@ -5,7 +5,7 @@ describe('prompt do Nori', () => {
   it('contem persona, categorias e limites obrigatorios', () => {
     const prompt = montarPromptSistema();
     expect(prompt).toContain('Nori');
-    expect(prompt).toContain('RotaLeve');
+    expect(prompt).toContain('Kora');
     expect(prompt).toContain('nao inventa dados');
     expect(prompt).toContain('quantidade');
   });

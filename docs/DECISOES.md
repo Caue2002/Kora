@@ -37,7 +37,7 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
 
 ## D06 - Esquema de conhecimento unificado
 
-- Decisao: regras da RotaLeve e resolucoes validadas compartilham a tabela
+- Decisao: regras da Kora e resolucoes validadas compartilham a tabela
   conhecimento_chunks com coluna origem, simplificando o RAG.
 - Motivo: uma unica base vetorial reduz complexidade de ingestao e busca.
 

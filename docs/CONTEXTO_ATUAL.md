@@ -26,7 +26,7 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 - Supabase criado e migracoes aplicadas (0000_instalacao_completa.sql) - verificado
 - Chave Gemini validada; modelo padrao ajustado para gemini-3.6-flash (2.5-flash
   indisponivel para contas novas); embeddings gemini-embedding-001 testados (1536 dims)
-- Regras de exemplo da RotaLeve criadas em database/seeds/regras_rotaleve.json
+- Regras de exemplo da Kora criadas em database/seeds/regras_kora.json
   (7 regras nas 4 categorias) + script scripts/ingerir_conhecimento.mjs
   para gerar embeddings e popular conhecimento_chunks
 - .env configurado (Supabase + Gemini); chaves antigas revogadas e substituidas
@@ -48,7 +48,7 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Testar o chat no navegador com cenarios reais da RotaLeve e ajustar prompt/regras
+1. Testar o chat no navegador com cenarios reais da Kora e ajustar prompt/regras
 2. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
 3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
    do .env no painel da Vercel e fazer deploy do repositorio

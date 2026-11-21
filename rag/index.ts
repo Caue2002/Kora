@@ -1,5 +1,5 @@
 // Modulo RAG do Projeto Kora
-// Ingestao, chunking, embeddings e busca hibrida sobre o conhecimento da RotaLeve
+// Ingestao, chunking, embeddings e busca hibrida sobre o conhecimento da Kora
 
 export { chunkText } from './chunking.js';
 export { embedTexts } from './embeddings.js';

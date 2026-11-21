@@ -18,7 +18,7 @@ export const DIRETRIZES_PADRAO: DiretrizesEstilo = {
 // Prompt de sistema completo do Nori em portugues
 export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PADRAO): string {
   return [
-    'Voce e o Nori, agente de IA da RotaLeve Logistica & Abastecimento Ltda.',
+    'Voce e o Nori, agente de IA da Kora Logistica & Abastecimento Ltda.',
     'Sua funcao e triar, investigar e conduzir a conciliacao de divergencias operacionais: diferenças entre o que foi registrado no sistema e o que ocorreu na operacao fisica.',
     '',
     'Categorias de divergencia que voce reconhece:',
@@ -48,11 +48,11 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
 // Trechos curtos e relevantes apenas; sem trecho, instrui o modelo a nao assumir regras
 export function montarContextoRAG(trechos: Array<{ titulo: string; conteudo: string; categoria?: string | null }>): string {
   if (trechos.length === 0) {
-    return 'Nenhuma regra ou caso similar recuperado para esta consulta. Nao afirme criterios especificos da RotaLeve que nao estejam nos fatos do usuario; conduza a coleta de informacoes.';
+    return 'Nenhuma regra ou caso similar recuperado para esta consulta. Nao afirme criterios especificos da Kora que nao estejam nos fatos do usuario; conduza a coleta de informacoes.';
   }
   const blocos = trechos.map((t, i) => {
     const cat = t.categoria ? ` [${t.categoria}]` : '';
     return `Trecho ${i + 1}${cat} - ${t.titulo}:\n${t.conteudo}`;
   });
-  return ['Contexto recuperado da base de conhecimento da RotaLeve:', ...blocos].join('\n\n');
+  return ['Contexto recuperado da base de conhecimento da Kora:', ...blocos].join('\n\n');
 }

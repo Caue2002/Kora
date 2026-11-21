@@ -2,7 +2,7 @@
   "name": "kora",
   "private": true,
   "version": "0.1.0",
-  "description": "Projeto Kora - Agente Nori para triagem e conciliacao de divergencias operacionais (RotaLeve)",
+  "description": "Projeto Kora - Agente Nori para triagem e conciliacao de divergencias operacionais (Kora)",
   "type": "module",
   "engines": {
     "node": ">=20"

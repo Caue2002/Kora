@@ -93,7 +93,7 @@ export default function App() {
   return (
     <div className="chat">
       <header className="chat-topo">
-        <span className="chat-titulo">Nori - RotaLeve</span>
+        <span className="chat-titulo">Nori - Kora</span>
         <div className="chat-acoes">
           {mensagens.length > 0 && (
             <button className="btn-link" onClick={exportarParecer}>

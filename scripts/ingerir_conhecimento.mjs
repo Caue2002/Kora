@@ -1,5 +1,5 @@
 // Script de ingestao de conhecimento para o RAG do Kora
-// Le database/seeds/regras_rotaleve.json, gera embeddings via Gemini e
+// Le database/seeds/regras_kora.json, gera embeddings via Gemini e
 // insere/atualiza os chunks na tabela conhecimento_chunks do Supabase
 // Uso: node scripts/ingerir_conhecimento.mjs
 
@@ -83,7 +83,7 @@ async function inserirChunk(dados) {
   }
 }
 
-const { regras } = JSON.parse(readFileSync(join(raiz, 'database/seeds/regras_rotaleve.json'), 'utf8'));
+const { regras } = JSON.parse(readFileSync(join(raiz, 'database/seeds/regras_kora.json'), 'utf8'));
 
 console.log(`Ingerindo ${regras.length} regras...`);
 
@@ -98,7 +98,7 @@ for (let i = 0; i < regras.length; i++) {
   for (const pedaco of pedacos) {
     await inserirChunk({
       origem: 'regra',
-      referencia: 'regras_rotaleve_exemplo',
+      referencia: 'regras_kora_exemplo',
       titulo: r.titulo,
       conteudo: pedaco,
       categoria: r.categoria,

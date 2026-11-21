@@ -1,6 +1,6 @@
 # rag/
 
-Modulo de ingestao e busca para o conhecimento da RotaLeve.
+Modulo de ingestao e busca para o conhecimento da Kora.
 
 - Ingestao e segmentacao de conteudo (chunking)
 - Geracao de embeddings (tier gratuito)

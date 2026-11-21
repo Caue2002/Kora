@@ -6,7 +6,7 @@ arquitetura, criacao de tabela ou mudanca de regra de negocio.
 ## Visao geral
 
 Sistema conversacional do agente de IA Nori para triagem, investigacao e
-conciliacao de divergencias operacionais da empresa ficticia RotaLeve Logistica
+conciliacao de divergencias operacionais da empresa ficticia Kora Logistica
 & Abastecimento Ltda. O Nori conduz o operador por perguntas objetivas, separa
 fatos de hipoteses, consulta regras reais no PostgreSQL e estrutura um plano de
 conciliacao.
@@ -31,7 +31,7 @@ conciliacao.
 - rag/: chunking, embeddings Gemini e busca hibrida (RPC buscar_conhecimento_hibrido)
 - coherence/: prompt do Nori, diretrizes adaptativas por feedback e validacao de coerencia (heuristica + LLM)
 - database/: migracoes 0001 (schema), 0003 (RPCs) e seed 0004 (modelos)
-- Pendente: aplicar migracoes no Supabase, popular regras reais da RotaLeve, obter chaves de API e configurar env na Vercel
+- Pendente: aplicar migracoes no Supabase, popular regras reais da Kora, obter chaves de API e configurar env na Vercel
 
 ## Interface (frontend/)
 
@@ -50,7 +50,7 @@ conciliacao.
 
 - Busca hibrida de baixa latencia: pesquisa textual exata (codigos de ocorrencia,
   palavras-chave) combinada com busca semantica via pgvector.
-- Retorna apenas trechos curtos e relevantes das regras da RotaLeve.
+- Retorna apenas trechos curtos e relevantes das regras da Kora.
 - Temperatura baixa (0 a 0.1) em todas as chamadas de LLM.
 - Grounding estrito: o Nori so afirma regras, prazos e criterios presentes no
   contexto recuperado ou nos fatos informados pelo usuario.
@@ -101,5 +101,5 @@ conciliacao.
 4. Validacao obrigatoria antes de cada commit: testes do que foi alterado,
    integracao dos fluxos, ausencia de bugs e documentacao atualizada.
 5. Manter registro de decisoes tecnicas (docs/DECISOES.md) e executar o conjunto
-   fixo de cenarios de teste da RotaLeve (completos, incompletos/ambiguos,
+   fixo de cenarios de teste da Kora (completos, incompletos/ambiguos,
    contraditorios e fora do escopo) apos mudancas relevantes.

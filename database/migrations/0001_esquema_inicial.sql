@@ -5,7 +5,7 @@
 create extension if not exists vector;
 
 -- Tabela unificada de conhecimento para o RAG
--- Guarda regras da RotaLeve e resolucoes validadas, ambas com embedding vetorial
+-- Guarda regras da Kora e resolucoes validadas, ambas com embedding vetorial
 create table if not exists conhecimento_chunks (
     id uuid primary key default gen_random_uuid(),
     origem text not null check (origem in ('regra', 'resolucao')),
@@ -69,7 +69,7 @@ select avaliacao,
 from feedback_respostas
 group by avaliacao;
 
--- Regra de negocio: categorias minimas de divergencia da RotaLeve
+-- Regra de negocio: categorias minimas de divergencia da Kora
 -- Usada para classificar chunks e orientar a condução da triagem
 create table if not exists categorias_divergencia (
     id smallint primary key,
