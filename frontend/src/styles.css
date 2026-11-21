@@ -1407,6 +1407,7 @@ body {
   font-size: 13px;
   font-weight: 700;
   color: var(--texto);
+  white-space: nowrap;
 }
 
 .perfil-desc {
@@ -1429,7 +1430,7 @@ body {
   cursor: pointer;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .perfis-grade {
     grid-template-columns: 1fr;
   }
