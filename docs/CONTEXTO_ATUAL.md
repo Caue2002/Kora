@@ -34,6 +34,11 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 - Teste de integracao real do /api/chat passando (Gemini + Supabase + RAG)
 - Servidor de dev local criado: scripts/dev-server.ts (npm run dev:api, porta 3000)
   + vite proxy; chat testado de ponta a ponta em http://localhost:5173
+- Empresa ficticia renomeada de RotaLeve para Kora em todo o projeto (prompt, docs, seeds, banco)
+- Interface do chat aprimorada: avatar do Nori, animacao de digitando, timestamps,
+  badge de categoria, fontes do RAG expansivel, modelo+tokens por resposta,
+  contador de tokens da sessao, chips de sugestao, acoes Resumir/Checklist,
+  renderizacao leve de markdown (negrito, listas, checklist)
 
 ## Em andamento
 
