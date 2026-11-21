@@ -677,7 +677,7 @@ export default function App() {
               {escuro ? iconeSol : iconeLua}
             </button>
             {mensagens.length > 0 && (
-              <button className="btn-icon" onClick={exportarResumo} title="Gerar resumo" aria-label="Gerar resumo" disabled={exportando}>
+              <button className="btn-icon" onClick={exportarResumo} title="Exportar resumo" aria-label="Exportar resumo" disabled={exportando}>
                 {iconeDownload}
               </button>
             )}
@@ -955,7 +955,7 @@ export default function App() {
                     }}
                   >
                     {iconeDownload}
-                    Gerar resumo
+                    Exportar resumo
                   </button>
                   <button
                     className="menu-item menu-item-perigo"
