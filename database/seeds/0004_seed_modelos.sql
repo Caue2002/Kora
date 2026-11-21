@@ -5,6 +5,6 @@
 insert into modelos_ia (id, provedor, nome_modelo, prioridade) values
     (1, 'gemini',    'gemini-3.1-flash-lite',                    1),
     (2, 'groq',      'openai/gpt-oss-120b',                 2),
-    (3, 'openrouter','google/gemma-3-27b-it:free',                   3),
-    (4, 'openrouter','meta-llama/llama-3.3-70b-instruct:free',  4)
+    (3, 'gemini',     'gemini-3.5-flash',                          3),
+    (4, 'pollinations','openai',                                     4)
 on conflict (id) do nothing;

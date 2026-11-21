@@ -16,7 +16,7 @@ de entrega.
 - Estrutura de pastas: frontend/, api/, rag/, coherence/, database/, docs/, shared/
 - frontend/: chat mobile-first (Vite+React+TS), sessionStorage, acoes copiar/exportar/feedback
 - api/: POST /api/chat (orquestracao completa) e POST /api/feedback
-- shared/: env, cliente Supabase, cliente LLM (Gemini/Groq/OpenRouter),
+- shared/: env, cliente Supabase, cliente LLM (Gemini/Groq/Pollinations),
   tokens e controle de cotas com failover
 - rag/: chunking, embeddings Gemini (1536 dims) e busca hibrida via RPC
 - coherence/: prompt do Nori, diretrizes adaptativas por feedback, validacao de coerencia
@@ -143,7 +143,7 @@ de entrega.
 
 - Ver docs/DECISOES.md (D01 a D09)
 - Resumo: Vite+React frontend, Vercel Functions Node/TS em api/, shared/ para
-  logica de servidor, Gemini principal + Groq/OpenRouter contingencia,
+  logica de servidor, Gemini principal + Groq/Gemini/Pollinations contingencia,
   embeddings gemini-embedding-001 em 1536 dimensoes
 
 ## Pendencias (proximos passos, em ordem)
@@ -155,7 +155,7 @@ de entrega.
 3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
    do .env no painel da Vercel e fazer deploy do repositorio
    (verificar se streaming e /api/parecer funcionam no ambiente serverless)
-4. Obter chaves de API opcionais (Groq, OpenRouter) se quiser failover
+4. Obter chaves de API opcionais (Groq, Pollinations) se quiser failover
 5. Testar o chat no navegador com cenarios de disputa reais e ajustar prompt/politicas
 6. Rate limit persistente ja implementado (migration 0008); se quiser
    endurecer mais, avaliar Cloudflare Turnstile (gratuito, sem login) no chat

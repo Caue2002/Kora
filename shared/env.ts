@@ -28,7 +28,8 @@ export function supabaseServiceKey(): string {
 }
 
 // Catalogo dos 4 modelos gratuitos na ordem de prioridade
-// Provedor 1 Gemini (principal); 2 Groq e 3-4 OpenRouter com modelos gratis distintos (contingencia)
+// Provedor 1-3 Gemini (principal + contingencia) e 2 Groq;
+// 4 Pollinations como ultimo recurso gratuito sem chave
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo
 export function catalogoModelos(): ModeloConfig[] {
   return [
@@ -50,18 +51,18 @@ export function catalogoModelos(): ModeloConfig[] {
     },
     {
       id: 3,
-      provedor: 'openrouter',
-      nomeModelo: env('OPENROUTER_MODEL_2', 'google/gemma-3-27b-it:free')!,
-      apiKey: env('OPENROUTER_API_KEY'),
-      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_2', 'gemini-3.5-flash')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
       prioridade: 3,
     },
     {
       id: 4,
-      provedor: 'openrouter',
-      nomeModelo: env('OPENROUTER_MODEL', 'meta-llama/llama-3.3-70b-instruct:free')!,
-      apiKey: env('OPENROUTER_API_KEY'),
-      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+      provedor: 'pollinations',
+      nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
+      apiKey: env('POLLINATIONS_KEY', 'pollinations'),
+      endpoint: 'https://text.pollinations.ai/openai',
       prioridade: 4,
     },
   ];

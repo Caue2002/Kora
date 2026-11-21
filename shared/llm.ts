@@ -1,5 +1,5 @@
 // Cliente unificado de chamada aos modelos de LLM
-// Suporta os provedores: Gemini (formato proprio) e Groq/OpenRouter (formato OpenAI)
+// Suporta os provedores: Gemini (formato proprio) e Groq/Pollinations (formato OpenAI)
 // Todas as chamadas usam temperatura baixa (0 a 0.1) conforme a especificacao
 
 import type { ModeloConfig } from './env.js';
@@ -91,7 +91,7 @@ async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], tem
 }
 
 async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number): Promise<RespostaLLM> {
-  // Groq e OpenRouter usam o formato chat/completions compativel com OpenAI
+  // Groq e Pollinations usam o formato chat/completions compativel com OpenAI
   const res = await fetch(modelo.endpoint, {
     method: 'POST',
     headers: {
