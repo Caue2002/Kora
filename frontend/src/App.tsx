@@ -230,11 +230,18 @@ const iconeMais = (
     <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
   </Icone>
 );
-const iconeSom = (
-  <Icone size={14}>
+const iconeVolume = (
+  <Icone size={16}>
     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
     <path d="M15.5 8.5a5 5 0 0 1 0 7" />
     <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+  </Icone>
+);
+const iconeMudo = (
+  <Icone size={16}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="23" y1="9" x2="17" y2="15" />
+    <line x1="17" y1="9" x2="23" y2="15" />
   </Icone>
 );
 const iconeClipe = (
@@ -278,7 +285,7 @@ export default function App() {
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
-  const [falandoId, setFalandoId] = useState<string | null>(null);
+  const [somAtivo, setSomAtivo] = useState(() => localStorage.getItem('kora-som') === '1');
   const [anexo, setAnexo] = useState<{ imagem: ImagemAnexo; nome: string; preview: string } | null>(null);
   const [perfil, setPerfil] = useState<PerfilId | null>(() => {
     const salvo = localStorage.getItem(CHAVE_PERFIL);
@@ -292,6 +299,7 @@ export default function App() {
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
   const conversasRef = useRef(conversas);
   conversasRef.current = conversas;
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   // Na primeira carga, abre a conversa mais recente se existir
   useEffect(() => {
@@ -301,11 +309,6 @@ export default function App() {
       setMensagens(maisRecente.mensagens);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Aquece a lista de vozes do narrador (carrega de forma assincrona no navegador)
-  useEffect(() => {
-    if ('speechSynthesis' in window) speechSynthesis.getVoices();
   }, []);
 
   // Aplica o tema escuro/claro no elemento raiz e persiste a escolha
@@ -405,35 +408,36 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 
-  // Escolhe a voz mais natural disponivel: pt-BR feminina com prioridade para
-  // vozes de nuvem (Google/Microsoft/Amazon), que soam menos artificial
-  function vozFeminina(): SpeechSynthesisVoice | null {
-    const pt = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('pt'));
-    if (pt.length === 0) return null;
-    const natural = pt.find((v) => /google|microsoft|amazon|online/i.test(v.name));
-    const fem = pt.find((v) => /maria|francisca|female|feminina/i.test(v.name));
-    return natural ?? fem ?? pt[0] ?? null;
+  // Som de feedback sutil (WebAudio): pop curto ao enviar e ao concluir a resposta
+  function tocarSom(subindo: boolean) {
+    if (!somAtivo) return;
+    try {
+      const Ctor =
+        window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return;
+      audioCtxRef.current ??= new Ctor();
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = subindo ? 620 : 440;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.04, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.13);
+    } catch {
+      // audio indisponivel: segue sem som
+    }
   }
 
-  // Le a resposta em voz alta usando a Web Speech API (TTS do navegador)
-  function falar(texto: string, msgId: string) {
-    if (!('speechSynthesis' in window)) return;
-    if (falandoId === msgId) {
-      speechSynthesis.cancel();
-      setFalandoId(null);
-      return;
-    }
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = 'pt-BR';
-    const voz = vozFeminina();
-    if (voz) u.voice = voz;
-    u.rate = 0.95;
-    u.pitch = 1.1;
-    u.onend = () => setFalandoId((v) => (v === msgId ? null : v));
-    u.onerror = () => setFalandoId((v) => (v === msgId ? null : v));
-    setFalandoId(msgId);
-    speechSynthesis.speak(u);
+  function alternarSom() {
+    setSomAtivo((v) => {
+      localStorage.setItem('kora-som', v ? '0' : '1');
+      return !v;
+    });
   }
 
   // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
@@ -457,6 +461,7 @@ export default function App() {
     ]);
     setEnviando(true);
     setEtapaStream('contexto');
+    tocarSom(true);
     let primeiroDelta = true;
     let textoStream = '';
     const imagemEnvio = anexo?.imagem;
@@ -509,6 +514,7 @@ export default function App() {
       setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
       setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: texto });
     } finally {
+      tocarSom(false);
       setEnviando(false);
       setEtapaStream(null);
       setAnexo(null);
@@ -650,6 +656,14 @@ export default function App() {
           </div>
           <div className="chat-acoes">
             <button
+              className={`btn-icon ${somAtivo ? 'som-ligado' : ''}`}
+              onClick={alternarSom}
+              title={somAtivo ? 'Desativar sons' : 'Ativar sons'}
+              aria-label="Alternar sons"
+            >
+              {somAtivo ? iconeVolume : iconeMudo}
+            </button>
+            <button
               className="btn-icon"
               onClick={() => setEscuro((v) => !v)}
               title={escuro ? 'Modo claro' : 'Modo escuro'}
@@ -720,7 +734,7 @@ export default function App() {
               </div>
             ) : (
               <div key={m.id} className="msg msg-assistant msg-entra">
-                <img src="/logo.png" alt="" className="msg-avatar" />
+                <img src="/logo.png" alt="" className={`msg-avatar${m.content === '' ? ' ativo' : ''}`} />
                 <div className="msg-assistant-corpo">
                   <div className="msg-balao">
                     {m.content === '' ? (
@@ -753,15 +767,6 @@ export default function App() {
                             >
                               Avaliar
                             </button>
-                            {('speechSynthesis' in window) && (
-                              <button
-                                className={`btn-mini ${falandoId === m.id ? 'ativo' : ''}`}
-                                onClick={() => falar(m.content, m.id)}
-                                title={falandoId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
-                              >
-                                {iconeSom}
-                              </button>
-                            )}
                           </div>
                         )}
                       </>

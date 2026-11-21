@@ -12,6 +12,10 @@
   --texto-suave: #78716c;
   --cartao: #ffffff;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* acento quente de destaque (terracota) usado com parcimonia */
+  --destaque: #c2410c;
+  --destaque-claro: #fff7ed;
+  --destaque-borda: #fed7aa;
 }
 
 * {
@@ -130,6 +134,8 @@ body {
   text-align: center;
   color: var(--texto-suave);
   padding: 24px;
+  background: radial-gradient(60% 42% at 50% 0%, rgba(194, 65, 12, 0.06), transparent 70%);
+  border-radius: 20px;
 }
 
 .chat-vazio-avatar {
@@ -176,8 +182,12 @@ body {
 }
 
 .chip-sugestao:hover {
-  border-color: var(--acento);
+  border-color: var(--destaque);
   box-shadow: var(--sombra);
+}
+
+.chip-sugestao:active {
+  transform: scale(0.98);
 }
 
 .msg {
@@ -381,6 +391,15 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 0.12s, filter 0.15s;
+}
+
+.chat-enviar:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.chat-enviar:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .chat-enviar:disabled {
@@ -449,6 +468,9 @@ body {
   --texto: #fafaf9;
   --texto-suave: #a8a29e;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --destaque: #fdba74;
+  --destaque-claro: #3b2412;
+  --destaque-borda: #7c4a21;
 }
 
 [data-theme='escuro'] body {
@@ -749,6 +771,23 @@ body {
 .msg-avatar {
   border-radius: 8px;
   object-fit: cover;
+}
+
+/* avatar "respira" enquanto a Nori esta gerando a resposta */
+.msg-avatar.ativo {
+  animation: respira 1.5s ease-in-out infinite;
+}
+
+@keyframes respira {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.75;
+  }
 }
 
 /* ===== busca e renomear no historico ===== */
@@ -1199,7 +1238,7 @@ body {
 
 .caso-passo.atual {
   opacity: 1;
-  background: var(--acento);
+  background: var(--destaque);
   color: #fff;
   border-color: transparent;
 }
@@ -1379,12 +1418,12 @@ body {
   border-radius: 12px;
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
 .perfil-card:hover {
-  border-color: var(--acento);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  border-color: var(--destaque-borda);
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.14);
   transform: translateY(-1px);
 }
 
@@ -1395,8 +1434,8 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: var(--acento-claro);
-  color: var(--acento);
+  background: var(--destaque-claro);
+  color: var(--destaque);
   flex-shrink: 0;
 }
 
@@ -1426,9 +1465,9 @@ body {
   margin-bottom: 4px;
   padding: 5px 12px;
   border-radius: 999px;
-  border: 1px solid var(--acento);
-  background: var(--acento-claro);
-  color: var(--acento);
+  border: 1px solid var(--destaque);
+  background: var(--destaque-claro);
+  color: var(--destaque);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
