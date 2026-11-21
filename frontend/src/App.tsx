@@ -509,7 +509,7 @@ export default function App() {
       <div className="chat">
         <header className="chat-topo">
           <div className="chat-titulo-bloco">
-            <img src="/logo.svg" alt="Nori" className="chat-logo" />
+            <img src="/logo.png" alt="Nori" className="chat-logo" />
             <span className="chat-titulo">Nori</span>
           </div>
           <div className="chat-acoes">
@@ -532,9 +532,9 @@ export default function App() {
         <main className="chat-mensagens" ref={scrollRef} onScroll={aoRolar}>
           {conversaVazia && (
             <div className="chat-vazio">
-              <img src="/logo.svg" alt="Nori" className="chat-vazio-logo" />
+              <img src="/logo.png" alt="Nori" className="chat-vazio-logo" />
               <div className="msg msg-assistant msg-entra">
-                <img src="/logo.svg" alt="" className="msg-avatar" />
+                <img src="/logo.png" alt="" className="msg-avatar" />
                 <div className="msg-assistant-corpo">
                   <div className="msg-balao">
                     <Markdown
@@ -565,7 +565,7 @@ export default function App() {
               </div>
             ) : (
               <div key={m.id} className="msg msg-assistant msg-entra">
-                <img src="/logo.svg" alt="" className="msg-avatar" />
+                <img src="/logo.png" alt="" className="msg-avatar" />
                 <div className="msg-assistant-corpo">
                   <div className="msg-balao">
                     {m.content === '' ? (

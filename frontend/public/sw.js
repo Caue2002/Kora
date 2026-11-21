@@ -1,7 +1,7 @@
 // Service worker minimo para tornar o app instalavel (PWA)
 // Estrategia: network-first para navegacao, cache-first para assets estaticos
-const CACHE = 'kora-v1';
-const ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg'];
+const CACHE = 'kora-v2';
+const ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/logo.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

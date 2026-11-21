@@ -773,9 +773,8 @@ body {
 }
 
 .msg-avatar {
-  border-radius: 50%;
+  border-radius: 8px;
   object-fit: cover;
-  background: var(--acento-claro);
 }
 
 /* ===== acoes rapidas responsivas ===== */

@@ -20,7 +20,7 @@ export default function Sidebar({ conversas, atualId, aberta, onSelecionar, onEx
       {aberta && <div className="sidebar-backdrop" onClick={onFechar} />}
       <aside className={`sidebar ${aberta ? 'aberta' : ''}`}>
         <div className="sidebar-topo">
-          <img src="/logo.svg" alt="Nori" className="sidebar-logo" />
+          <img src="/logo.png" alt="Nori" className="sidebar-logo" />
           <span className="sidebar-nome">Nori</span>
         </div>
 
