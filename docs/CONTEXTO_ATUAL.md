@@ -117,6 +117,19 @@ de entrega.
 7. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
    avaliar ativacao permanente conforme custo de tokens
 
+## Handoff para outra conta/sessao
+
+- Repositorio: https://github.com/Caue2002/Kora (branch main)
+- Supabase: projeto `uzkiayjqcjztzrwestcg` — URL
+  https://uzkiayjqcjztzrwestcg.supabase.co (Project Settings -> API)
+- `.env` NAO vai para o Git (contem segredos): recriar a partir de
+  `.env.example` com novas chaves de Supabase (service_role) e Gemini
+- Estado do banco: tabelas/modelos/cotas/feedback ok; 9 politicas de disputa
+  ingeridas (politicas_disputa_exemplo); migrations 0005 e 0006 pendentes de
+  aplicacao manual no SQL Editor
+- Para subir local: npm install + npm --prefix frontend install, preencher
+  .env, rodar `npm run dev:api` (porta 3000) e `npm run dev:web` (porta 5173)
+
 ## Protocolo de handoff (troca de modelo/sessao)
 
 Ao iniciar uma nova sessao, o agente deve:
