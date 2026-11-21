@@ -161,6 +161,60 @@ export async function gerarParecer(mensagens: Mensagem[]): Promise<{ parecer?: s
   return dados;
 }
 
+// ===== Estado estruturado do caso =====
+
+export interface EstadoCaso {
+  conversa_id: string;
+  etapa: string;
+  categoria: string | null;
+  status: string;
+  fatos: string[];
+  evidencias: string[];
+  pendencias: string[];
+  resumo: string | null;
+  atualizado_em: string;
+}
+
+// Extrai e persiste o estado do caso a partir da conversa (chamado apos cada resposta)
+export async function atualizarCaso(conversaId: string, mensagens: Mensagem[]): Promise<EstadoCaso | null> {
+  try {
+    const res = await fetch('/api/caso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversaId,
+        mensagens: mensagens.map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+    if (!res.ok) return null;
+    const dados = (await res.json()) as { caso?: EstadoCaso | null };
+    return dados.caso ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Marca o caso como encerrado sem custo de modelo
+export async function encerrarCaso(conversaId: string): Promise<void> {
+  await fetch('/api/caso', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ conversaId, encerrar: true }),
+  }).catch(() => undefined);
+}
+
+// Busca o estado persistido do caso ao abrir uma conversa do historico
+export async function buscarCaso(conversaId: string): Promise<EstadoCaso | null> {
+  try {
+    const res = await fetch(`/api/caso?conversaId=${encodeURIComponent(conversaId)}`);
+    if (!res.ok) return null;
+    const dados = (await res.json()) as { caso?: EstadoCaso | null };
+    return dados.caso ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Registra a avaliacao do usuario sobre uma resposta do agente
 export async function enviarFeedback(
   avaliacao: 'util' | 'confuso' | 'incompleto' | 'prolixo',

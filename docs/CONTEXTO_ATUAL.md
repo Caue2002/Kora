@@ -91,10 +91,22 @@ de entrega.
   incompleto/ambiguo, contraditorio e fora do escopo — 20 testes passando
 - Validacao: typecheck limpo, 20 testes ok, vite build ok, streaming e
   /api/parecer testados ao vivo contra Gemini+Supabase
+- Estado estruturado do caso (agentic workflow): migration 0007_casos.sql
+  (tabela casos com etapa/categoria/status/fatos/evidencias/pendencias),
+  endpoint /api/caso (GET consulta, POST extrai estado via LLM e faz upsert;
+  {encerrar:true} marca encerrado sem custo de modelo), card "Caso" no
+  frontend acima das acoes rapidas com etapa, pendencias e detalhes
+  colapsaveis; extracao roda em segundo plano apos cada resposta do agente
+- Ajustes finais de UX: status do streaming exibe "Pensando..."/"Gerando
+  resposta..."; mensagem inicial se apresenta como "Nori, agente de IA do
+  Kora delivery"; secao "Sobre voce" no prompt permite a Nori explicar sua
+  arquitetura/busca/aprendizado quando perguntada; botao "Encerrar" encerra
+  o caso e inicia chat limpo; espacamento das acoes rapidas acima do input
 
 ## Em andamento
 
-- Nenhuma implementacao em curso; aguardando migration 0005 no Supabase e deploy
+- Nenhuma implementacao em curso; aguardando migrations 0005/0006/0007 no
+  Supabase e deploy
 
 ## Decisoes tecnicas tomadas
 
@@ -105,8 +117,9 @@ de entrega.
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Aplicar database/migrations/0005_feedback_comentario.sql e
-   0006_categorias_disputa.sql no SQL Editor do Supabase
+1. Aplicar database/migrations/0005_feedback_comentario.sql,
+   0006_categorias_disputa.sql e 0007_casos.sql no SQL Editor do Supabase
+   (sem a 0007 o card "Caso" funciona mas nao persiste entre sessoes)
 3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
    do .env no painel da Vercel e fazer deploy do repositorio
    (verificar se streaming e /api/parecer funcionam no ambiente serverless)
@@ -132,8 +145,8 @@ de entrega.
 - `.env` NAO vai para o Git (contem segredos): recriar a partir de
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback ok; 9 politicas de disputa
-  ingeridas (politicas_disputa_exemplo); migrations 0005 e 0006 pendentes de
-  aplicacao manual no SQL Editor
+  ingeridas (politicas_disputa_exemplo); migrations 0005, 0006 e 0007 pendentes
+  de aplicacao manual no SQL Editor
 - Para subir local: npm install + npm --prefix frontend install, preencher
   .env, rodar `npm run dev:api` (porta 3000) e `npm run dev:web` (porta 5173)
 

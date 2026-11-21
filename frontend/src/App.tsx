@@ -4,6 +4,9 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  atualizarCaso,
+  buscarCaso,
+  encerrarCaso,
   enviarFeedback,
   enviarMensagemStream,
   gerarParecer,
@@ -11,6 +14,7 @@ import {
   salvarConversas,
   tituloDe,
   type Conversa,
+  type EstadoCaso,
   type Fonte,
   type Mensagem,
 } from './api';
@@ -73,6 +77,23 @@ const CATEGORIAS: Record<string, string> = {
   troca_item: 'Item errado',
   status_avaria: 'Qualidade',
   prazo_roteamento: 'Entrega',
+};
+
+// Rotulos do estado estruturado do caso (api/caso)
+const ETAPAS_CASO: Record<string, string> = {
+  triagem: 'Triagem',
+  coleta_evidencias: 'Coleta de evidências',
+  analise: 'Análise',
+  parecer: 'Parecer',
+  encerrado: 'Encerrado',
+};
+
+const CATEGORIAS_CASO: Record<string, string> = {
+  quantidade: 'Item faltante',
+  troca_item: 'Item errado',
+  qualidade: 'Qualidade',
+  prazo_roteamento: 'Entrega',
+  outro: 'Outro',
 };
 
 const CHAVE_TEMA = 'kora-tema';
@@ -211,6 +232,7 @@ export default function App() {
   const [avaliacaoAberta, setAvaliacaoAberta] = useState<string | null>(null);
   const [fontesAbertas, setFontesAbertas] = useState<string | null>(null);
   const [mostrarScroll, setMostrarScroll] = useState(false);
+  const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -319,9 +341,11 @@ export default function App() {
     setEnviando(true);
     setEtapaStream('contexto');
     let primeiroDelta = true;
+    let textoStream = '';
 
     try {
       const r = await enviarMensagemStream(texto, mensagens, (delta) => {
+        textoStream += delta;
         if (primeiroDelta) {
           primeiroDelta = false;
           setEtapaStream('gerando');
@@ -346,6 +370,15 @@ export default function App() {
               : m,
           ),
         );
+        // Atualiza o estado estruturado do caso em segundo plano (sem bloquear a UI)
+        const msgsFinais: Mensagem[] = [
+          ...mensagens,
+          doUsuario,
+          { id: assistId, role: 'assistant', content: textoStream, ts: Date.now() },
+        ];
+        void atualizarCaso(cid, msgsFinais).then((c) => {
+          if (c) setCaso(c);
+        });
       }
     } catch {
       setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
@@ -366,6 +399,7 @@ export default function App() {
     setMensagens(c.mensagens);
     setErro(null);
     setSidebarAberta(false);
+    void buscarCaso(c.id).then((c2) => setCaso(c2));
   }
 
   // Inicia uma conversa nova (a anterior fica salva no historico)
@@ -375,6 +409,13 @@ export default function App() {
     setErro(null);
     setSidebarAberta(false);
     setAvaliacaoPendente(null);
+    setCaso(null);
+  }
+
+  // Encerra o atendimento: marca o caso como encerrado e abre chat limpo
+  function encerrarAtendimento() {
+    if (conversaId) void encerrarCaso(conversaId);
+    novaConversa();
   }
 
   // Exclui uma conversa do historico
@@ -650,6 +691,55 @@ export default function App() {
           )}
         </main>
 
+        {caso && (caso.resumo || caso.fatos.length > 0 || caso.pendencias.length > 0) && (
+          <div className="caso-card">
+            <div className="caso-header">
+              <span className="caso-titulo">Caso</span>
+              <span className="caso-etapa">{ETAPAS_CASO[caso.etapa] ?? caso.etapa}</span>
+              {caso.categoria && (
+                <span className="caso-cat">{CATEGORIAS_CASO[caso.categoria] ?? caso.categoria}</span>
+              )}
+              {caso.status === 'resolvido' && <span className="caso-status resolvido">Resolvido</span>}
+            </div>
+            {caso.resumo && <p className="caso-resumo">{caso.resumo}</p>}
+            {caso.pendencias.length > 0 && (
+              <div className="caso-secao">
+                <span className="caso-secao-titulo">Pendências ({caso.pendencias.length})</span>
+                <ul className="caso-lista">
+                  {caso.pendencias.slice(0, 4).map((p, i) => (
+                    <li key={i}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(caso.fatos.length > 0 || caso.evidencias.length > 0) && (
+              <details className="caso-detalhes">
+                <summary>Fatos e evidências confirmados</summary>
+                {caso.fatos.length > 0 && (
+                  <div className="caso-secao">
+                    <span className="caso-secao-titulo">Fatos</span>
+                    <ul className="caso-lista">
+                      {caso.fatos.slice(0, 6).map((f, i) => (
+                        <li key={i}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {caso.evidencias.length > 0 && (
+                  <div className="caso-secao">
+                    <span className="caso-secao-titulo">Evidências</span>
+                    <ul className="caso-lista">
+                      {caso.evidencias.slice(0, 6).map((e, i) => (
+                        <li key={i}>{e}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </details>
+            )}
+          </div>
+        )}
+
         {mensagens.length > 0 && (
           <div className="chat-quick">
             <button className="btn-quick" onClick={() => processarEnvio(ACAO_RESUMO)} disabled={enviando}>
@@ -660,7 +750,7 @@ export default function App() {
               {iconeChecklist}
               <span className="quick-label">Checklist</span>
             </button>
-            <button className="btn-quick btn-encerrar" onClick={novaConversa} disabled={enviando} title="Encerra o atendimento e inicia um novo chat">
+            <button className="btn-quick btn-encerrar" onClick={encerrarAtendimento} disabled={enviando} title="Encerra o atendimento e inicia um novo chat">
               {iconeEncerrar}
               <span className="quick-label">Encerrar</span>
             </button>

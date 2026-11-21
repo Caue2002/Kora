@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import chatHandler from '../api/chat.js';
 import feedbackHandler from '../api/feedback.js';
 import parecerHandler from '../api/parecer.js';
+import casoHandler from '../api/caso.js';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,6 +29,7 @@ const rotas: Record<string, (req: Request) => Promise<Response>> = {
   '/api/chat': chatHandler,
   '/api/feedback': feedbackHandler,
   '/api/parecer': parecerHandler,
+  '/api/caso': casoHandler,
 };
 
 const servidor = createServer(async (req, res) => {
