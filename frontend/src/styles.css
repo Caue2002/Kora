@@ -3,7 +3,7 @@
    #E8500F, agente branco #FFFFFF com borda pêssego #F3E2D8, acentos #F04E23 */
 
 :root {
-  --fundo: #fff6f0;
+  --fundo: #ffffff;
   --usuario: #e8500f;
   --agente-borda: #f3e2d8;
   --acento: #f04e23;
@@ -34,7 +34,7 @@ body {
     Roboto,
     sans-serif;
   color: var(--texto);
-  background: linear-gradient(180deg, #fff6f0 0%, #ffe9dc 100%);
+  background: #ffffff;
 }
 
 .chat {
@@ -456,8 +456,8 @@ body {
 
 /* ===== tema escuro ===== */
 [data-theme='escuro'] {
-  --fundo: #1c1410;
-  --cartao: #2a1e16;
+  --fundo: #000000;
+  --cartao: #1c1410;
   --usuario: #d14a12;
   --agente-borda: #453025;
   --acento: #ff8a3d;
@@ -468,11 +468,11 @@ body {
 }
 
 [data-theme='escuro'] body {
-  background: linear-gradient(180deg, #1c1410 0%, #140e0a 100%);
+  background: #000000;
 }
 
 [data-theme='escuro'] .chat-input {
-  background: #0b1220;
+  background: #14100c;
   color: var(--texto);
 }
 

@@ -130,13 +130,6 @@ const iconeMicrofone = (
     <line x1="12" y1="19" x2="12" y2="23" />
   </Icone>
 );
-const iconeMenu = (
-  <Icone>
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </Icone>
-);
 const iconeSol = (
   <Icone size={16}>
     <circle cx="12" cy="12" r="5" />
@@ -477,14 +470,6 @@ export default function App() {
       <div className="chat">
         <header className="chat-topo">
           <div className="chat-titulo-bloco">
-            <button
-              className="btn-icon"
-              onClick={() => setSidebarAberta((v) => !v)}
-              title="Historico de conversas"
-              aria-label="Historico"
-            >
-              {iconeMenu}
-            </button>
             <img src="/logo.svg" alt="Nori" className="chat-logo" />
             <span className="chat-titulo">Nori</span>
           </div>
