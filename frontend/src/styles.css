@@ -1404,7 +1404,7 @@ body {
 }
 
 .perfil-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--texto);
   white-space: nowrap;
