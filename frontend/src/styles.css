@@ -199,16 +199,10 @@ body {
 
 .msg-avatar {
   flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 30px;
   height: 30px;
-  border-radius: 50%;
-  background: var(--acento);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  border-radius: 8px;
+  object-fit: cover;
   margin-top: 4px;
 }
 
@@ -639,6 +633,8 @@ body {
   width: 30px;
   height: 30px;
   border-radius: 8px;
+  object-fit: contain;
+  background: transparent;
 }
 
 .sidebar-nome {
@@ -757,6 +753,8 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 9px;
+  object-fit: contain;
+  background: transparent;
   animation: brilho-logo 3.5s ease-in-out infinite;
 }
 
@@ -774,6 +772,8 @@ body {
   width: 88px;
   height: 88px;
   border-radius: 22px;
+  object-fit: contain;
+  background: transparent;
   margin-bottom: 14px;
   box-shadow: 0 6px 24px rgba(37, 99, 235, 0.3);
   animation: brilho-logo 3.5s ease-in-out infinite;
