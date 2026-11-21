@@ -39,6 +39,11 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
   badge de categoria, fontes do RAG expansivel, modelo+tokens por resposta,
   contador de tokens da sessao, chips de sugestao, acoes Resumir/Checklist,
   renderizacao leve de markdown (negrito, listas, checklist)
+- Nori ampliado para conversa casual + data/hora injetada; respostas concisas
+  (2-5 frases); modelo gemini-3.1-flash-lite (~4s); MAX_TOKENS_SAIDA=400
+- Citacoes inline [n] ligadas as fontes do RAG (prompt instrui o modelo a citar)
+- Tema escuro com toggle, animacao de entrada, icones SVG nas acoes,
+  contador de ocorrencias, ditado por voz (Web Speech API) e PWA instalavel
 
 ## Em andamento
 
