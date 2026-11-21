@@ -8,7 +8,7 @@ conciliacao com responsavel provavel e compensacao.
 
 Stack: React + Vite (frontend), Vercel Functions Node/TypeScript (api/),
 Supabase/PostgreSQL + pgvector, Gemini (principal) com fila de contingencia
-(Groq, GitHub Models, OpenRouter), streaming token a token, rate limit, CI no
+(Groq, OpenRouter), streaming token a token, rate limit, CI no
 GitHub Actions.
 
 ## Setup local

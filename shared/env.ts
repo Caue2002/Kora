@@ -28,7 +28,7 @@ export function supabaseServiceKey(): string {
 }
 
 // Catalogo dos 4 modelos gratuitos na ordem de prioridade
-// Provedor 1 Gemini (principal); 2 Groq, 3 GitHub Models e 4 OpenRouter (contingencia)
+// Provedor 1 Gemini (principal); 2 Groq e 3-4 OpenRouter com modelos gratis distintos (contingencia)
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo
 export function catalogoModelos(): ModeloConfig[] {
   return [
@@ -43,17 +43,17 @@ export function catalogoModelos(): ModeloConfig[] {
     {
       id: 2,
       provedor: 'groq',
-      nomeModelo: env('GROQ_MODEL', 'llama-3.3-70b-versatile')!,
+      nomeModelo: env('GROQ_MODEL', 'openai/gpt-oss-120b')!,
       apiKey: env('GROQ_API_KEY'),
       endpoint: 'https://api.groq.com/openai/v1/chat/completions',
       prioridade: 2,
     },
     {
       id: 3,
-      provedor: 'github-models',
-      nomeModelo: env('GITHUB_MODEL', 'openai/gpt-4o-mini')!,
-      apiKey: env('GITHUB_TOKEN'),
-      endpoint: 'https://models.github.ai/inference/chat/completions',
+      provedor: 'openrouter',
+      nomeModelo: env('OPENROUTER_MODEL_2', 'google/gemma-3-27b-it:free')!,
+      apiKey: env('OPENROUTER_API_KEY'),
+      endpoint: 'https://openrouter.ai/api/v1/chat/completions',
       prioridade: 3,
     },
     {
