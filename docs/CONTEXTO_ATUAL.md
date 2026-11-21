@@ -22,7 +22,13 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 - Testes unitarios em tests/ (chunking, tokens, prompt, cotas, validacao)
 - Validacao local concluida: 15 testes passando, tsc --noEmit limpo, vite build ok
 - Configs: package.json raiz e frontend, tsconfig, vercel.json, .env.example, .gitignore
-- Git inicializado com commit inicial
+- Git inicializado com push para github.com/Caue2002/Kora
+- Supabase criado e migracoes aplicadas (0000_instalacao_completa.sql) - verificado
+- Chave Gemini validada; modelo padrao ajustado para gemini-3.6-flash (2.5-flash
+  indisponivel para contas novas); embeddings gemini-embedding-001 testados (1536 dims)
+- Regras de exemplo da RotaLeve criadas em database/seeds/regras_rotaleve.json
+  (7 regras nas 4 categorias) + script scripts/ingerir_conhecimento.mjs
+  para gerar embeddings e popular conhecimento_chunks
 
 ## Em andamento
 
@@ -37,9 +43,9 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Aplicar migracoes 0001, 0003 e seed 0004 no Supabase e popular regras reais da RotaLeve
-2. Obter chaves de API (Gemini, Supabase, Groq, Cerebras, OpenRouter), preencher .env
-   e configurar variaveis na Vercel
+1. Finalizar .env local (SUPABASE_URL + chaves) e rodar
+   `node scripts/ingerir_conhecimento.mjs` para popular o RAG com as regras de exemplo
+2. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
 3. Deploy na Vercel e teste de ponta a ponta do chat
 4. Implementar resumo de contexto/fatos confirmados na troca de modelo (janela atual e basica)
 5. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;

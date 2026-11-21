@@ -35,7 +35,7 @@ export function catalogoModelos(): ModeloConfig[] {
     {
       id: 1,
       provedor: 'gemini',
-      nomeModelo: env('GEMINI_MODEL', 'gemini-2.5-flash')!,
+      nomeModelo: env('GEMINI_MODEL', 'gemini-3.6-flash')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
       prioridade: 1,

@@ -1,0 +1,39 @@
+{
+  "regras": [
+    {
+      "titulo": "Conferencia de quantidade na separacao",
+      "categoria": "quantidade",
+      "conteudo": "Toda divergencia de quantidade entre pedido e separacao deve ser conferida no registro de separacao (RS) antes de qualquer ajuste. O operador deve informar: numero do pedido, SKU ou descricao do item, quantidade registrada no sistema e quantidade fisica separada. Sem o RS nao e possivel abrir conciliacao."
+    },
+    {
+      "titulo": "Divergencia de quantidade no recebimento",
+      "categoria": "quantidade",
+      "conteudo": "No recebimento no destino, a conferencia e feita por conferencia cega: o recebedor conta os itens antes de consultar o sistema. Se a quantidade fisica divergir do pedido, o recebedor registra a divergencia no app com foto da etiqueta e assina o canhoto com a observacao. Divergencias acima de 5% do volume do pedido exigem analise do supervisor."
+    },
+    {
+      "titulo": "Substituicao de item no pacote",
+      "categoria": "troca_item",
+      "conteudo": "Nenhum item pode ser substituido sem autorizacao previa do almoxarifado registrada no sistema. Substituicao emergencial por falta de estoque exige: (1) registro da substituicao no WMS com codigo do item original e do substituto, (2) aceite do cliente ou do ponto de apoio, (3) ajuste de preco se aplicavel. Pacote entregue com item diferente do pedido sem registro e considerado avaria de picking."
+    },
+    {
+      "titulo": "Status operacional entre etapas",
+      "categoria": "status_avaria",
+      "conteudo": "O status do pedido so pode avançar quando a etapa anterior estiver confirmada fisicamente. Estados validos: PENDENTE, EM_SEPARACAO, CONFERIDO, EXPEDIDO, EM_ROTA, ENTREGUE, DIVERGENTE. Um pedido marcado como ENTREGUE sem conferencia de recebimento e uma inconsistencia que deve ser regularizada no mesmo dia util. Avarias devem ser registradas com foto e descricao do dano no momento da ocorrencia."
+    },
+    {
+      "titulo": "Avaria e falta parcial",
+      "categoria": "status_avaria",
+      "conteudo": "Falta parcial (item ausente mas pacote entregue) e avaria (item danificado) sao tratadas separadamente. Avaria exige laudo fotografico no app e isolamento do item em area de quarentena. Falta parcial gera credito ou reposicao conforme o contrato do cliente; nao e motivo para recusa do pacote inteiro sem comunicacao previa."
+    },
+    {
+      "titulo": "Excecao de prazo e roteamento",
+      "categoria": "prazo_roteamento",
+      "conteudo": "Pedidos com prazo menor que 24h seguem rota expressa e nao podem ser consolidados com carga fracionada. Qualquer alteracao de rota apos a expedicao exige registro no TMS com motivo e aprovacao do coordenador logistico. Pedido parado ha mais de 48h em qualquer etapa deve ser escalado para conferencia antes do encerramento do dia."
+    },
+    {
+      "titulo": "Evidencias aceitas na conciliacao",
+      "categoria": "quantidade",
+      "conteudo": "Evidencias aceitas para abertura de conciliacao: registro de separacao (RS), canhoto assinado com observacao, foto do item ou pacote, registro de conferencia do TMS/WMS, comunicacao formal do cliente. Relato verbal sem documento comprova a abertura do caso, mas nao fecha a conciliacao."
+    }
+  ]
+}
