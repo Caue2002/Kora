@@ -119,7 +119,14 @@ de entrega.
 
 ## Handoff para outra conta/sessao
 
-- Repositorio: https://github.com/Caue2002/Kora (branch main)
+- Repositorio: https://github.com/Caue2002/Kora
+- Remote git configurado: `origin` -> https://github.com/Caue2002/Kora.git
+- Branch de trabalho: `main` (commits diretos nela; nao ha PRs)
+- **Ao final de qualquer tarefa: commitar e dar `git push origin main`.**
+  Commits em portugues, titulo claro e descricao objetiva (padrao ja usado).
+- Nunca commitar `.env` nem segredos; `.gitignore` ja cobre.
+- CI: GitHub Actions roda typecheck + testes + build a cada push
+  (.github/workflows/testes.yml) — push quebrado fica vermelho na aba Actions.
 - Supabase: projeto `uzkiayjqcjztzrwestcg` — URL
   https://uzkiayjqcjztzrwestcg.supabase.co (Project Settings -> API)
 - `.env` NAO vai para o Git (contem segredos): recriar a partir de
