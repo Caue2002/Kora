@@ -1,0 +1,23 @@
+{
+  "name": "kora",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Projeto Kora - Agente Nori para triagem e conciliacao de divergencias operacionais (RotaLeve)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "dev:web": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}
