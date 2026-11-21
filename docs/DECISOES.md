@@ -63,3 +63,12 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
 
 - Decisao: coluna embedding vector(1536); chamadas usam outputDimensionality=1536.
 - Motivo: free tier do Gemini e compatibilidade com a dimensao fixada no schema.
+
+## D10 - Escopo ampliado do Nori e respostas concisas
+
+- Decisao: Nori responde perguntas gerais/casuais alem das divergencias
+  operacionais; data/hora atuais injetadas no prompt; tom natural e direto;
+  respostas curtas (2 a 5 frases); max_tokens_saida reduzido para 400;
+  modelo padrao trocado para gemini-3.1-flash-lite por latencia.
+- Motivo: feedback do usuario — agente estava restrito demais ao operacional,
+  formal demais e lento; flash-lite responde em ~4s vs ~7-14s do flash.

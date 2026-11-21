@@ -99,8 +99,21 @@ export default async function handler(req: Request): Promise<Response> {
   // Busca RAG e diretrizes adaptativas em paralelo para baixa latencia
   const [busca, diretrizes] = await Promise.all([buscaHibrida(mensagem), carregarDiretrizes()]);
 
+  // Data e hora atuais permitem responder perguntas casuais sem inventar
+  const agora = new Date().toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   const promptSistema = [
     montarPromptSistema(diretrizes),
+    '',
+    `Data e hora atuais: ${agora}.`,
     '',
     montarContextoRAG(busca.trechos),
   ].join('\n');
