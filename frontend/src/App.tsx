@@ -540,7 +540,7 @@ export default function App() {
     try {
       const r = await gerarParecer(mensagens);
       if (r.parecer) {
-        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Parecer de Conciliacao - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#1d4ed8}h2{color:#2563eb;border-bottom:1px solid #bfdbfe;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Parecer de Conciliacao</h1><p><em>Gerado pelo agente Nori - Kora</em></p><pre>${mdParaHtml(r.parecer)}</pre></body></html>`;
+        const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Parecer de Conciliacao - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#1d4ed8}h2{color:#2563eb;border-bottom:1px solid #bfdbfe;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Parecer de Conciliacao</h1><p><em>Gerado pela agente Nori - Kora</em></p><pre>${mdParaHtml(r.parecer)}</pre></body></html>`;
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -679,7 +679,36 @@ export default function App() {
                         </span>
                       </span>
                     ) : (
-                      <Markdown texto={m.content} />
+                      <>
+                        <Markdown texto={m.content} />
+                        {!(enviando && m === ultimaResposta) && (
+                          <div className="msg-acoes">
+                            <button
+                              className="btn-mini"
+                              onClick={() => navigator.clipboard?.writeText(m.content)}
+                              title="Copiar resposta"
+                            >
+                              {iconeCopiar}
+                            </button>
+                            <button
+                              className="btn-mini"
+                              onClick={() => setAvaliacaoAberta((v) => (v === m.id ? null : m.id))}
+                              title="Avaliar resposta"
+                            >
+                              Avaliar
+                            </button>
+                            {('speechSynthesis' in window) && (
+                              <button
+                                className={`btn-mini ${falandoId === m.id ? 'ativo' : ''}`}
+                                onClick={() => falar(m.content, m.id)}
+                                title={falandoId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
+                              >
+                                {iconeSom}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className="msg-meta">
@@ -709,34 +738,7 @@ export default function App() {
                       </ol>
                     </div>
                   )}
-                  {m === ultimaResposta && !enviando && (
-                    <div className="msg-acoes">
-                      <button
-                        className="btn-mini"
-                        onClick={() => navigator.clipboard?.writeText(m.content)}
-                        title="Copiar resposta"
-                      >
-                        {iconeCopiar}
-                      </button>
-                      <button
-                        className="btn-mini"
-                        onClick={() => setAvaliacaoAberta((v) => (v === m.id ? null : m.id))}
-                        title="Avaliar resposta"
-                      >
-                        Avaliar
-                      </button>
-                      {('speechSynthesis' in window) && (
-                        <button
-                          className={`btn-mini ${falandoId === m.id ? 'ativo' : ''}`}
-                          onClick={() => falar(m.content, m.id)}
-                          title={falandoId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
-                        >
-                          {iconeSom}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {avaliacaoAberta === m.id && m === ultimaResposta && !enviando && (
+                  {avaliacaoAberta === m.id && m.content !== '' && (
                     <div className="msg-avaliacoes">
                       {AVISOS.map((a) => (
                         <button

@@ -18,7 +18,7 @@ export const DIRETRIZES_PADRAO: DiretrizesEstilo = {
 // Prompt de sistema completo do Nori em portugues
 export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PADRAO): string {
   return [
-    'Voce e o Nori, agente de IA do Kora, aplicativo de delivery que conecta clientes, restaurantes e entregadores.',
+    'Voce e a Nori, agente de IA do Kora, aplicativo de delivery que conecta clientes, restaurantes e entregadores.',
     'Sua funcao e triar, investigar e conduzir a conciliacao de disputas de pedidos: diferenças entre o que o cliente recebeu e o que foi pedido, pago ou prometido.',
     '',
     'Categorias de disputa que voce reconhece:',
