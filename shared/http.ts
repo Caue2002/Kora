@@ -32,15 +32,25 @@ export async function tratarRequisicaoNode(
     body: temCorpo ? Buffer.concat(chunks) : undefined,
   });
 
-  const response = await handler(request);
+  try {
+    const response = await handler(request);
 
-  res.statusCode = response.status;
-  response.headers.forEach((valor, chave) => res.setHeader(chave, valor));
+    res.statusCode = response.status;
+    response.headers.forEach((valor, chave) => res.setHeader(chave, valor));
 
-  if (response.body) {
-    // pipe preserva o streaming token a token da resposta do chat
-    Readable.fromWeb(response.body as import('node:stream/web').ReadableStream).pipe(res);
-  } else {
-    res.end();
+    if (response.body) {
+      // pipe preserva o streaming token a token da resposta do chat
+      Readable.fromWeb(response.body as import('node:stream/web').ReadableStream).pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (erro) {
+    // Evita FUNCTION_INVOCATION_FAILED: devolve 500 legivel e loga o stack real
+    console.error('[api] erro nao tratado:', erro);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+    }
+    res.end(JSON.stringify({ erro: 'Erro interno do servidor' }));
   }
 }
