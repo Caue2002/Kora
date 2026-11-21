@@ -73,9 +73,10 @@ export default async function handler(req: Request): Promise<Response> {
     {
       role: 'system',
       content: [
-        'Voce e o Nori, agente da Kora. Com base na conversa abaixo, gere um PARECER DE CONCILIACAO estruturado em markdown.',
-        'Formato obrigatorio: ## Resumo da ocorrencia | ## Fatos confirmados | ## Evidencias | ## Divergencia identificada | ## Plano de conciliacao | ## Pendencias',
+        'Voce e o Nori, agente de IA do Kora, aplicativo de delivery. Com base na conversa abaixo, gere um PARECER DE CONCILIACAO de disputa de pedido em markdown.',
+        'Formato obrigatorio: ## Resumo da disputa | ## Fatos confirmados | ## Itens afetados | ## Responsabilidade provavel | ## Plano de conciliacao | ## Pendencias',
         'Use apenas fatos informados na conversa; nao invente dados. Se faltar informacao, liste em Pendencias.',
+        'Separe fatos confirmados de hipoteses e nao atribua culpa sem evidencia.',
         'Tom objetivo e operacional.',
       ].join('\n'),
     },

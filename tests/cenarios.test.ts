@@ -23,14 +23,32 @@ function carregarEnv() {
 const temCredenciais = () =>
   Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.GEMINI_API_KEY);
 
-async function perguntar(mensagem: string, historico: Array<{ role: string; content: string }> = []) {
-  const res = await handler(
+// IP unico por chamada para nao esbarrar no rate limit entre execucoes de teste
+let ipTeste = 0;
+
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function chamarApi(mensagem: string, historico: Array<{ role: string; content: string }>) {
+  ipTeste += 1;
+  return handler(
     new Request('http://localhost/api/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-forwarded-for': `10.99.${Math.floor(ipTeste / 250)}.${ipTeste % 250}`,
+      },
       body: JSON.stringify({ mensagem, historico }),
     }),
   );
+}
+
+// Free tiers de LLM tem RPM baixo: em 429, aguarda a janela virar e tenta de novo
+async function perguntar(mensagem: string, historico: Array<{ role: string; content: string }> = []) {
+  let res = await chamarApi(mensagem, historico);
+  if (res.status === 429) {
+    await dormir(65_000);
+    res = await chamarApi(mensagem, historico);
+  }
   const dados = (await res.json()) as { resposta?: string; erro?: string };
   return { status: res.status, ...dados };
 }
@@ -38,38 +56,38 @@ async function perguntar(mensagem: string, historico: Array<{ role: string; cont
 describe('Cenarios fixos da Kora', () => {
   beforeAll(carregarEnv);
 
-  it('Cenario completo: relato com etapa, quantidade e evidencia', async () => {
+  it('Cenario completo: relato com pedido, item e evidencia', async () => {
     if (!temCredenciais()) return;
     const r = await perguntar(
-      'Na separacao do pedido 4521 separei 8 itens mas o pedido era de 10. Tenho o registro de separacao RS-889 e foto da bancada. O que faco?',
+      'No pedido 4521 pedi 2 burgers e 1 batata, mas chegou so 1 burger. Tenho foto da sacola e o protocolo de entrega. O que faco?',
     );
     expect(r.status).toBe(200);
     expect(r.resposta).toBeTruthy();
-    // deve reconhecer divergencia de quantidade e conduzir conciliacao
-    expect(r.resposta!.toLowerCase()).toMatch(/quantidade|diverg|concilia/);
-  }, 60000);
+    // deve reconhecer item faltante e conduzir conciliacao
+    expect(r.resposta!.toLowerCase()).toMatch(/item|faltante|quantidade|diverg|concilia|reembolso|credito/);
+  }, 150000);
 
   it('Cenario incompleto/ambiguo: deve pedir esclarecimentos', async () => {
     if (!temCredenciais()) return;
-    const r = await perguntar('Deu problema na entrega, pode verificar?');
+    const r = await perguntar('Deu problema no meu pedido, pode verificar?');
     expect(r.status).toBe(200);
     expect(r.resposta).toBeTruthy();
-    // relato vago deve gerar pedido de dados (etapa, quantidade, evidencia)
-    expect(r.resposta!.toLowerCase()).toMatch(/etapa|quantidade|evid|registro|comprovante|qual|informe/);
-  }, 60000);
+    // relato vago deve gerar pedido de dados (pedido, item, evidencia)
+    expect(r.resposta!.toLowerCase()).toMatch(/pedido|item|evid|foto|protocolo|codigo|informe/);
+  }, 150000);
 
   it('Cenario contraditorio: usuario muda os fatos no meio', async () => {
     if (!temCredenciais()) return;
-    const h1 = await perguntar('Chegaram 12 caixas do pedido 3300 mas o sistema marca 15.');
-    const h2 = await perguntar('Na verdade conferi de novo e chegaram as 15 mesmo, o erro foi meu.', [
-      { role: 'user', content: 'Chegaram 12 caixas do pedido 3300 mas o sistema marca 15.' },
+    const h1 = await perguntar('O pedido 3300 chegou com a bebida errada, pedi coca e veio guarana.');
+    const h2 = await perguntar('Na verdade conferi de novo e veio a coca mesmo, eu tinha pedido errado.', [
+      { role: 'user', content: 'O pedido 3300 chegou com a bebida errada, pedi coca e veio guarana.' },
       { role: 'assistant', content: h1.resposta ?? '' },
     ]);
     expect(h2.status).toBe(200);
     expect(h2.resposta).toBeTruthy();
     // deve aceitar a correcao sem contradizer o historico
     expect(h2.resposta!.length).toBeGreaterThan(10);
-  }, 90000);
+  }, 180000);
 
   it('Cenario fora do escopo: pergunta casual', async () => {
     if (!temCredenciais()) return;
@@ -78,5 +96,5 @@ describe('Cenarios fixos da Kora', () => {
     expect(r.resposta).toBeTruthy();
     // deve responder a data sem forcar formato de triagem
     expect(r.resposta!).toMatch(/\d{2}\/\d{2}|novembro|sábado|sabado/i);
-  }, 60000);
+  }, 150000);
 });

@@ -66,12 +66,28 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
 
 ## D10 - Escopo ampliado do Nori e respostas concisas
 
-- Decisao: Nori responde perguntas gerais/casuais alem das divergencias
+- Decisao: Nori responde perguntas gerais/casuais alem das disputas de pedidos;
   operacionais; data/hora atuais injetadas no prompt; tom natural e direto;
   respostas curtas (2 a 5 frases); max_tokens_saida reduzido para 400;
   modelo padrao trocado para gemini-3.1-flash-lite por latencia.
 - Motivo: feedback do usuario — agente estava restrito demais ao operacional,
   formal demais e lento; flash-lite responde em ~4s vs ~7-14s do flash.
+  (Texto original citava "divergencias operacionais"; dominio depois pivotado.)
+
+## D14 - Pivot de dominio: disputas de pedidos em app de delivery
+
+- Decisao: o dominio ficticio mudou de "empresa de logistica (divergencias
+  operacionais)" para "marketplace de delivery (disputas de pedidos entre
+  cliente, restaurante e entregador)". O Kora agora e um app de delivery;
+  as 4 categorias de divergencia foram ressignificadas para item faltante,
+  item errado, qualidade e entrega/atraso.
+- Motivo: objetivo do projeto e demonstrar dominio de GenAI em processo
+  seletivo; disputas de pedido sao uma dor real e reconhecivel de marketplaces
+  de entrega (referencia implicita ao ecossistema iFood), tornando a narrativa
+  do agente mais relevante que logistica B2B generica.
+- Impacto: apenas camada de dominio (prompt, seeds de conhecimento, textos de
+  UI, categorias, cenario de testes); toda a engenharia (RAG, streaming,
+  failover, cotas, feedback, UI) permanece inalterada.
 
 ## D11 - Streaming token a token nas respostas
 

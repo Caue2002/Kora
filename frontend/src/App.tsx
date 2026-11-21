@@ -23,7 +23,7 @@ const AVISOS = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 // Sugestoes rapidas de primeiro contato, uma por categoria de divergencia
 const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
   {
-    texto: 'Divergência de quantidade entre pedido e recebimento',
+    texto: 'Chegou faltando item no meu pedido',
     icone: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" />
@@ -33,7 +33,7 @@ const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
     ),
   },
   {
-    texto: 'Item trocado ou substituído indevidamente no pacote',
+    texto: 'Veio item errado ou trocado sem aviso',
     icone: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <polyline points="17 1 21 5 17 9" />
@@ -44,7 +44,7 @@ const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
     ),
   },
   {
-    texto: 'Inconsistência de status ou avaria entre etapas',
+    texto: 'Comida fria, derramada ou estragada',
     icone: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -54,7 +54,7 @@ const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
     ),
   },
   {
-    texto: 'Exceção de prazo ou roteamento',
+    texto: 'Pedido atrasado ou não recebido',
     icone: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="3 11 22 2 13 21 11 13 3 11" />
@@ -64,15 +64,15 @@ const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
 ];
 
 // Acoes rapidas sobre o caso em andamento
-const ACAO_RESUMO = 'Faça um resumo do que já foi confirmado neste caso até agora.';
-const ACAO_CHECKLIST = 'Monte um checklist de conferência com os itens pendentes deste caso.';
+const ACAO_RESUMO = 'Faça um resumo do que já foi confirmado nesta disputa até agora.';
+const ACAO_CHECKLIST = 'Monte um checklist de conferência com as evidências pendentes desta disputa.';
 
-// Rotulos amigaveis para as categorias de divergencia vindas do RAG
+// Rotulos amigaveis para as categorias de disputa vindas do RAG
 const CATEGORIAS: Record<string, string> = {
-  quantidade: 'Quantidade',
-  troca_item: 'Troca de item',
-  status_avaria: 'Status/Avaria',
-  prazo_roteamento: 'Prazo/Rota',
+  quantidade: 'Item faltante',
+  troca_item: 'Item errado',
+  status_avaria: 'Qualidade',
+  prazo_roteamento: 'Entrega',
 };
 
 const CHAVE_TEMA = 'kora-tema';
@@ -518,7 +518,7 @@ export default function App() {
           {conversaVazia && (
             <div className="chat-vazio">
               <img src="/logo.svg" alt="Nori" className="chat-vazio-logo" />
-              <p>Descreva a divergência operacional encontrada.</p>
+              <p>Relate o problema com o seu pedido.</p>
               <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
               <div className="chat-sugestoes">
                 {SUGESTOES.map((s) => (
@@ -691,7 +691,7 @@ export default function App() {
               className="chat-input"
               value={entrada}
               onChange={(e) => setEntrada(e.target.value)}
-              placeholder="Descreva a ocorrência..."
+              placeholder="Relate o problema com o pedido..."
               maxLength={4000}
               enterKeyHint="send"
             />

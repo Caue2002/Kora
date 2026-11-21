@@ -81,11 +81,14 @@ export async function selecionarModelo(tokensEntradaEstimados: number): Promise<
   return null;
 }
 
-// Marca o modelo como esgotado nas janelas correntes apos erro de limite
+// Marca o modelo como esgotado na janela de minuto apos erro de limite
+// Somente a janela de minuto e marcada: um 429 transitorio (RPM do provedor)
+// nao deve bloquear o modelo por uma hora ou um dia; as cotas maiores sao
+// controladas pelos contadores de tokens de cada janela
 export async function marcarEsgotado(modeloId: number): Promise<void> {
   const j = inicioJanelas();
   const lim = limites();
-  for (const janela_tipo of ['minuto', 'hora', 'dia'] as const) {
+  for (const janela_tipo of ['minuto'] as const) {
     try {
       await rpc('marcar_modelo_esgotado', {
         p_modelo_id: modeloId,

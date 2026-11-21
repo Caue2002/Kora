@@ -6,10 +6,11 @@ arquitetura, criacao de tabela ou mudanca de regra de negocio.
 ## Visao geral
 
 Sistema conversacional do agente de IA Nori para triagem, investigacao e
-conciliacao de divergencias operacionais da empresa ficticia Kora Logistica
-& Abastecimento Ltda. O Nori conduz o operador por perguntas objetivas, separa
-fatos de hipoteses, consulta regras reais no PostgreSQL e estrutura um plano de
-conciliacao.
+conciliacao de **disputas de pedidos** no Kora, aplicativo ficticio de delivery
+que conecta clientes, restaurantes e entregadores. O Nori conduz o usuario por
+perguntas objetivas, separa fatos de hipoteses, consulta as politicas de disputa
+no PostgreSQL e estrutura um parecer de conciliacao com responsavel provavel
+e compensacao sugerida.
 
 ## Estrutura de pastas
 
@@ -25,30 +26,36 @@ conciliacao.
 
 ### Estado da implementacao (V1)
 
-- frontend/: chat mobile-first implementado (Vite+React+TS, sessionStorage, acoes copiar/exportar/feedback)
-- api/: endpoints POST /api/chat e POST /api/feedback implementados
-- shared/: config por env, cliente Supabase (PostgREST+RPC), cliente LLM dos 4 provedores, estimativa/contabilidade de tokens, selecao de modelo por cota
+- frontend/: chat mobile-first implementado (Vite+React+TS, historico no
+  localStorage, sidebar estilo Gemini, streaming token a token, markdown
+  completo, acoes copiar/exportar/feedback com comentario, PWA instalavel)
+- api/: endpoints POST /api/chat (com modo stream), /api/feedback e /api/parecer
+- shared/: config por env, cliente Supabase (PostgREST+RPC), cliente LLM dos
+  4 provedores (com streaming SSE), estimativa/contabilidade de tokens,
+  selecao de modelo por cota e rate limit em memoria por IP
 - rag/: chunking, embeddings Gemini e busca hibrida (RPC buscar_conhecimento_hibrido)
 - coherence/: prompt do Nori, diretrizes adaptativas por feedback e validacao de coerencia (heuristica + LLM)
-- database/: migracoes 0001 (schema), 0003 (RPCs) e seed 0004 (modelos)
-- Pendente: aplicar migracoes no Supabase, popular regras reais da Kora, obter chaves de API e configurar env na Vercel
+- database/: migracoes 0001 (schema), 0003 (RPCs), 0005 (comentario de feedback),
+  0006 (categorias de disputa) e seed 0004 (modelos)
+- Seeds de conhecimento: database/seeds/politicas_disputa.json (9 politicas de
+  disputa de pedidos em delivery, ingeridas via scripts/ingerir_conhecimento.mjs)
+- Pendente: aplicar migracoes 0005/0006 no Supabase e deploy na Vercel
 
 ## Interface (frontend/)
 
-- Tela exclusiva de chat: apenas area de mensagens e campo de envio fixo no rodape.
-- Sem menus laterais, navegacao complexa, graficos, cartoes decorativos ou widgets.
-- Mobile-first: espaçamentos, fontes, areas de toque e rolagem automatico para a
-  mensagem mais recente projetados primeiro para celular; boa proporcao em desktop.
-- Paleta: fundo branco gelo #F8FAFC; mensagens do usuario em verde-esmeralda
-  #065F46 com texto branco; mensagens do agente em branco #FFFFFF com borda
-  cinza-ardosia #E2E8F0; acentos em verde-menta escuro #047857.
-- Historico visual em sessionStorage (sobrevive a reload, descartado ao fechar a aba).
-- Recursos leves: resumo do que foi fechado, checklist de conferencia, abertura
-  automatica de novo contexto ao trazer outra ocorrencia, copiar/exportar parecer.
+- Layout estilo Gemini: sidebar de historico (busca, renomear, excluir) + chat.
+- Mobile-first: sidebar vira overlay no mobile; acoes rapidas compactas.
+- Paleta: fundo branco gelo #F8FAFC; usuario em verde-esmeralda #065F46;
+  agente em branco com borda cinza-ardosia; acentos #047817; tema escuro.
+- Streaming token a token com status contextual ("Consultando a base...",
+  "Gerando resposta..."); markdown completo (tabelas, codigo, checklist
+  clicavel, citacoes); popover de fontes do RAG sob demanda.
+- Historico persistente em localStorage; PWA instalavel; ditado por voz;
+  modo foco para leitura; timestamps relativos.
 
 ## RAG e prevencao de alucinacao (rag/)
 
-- Busca hibrida de baixa latencia: pesquisa textual exata (codigos de ocorrencia,
+- Busca hibrida de baixa latencia: pesquisa textual exata (codigos de pedido,
   palavras-chave) combinada com busca semantica via pgvector.
 - Retorna apenas trechos curtos e relevantes das regras da Kora.
 - Temperatura baixa (0 a 0.1) em todas as chamadas de LLM.

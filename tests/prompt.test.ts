@@ -12,7 +12,7 @@ describe('prompt do Nori', () => {
 
   it('contexto RAG vazio instrui a nao afirmar regras', () => {
     const ctx = montarContextoRAG([]);
-    expect(ctx).toContain('Nenhuma regra');
+    expect(ctx).toContain('Nenhuma politica');
   });
 
   it('contexto RAG formata trechos com titulo e categoria', () => {

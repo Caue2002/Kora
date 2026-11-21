@@ -1,6 +1,7 @@
 // Script de ingestao de conhecimento para o RAG do Kora
-// Le database/seeds/regras_kora.json, gera embeddings via Gemini e
+// Le database/seeds/politicas_disputa.json, gera embeddings via Gemini e
 // insere/atualiza os chunks na tabela conhecimento_chunks do Supabase
+// Remove chunks da referencia anterior antes de inserir (idempotente)
 // Uso: node scripts/ingerir_conhecimento.mjs
 
 import { readFileSync } from 'node:fs';
@@ -83,9 +84,24 @@ async function inserirChunk(dados) {
   }
 }
 
-const { regras } = JSON.parse(readFileSync(join(raiz, 'database/seeds/regras_kora.json'), 'utf8'));
+// Remove chunks de referencias antigas de seed para evitar duplicatas no RAG
+async function limparSeedsAnteriores() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/conhecimento_chunks?origem=eq.regra&metadados->>fonte=eq.seed_exemplo`,
+    {
+      method: 'DELETE',
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+    },
+  );
+  if (!res.ok) {
+    console.warn(`Aviso: nao foi possivel limpar seeds anteriores (${res.status})`);
+  }
+}
 
-console.log(`Ingerindo ${regras.length} regras...`);
+const { regras } = JSON.parse(readFileSync(join(raiz, 'database/seeds/politicas_disputa.json'), 'utf8'));
+
+console.log(`Ingerindo ${regras.length} politicas de disputa...`);
+await limparSeedsAnteriores();
 
 // Gera um chunk por regra (conteudos ja estao curtos) com embedding vetorial
 const textos = regras.map((r) => `${r.titulo}\n\n${r.conteudo}`);
@@ -98,7 +114,7 @@ for (let i = 0; i < regras.length; i++) {
   for (const pedaco of pedacos) {
     await inserirChunk({
       origem: 'regra',
-      referencia: 'regras_kora_exemplo',
+      referencia: 'politicas_disputa_exemplo',
       titulo: r.titulo,
       conteudo: pedaco,
       categoria: r.categoria,

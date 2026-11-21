@@ -29,19 +29,29 @@ describe('POST /api/chat (integracao real)', () => {
   it('responde uma triagem basica usando RAG e Gemini', async () => {
     if (!temCredenciais()) return; // skip silencioso sem credenciais
 
-    const req = new Request('http://localhost/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mensagem: 'Recebi um pacote com 10 itens e conferi só 8. O que faço?',
-        historico: [],
-      }),
-    });
+    // Request nao pode ser reutilizado (body e consumido); recria a cada tentativa
+    const novaReq = () =>
+      new Request('http://localhost/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-forwarded-for': '10.98.0.1',
+        },
+        body: JSON.stringify({
+          mensagem: 'Pedi 2 burgers e chegou so 1. O que faco?',
+          historico: [],
+        }),
+      });
 
-    const res = await handler(req);
+    let res = await handler(novaReq());
+    // Free tier do Gemini tem RPM baixo: aguarda a virada da janela em caso de 429
+    if (res.status === 429) {
+      await new Promise((r) => setTimeout(r, 65_000));
+      res = await handler(novaReq());
+    }
     expect(res.status).toBe(200);
     const dados = (await res.json()) as { resposta?: string; erro?: string };
     expect(dados.resposta).toBeTruthy();
     expect(dados.resposta!.length).toBeGreaterThan(20);
-  }, 60000);
+  }, 150000);
 });

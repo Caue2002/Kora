@@ -5,9 +5,11 @@ Atualizar obrigatoriamente ao final de cada tarefa concluída.
 
 ## Fase atual
 
-Scaffold V1 implementado: estrutura completa do projeto com frontend de chat,
-endpoints de API, modulos RAG/coherence/shared e schema do banco.
-Aguardando validacao local (npm install/test/build) e configuracao de credenciais.
+Produto funcional com pivot de dominio concluido: o Nori agora e um agente de
+conciliacao de **disputas de pedidos** em um app de delivery ficticio (Kora),
+e nao mais um agente de divergencias logisticas. Motivacao: demonstrar
+conhecimento de GenAI em processo seletivo com dor reconhecivel de marketplace
+de entrega.
 
 ## O que esta pronto
 
@@ -66,6 +68,21 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
   ("Consultando a base..." / "Gerando resposta..."), icones nos chips de
   sugestao, botao voltar ao fim, contador de caracteres, timestamps relativos
   e modo foco (esconde sidebar/header para leitura)
+- PIVOT DE DOMINIO (D14): Kora agora e app de delivery ficticio; Nori tria
+  disputas de pedidos (item faltante, item errado, qualidade, atraso/nao
+  recebido) e gera parecer com responsavel provavel e compensacao
+- Novas politicas de disputa em database/seeds/politicas_disputa.json
+  (9 regras) + migracao 0006 atualizando descricoes das categorias
+- Script de ingestao agora e idempotente: remove seeds antigos antes de inserir
+- Politicas de disputa ja ingeridas no Supabase (9 chunks, referencia
+  politicas_disputa_exemplo); chunks de regras logisticas removidos
+- Bug de cotas corrigido: marcarEsgotado marcava esgotado nas janelas de
+  minuto+hora+dia (um 429 bloqueava o modelo ate o dia seguinte); agora marca
+  apenas a janela de minuto. Limites internos de tokens elevados no .env
+  (MINUTO=30000, HORA=300000, DIA=1000000) — sao orcamento proprio, nao os
+  limites reais do Gemini
+- Testes de integracao ganharam retry em 429 (espera 65s) e IPs unicos por
+  chamada para nao trombar no rate limit nem no RPM do free tier
 - Conjunto fixo de cenarios de teste (tests/cenarios.test.ts): completo,
   incompleto/ambiguo, contraditorio e fora do escopo — 20 testes passando
 - Validacao: typecheck limpo, 20 testes ok, vite build ok, streaming e
@@ -84,18 +101,17 @@ Aguardando validacao local (npm install/test/build) e configuracao de credenciai
 
 ## Pendencias (proximos passos, em ordem)
 
-1. Aplicar database/migrations/0005_feedback_comentario.sql no SQL Editor do Supabase
-2. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
+1. Aplicar database/migrations/0005_feedback_comentario.sql e
+   0006_categorias_disputa.sql no SQL Editor do Supabase
+3. Deploy na Vercel: criar projeto, configurar as mesmas variaveis de ambiente
    do .env no painel da Vercel e fazer deploy do repositorio
    (verificar se streaming e /api/parecer funcionam no ambiente serverless)
-3. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
-4. Testar o chat no navegador com cenarios reais da Kora e ajustar prompt/regras
-5. Se necessario, substituir rate limit em memoria por limitador persistente
+4. Obter chaves de API opcionais (Groq, Cerebras, OpenRouter) se quiser failover
+5. Testar o chat no navegador com cenarios de disputa reais e ajustar prompt/politicas
+6. Se necessario, substituir rate limit em memoria por limitador persistente
    (tabela Postgres ou Upstash) para cobrir multiplas instancias serverless
-6. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
+7. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
    avaliar ativacao permanente conforme custo de tokens
-7. Substituir as 7 regras de exemplo pelas politicas operacionais reais da Kora
-   quando disponiveis (atualizar conhecimento_chunks via script de ingestao)
 
 ## Protocolo de handoff (troca de modelo/sessao)
 

@@ -1,0 +1,49 @@
+{
+  "regras": [
+    {
+      "titulo": "Item faltante ou quantidade divergente no pedido",
+      "categoria": "quantidade",
+      "conteudo": "Quando o cliente relata que itens do pedido nao chegaram, colete: codigo do pedido, itens esperados e itens efetivamente recebidos. Verifique o protocolo de entrega e a foto da sacola gerada pelo entregador. Divergencia confirmada gera reposicao do item ou credito parcial do valor, conforme preferencia do cliente. Acima de 20% do valor do pedido, o caso deve ser marcado para analise de reincidencia do restaurante."
+    },
+    {
+      "titulo": "Conferencia de itens na retirada pelo entregador",
+      "categoria": "quantidade",
+      "conteudo": "O entregador deve conferir os itens fisicamente na sacola antes de sair do restaurante e registrar foto do protocolo de retirada no app. Item faltante identificado na retirada e responsabilidade do restaurante. Item que sumiu apos a retirada confirmada e tratado como extravio em transporte, com processo diferente de reposicao."
+    },
+    {
+      "titulo": "Item errado ou substituido sem aviso",
+      "categoria": "troca_item",
+      "conteudo": "Compare o item recebido com o cardapio fotografado no pedido. Substituicao so e valida quando o restaurante avisou o cliente antes da entrega (push, SMS ou ligacao registrada) e o cliente aceitou. Item trocado sem aviso gera credito do valor do item ou reposicao, e o ocorrido deve ser registrado na ficha do restaurante para acompanhamento."
+    },
+    {
+      "titulo": "Qualidade do alimento: frio, derramado ou estragado",
+      "categoria": "status_avaria",
+      "conteudo": "Report de qualidade exige foto do alimento e do estado da embalagem. Pedido deve ser reportado em ate 24h apos a entrega. Alimento frio e aceitavel se o tempo de entrega estimado foi respeitado; se o atraso foi causado pelo restaurante (preparo lento), a responsabilidade e dele. Reincidencia de qualidade no mesmo restaurante em 30 dias escala o caso para o time de qualidade."
+    },
+    {
+      "titulo": "Status do pedido inconsistente ou pedido nao recebido",
+      "categoria": "status_avaria",
+      "conteudo": "Se o sistema marca o pedido como entregue mas o cliente afirma nao ter recebido, verifique a foto de entrega do entregador e o nome do recebedor registrado. Sem evidencia valida de entrega, o caso segue para reembolso integral ou credito. Nunca afirmar que o pedido foi entregue apenas pelo status do sistema."
+    },
+    {
+      "titulo": "Atraso na entrega e quem e o responsavel",
+      "categoria": "prazo_roteamento",
+      "conteudo": "Compare o tempo estimado com o tempo real de entrega e identifique a etapa do atraso: preparo no restaurante (acima do tempo medio do estabelecimento), deslocamento do entregador ou falha de roteamento da plataforma. Atraso por preparo gera cupom de desconto para o cliente; atraso logistico pode gerar credito parcial. Atraso superior a 60 minutos sem justificativa abre avaliacao de penalidade para o responsavel."
+    },
+    {
+      "titulo": "Pedido cancelado pelo restaurante ou pelo cliente",
+      "categoria": "prazo_roteamento",
+      "conteudo": "Cancelamento pelo restaurante sem motivo aceito gera reembolso integral e pode afetar o indicador do estabelecimento. Cancelamento pelo cliente apos o preparo iniciar pode gerar taxa de cancelamento conforme a politica vigente. Em caso de cancelamento, confirme quem iniciou o cancelamento no historico do pedido antes de definir a compensacao."
+    },
+    {
+      "titulo": "Criterio de responsabilidade na conciliacao",
+      "categoria": "quantidade",
+      "conteudo": "Na conciliacao de disputas, separe fatos confirmados de hipoteses: o restaurante responde por erro de montagem do pedido e qualidade do alimento; o entregador responde por extravio ou avaria durante o transporte; a plataforma responde por falhas de sistema, cobranca indevida e problemas de roteamento. Nao atribua responsabilidade sem evidencia — a funcao do agente e apontar o que precisa ser confirmado."
+    },
+    {
+      "titulo": "Politica de compensacao por tipo de disputa",
+      "categoria": "troca_item",
+      "conteudo": "Compensacao padrao: item faltante ou errado gera credito do valor do item ou reposicao; problema de qualidade gera cupom de desconto ou reembolso parcial do pedido; pedido inteiro nao recebido ou cancelado indevidamente gera reembolso integral. A compensacao final depende da categoria confirmada e pode ser ajustada pelo time de suporte em casos de reincidencia ou excecao."
+    }
+  ]
+}
