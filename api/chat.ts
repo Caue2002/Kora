@@ -11,6 +11,7 @@ import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
+import { detalhesPedido, extrairCodigoPedido, pedidoFicticio } from '../shared/pedidos.js';
 import { buscaHibrida } from '../rag/search.js';
 import {
   carregarDiretrizes,
@@ -161,6 +162,28 @@ async function webHandler(req: Request): Promise<Response> {
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
 
+  // Codigo de pedido informado: resposta deterministica de confirmacao
+  // (mesmo codigo = mesmo pedido; pula o LLM e economiza cota).
+  // Se a mensagem ja descreve um problema, deixa o LLM triar com os dados injetados.
+  const RELATO_PROBLEMA =
+    /errad|falt|frio|derramad|estragad|atras|cancel|nao chegou|não chegou|nao recebi|não recebi|trocad|substitu|reprov|qualidad|s[óo]\s+\d|veio s[óo]|chegou s[óo]|diverg/i;
+  const codigoPedido = extrairCodigoPedido(mensagem);
+  const relatoComProblema = RELATO_PROBLEMA.test(mensagem);
+  const jaConfirmado =
+    codigoPedido !== undefined &&
+    historicoJanela.some((m) => m.role === 'assistant' && m.content.includes(codigoPedido));
+  if (codigoPedido && !jaConfirmado && !relatoComProblema) {
+    const d = detalhesPedido(codigoPedido);
+    const resposta = `Encontrei o pedido ${codigoPedido} — ${d.itens} (${d.loja}, ${d.valor}). Confere? Se sim, me conta o que houve.`;
+    if (corpo.stream === true) {
+      return new Response(resposta, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'x-modelo': 'simulacao' },
+      });
+    }
+    return json(200, { resposta, modelo: 'simulacao', provedor: 'kora', tokens: 0, fontes: [] });
+  }
+
   // Busca RAG e diretrizes adaptativas em paralelo para baixa latencia
   const [busca, diretrizes] = await Promise.all([buscaHibrida(mensagem), carregarDiretrizes()]);
 
@@ -178,11 +201,18 @@ async function webHandler(req: Request): Promise<Response> {
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
 
+  // Injeta o pedido ficticio deterministico quando o codigo ja foi confirmado antes
+  // (ex.: usuario repete o codigo ou o fluxo chega aqui com o codigo no historico)
+  const dadosPedido = codigoPedido
+    ? `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Confirme esses itens com o usuario; se ele corrigir, passe a usar a descricao dele.`
+    : '';
+
   const promptSistema = [
     montarPromptSistema(diretrizes),
     '',
     `Data e hora atuais: ${agora}.`,
     perfil ? `Perfil do usuario: ${CONTEXTO_PERFIL[perfil]}` : '',
+    dadosPedido,
     '',
     montarContextoRAG(busca.trechos),
   ].join('\n');
