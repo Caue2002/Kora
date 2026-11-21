@@ -511,6 +511,7 @@ export default function App() {
           <div className="chat-titulo-bloco">
             <img src="/logo.png" alt="Nori" className="chat-logo" />
             <span className="chat-titulo">Nori</span>
+            <span className="chat-subtitulo">- Agent AI</span>
           </div>
           <div className="chat-acoes">
             <button

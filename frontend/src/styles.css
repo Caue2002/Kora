@@ -85,6 +85,13 @@ body {
   color: transparent;
 }
 
+.chat-subtitulo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--texto-suave);
+  letter-spacing: 0.2px;
+}
+
 .chat-tokens {
   font-size: 11px;
   color: var(--texto-suave);
