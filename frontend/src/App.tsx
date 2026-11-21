@@ -538,9 +538,11 @@ export default function App() {
     setCaso(null);
   }
 
-  // Encerra o atendimento: marca o caso como encerrado e abre chat limpo
+  // Encerra o atendimento: marca o caso como encerrado e volta a tela de escolha de perfil
   function encerrarAtendimento() {
     if (conversaId) void encerrarCaso(conversaId);
+    localStorage.removeItem(CHAVE_PERFIL);
+    setPerfil(null);
     novaConversa();
   }
 
