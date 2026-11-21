@@ -118,6 +118,7 @@ export async function enviarMensagemStream(
   historico: Mensagem[],
   onDelta: (texto: string) => void,
   imagem?: ImagemAnexo,
+  perfil?: string,
 ): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -127,6 +128,7 @@ export async function enviarMensagemStream(
       historico: historico.map((m) => ({ role: m.role, content: m.content })),
       stream: true,
       imagem,
+      perfil,
     }),
   });
 

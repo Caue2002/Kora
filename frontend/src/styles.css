@@ -929,21 +929,20 @@ body {
   font-style: italic;
 }
 
-/* ===== acoes da mensagem: visiveis no hover (desktop) ===== */
-.msg-acoes {
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.msg-assistant-corpo:hover .msg-acoes,
-.msg-acoes:focus-within {
+/* ===== acoes da mensagem: sempre visiveis dentro da bolha ===== */
+.msg-balao .msg-acoes {
   opacity: 1;
 }
 
-@media (hover: none) {
-  .msg-acoes {
-    opacity: 1;
-  }
+.msg-balao .msg-acoes .btn-mini {
+  font-size: 10px;
+  padding: 2px 7px;
+  gap: 3px;
+}
+
+.msg-balao .msg-acoes .btn-mini svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* ===== chips de avaliacao expandidos ===== */
@@ -1357,4 +1356,78 @@ body {
 .anexo-remover:hover {
   color: #dc2626;
   background: #fecaca;
+}
+
+/* ===== seletor de perfil ===== */
+.perfis-bloco {
+  width: 100%;
+  max-width: 560px;
+}
+
+.perfis-grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.perfil-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  background: var(--cartao);
+  border: 1px solid var(--agente-borda);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.perfil-card:hover {
+  border-color: var(--acento);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.perfil-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--acento-claro);
+  color: var(--acento);
+}
+
+.perfil-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.perfil-desc {
+  font-size: 11px;
+  color: var(--texto-suave);
+  line-height: 1.35;
+}
+
+.perfil-chip {
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--acento);
+  background: var(--acento-claro);
+  color: var(--acento);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 480px) {
+  .perfis-grade {
+    grid-template-columns: 1fr;
+  }
 }

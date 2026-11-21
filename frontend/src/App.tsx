@@ -101,6 +101,49 @@ const CATEGORIAS_CASO: Record<string, string> = {
 const ORDEM_ETAPAS = ['triagem', 'coleta_evidencias', 'analise', 'parecer', 'encerrado'];
 const ETAPAS_CURTAS = ['Triagem', 'Coleta', 'Análise', 'Parecer', 'Encerrado'];
 
+// Perfis de usuario atendidos pelo Nori, no estilo dos papeis do marketplace
+const PERFIS = [
+  {
+    id: 'cliente',
+    label: 'Cliente',
+    descricao: 'Recebi um pedido com problema',
+    icone: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21c0-4 3.6-6 8-6s8 2 8 6" />
+      </svg>
+    ),
+  },
+  {
+    id: 'parceiro',
+    label: 'Vendedor parceiro',
+    descricao: 'Tenho um problema com meu estabelecimento',
+    icone: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l1.5-5h15L21 9" />
+        <path d="M3 9h18v11H3z" />
+        <path d="M9 20v-6h6v6" />
+      </svg>
+    ),
+  },
+  {
+    id: 'entregador',
+    label: 'Entregador',
+    descricao: 'Tenho um problema com uma entrega',
+    icone: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="5.5" cy="17.5" r="3.5" />
+        <circle cx="18.5" cy="17.5" r="3.5" />
+        <path d="M15 6h2l3 6.5" />
+        <path d="M5.5 17.5L9 10h5.5L15 6" />
+      </svg>
+    ),
+  },
+] as const;
+
+type PerfilId = (typeof PERFIS)[number]['id'];
+const CHAVE_PERFIL = 'kora-perfil';
+
 const CHAVE_TEMA = 'kora-tema';
 
 function novoId(): string {
@@ -266,6 +309,10 @@ export default function App() {
   const [menuAcoes, setMenuAcoes] = useState(false);
   const [falandoId, setFalandoId] = useState<string | null>(null);
   const [anexo, setAnexo] = useState<{ imagem: ImagemAnexo; nome: string; preview: string } | null>(null);
+  const [perfil, setPerfil] = useState<PerfilId | null>(() => {
+    const salvo = localStorage.getItem(CHAVE_PERFIL);
+    return PERFIS.some((p) => p.id === salvo) ? (salvo as PerfilId) : null;
+  });
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -329,6 +376,13 @@ export default function App() {
     if (!enviando) inputRef.current?.focus();
   }, [enviando]);
 
+  // Define o perfil do usuario (cliente, parceiro ou entregador) e persiste
+  function escolherPerfil(p: PerfilId) {
+    setPerfil(p);
+    localStorage.setItem(CHAVE_PERFIL, p);
+    inputRef.current?.focus();
+  }
+
   // Inicia ou para o ditado por voz usando a Web Speech API do navegador
   function alternarDitado() {
     const w = window as unknown as {
@@ -380,12 +434,14 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 
-  // Escolhe uma voz feminina pt-BR quando disponivel no navegador
+  // Escolhe a voz mais natural disponivel: pt-BR feminina com prioridade para
+  // vozes de nuvem (Google/Microsoft/Amazon), que soam menos artificial
   function vozFeminina(): SpeechSynthesisVoice | null {
-    const vozes = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('pt'));
-    if (vozes.length === 0) return null;
-    const fem = vozes.find((v) => /maria|francisca|female|feminina|google portugu/i.test(v.name));
-    return fem ?? vozes[0] ?? null;
+    const pt = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith('pt'));
+    if (pt.length === 0) return null;
+    const natural = pt.find((v) => /google|microsoft|amazon|online/i.test(v.name));
+    const fem = pt.find((v) => /maria|francisca|female|feminina/i.test(v.name));
+    return natural ?? fem ?? pt[0] ?? null;
   }
 
   // Le a resposta em voz alta usando a Web Speech API (TTS do navegador)
@@ -401,7 +457,8 @@ export default function App() {
     u.lang = 'pt-BR';
     const voz = vozFeminina();
     if (voz) u.voice = voz;
-    u.rate = 1.05;
+    u.rate = 0.95;
+    u.pitch = 1.1;
     u.onend = () => setFalandoId((v) => (v === msgId ? null : v));
     u.onerror = () => setFalandoId((v) => (v === msgId ? null : v));
     setFalandoId(msgId);
@@ -443,7 +500,7 @@ export default function App() {
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
-      }, imagemEnvio);
+      }, imagemEnvio, perfil ?? undefined);
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
         setErro({ mensagem: r.erro, retryTexto: texto });
@@ -644,6 +701,24 @@ export default function App() {
                   </div>
                 </div>
               </div>
+              {!perfil ? (
+                <div className="perfis-bloco">
+                  <p className="chat-vazio-dica">Quem é você?</p>
+                  <div className="perfis-grade">
+                    {PERFIS.map((p) => (
+                      <button key={p.id} className="perfil-card" onClick={() => escolherPerfil(p.id)}>
+                        <span className="perfil-icone">{p.icone}</span>
+                        <span className="perfil-label">{p.label}</span>
+                        <span className="perfil-desc">{p.descricao}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
+                  {PERFIS.find((p) => p.id === perfil)?.label} · trocar
+                </button>
+              )}
               <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
               <div className="chat-sugestoes">
                 {SUGESTOES.map((s) => (
@@ -683,6 +758,16 @@ export default function App() {
                         <Markdown texto={m.content} />
                         {!(enviando && m === ultimaResposta) && (
                           <div className="msg-acoes">
+                            {m.fontes && m.fontes.length > 0 && (
+                              <button
+                                className="btn-mini"
+                                onClick={() => setFontesAbertas((v) => (v === m.id ? null : m.id))}
+                                title="Regras consultadas"
+                              >
+                                {iconeFontes}
+                                <span>{m.fontes.length}</span>
+                              </button>
+                            )}
                             <button
                               className="btn-mini"
                               onClick={() => navigator.clipboard?.writeText(m.content)}
@@ -715,16 +800,6 @@ export default function App() {
                     {m.modelo}
                     {' · '}
                     {formatarHora(m.ts)}
-                    {m.fontes && m.fontes.length > 0 && (
-                      <button
-                        className="btn-fontes"
-                        onClick={() => setFontesAbertas((v) => (v === m.id ? null : m.id))}
-                        title="Regras consultadas"
-                      >
-                        {iconeFontes}
-                        <span>{m.fontes.length}</span>
-                      </button>
-                    )}
                   </div>
                   {fontesAbertas === m.id && m.fontes && (
                     <div className="fontes-popover">

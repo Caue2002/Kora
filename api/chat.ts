@@ -23,7 +23,20 @@ interface CorpoRequisicao {
   historico?: unknown;
   stream?: unknown;
   imagem?: unknown;
+  perfil?: unknown;
 }
+
+// Perfis de usuario do marketplace: cada um recebe um contexto de solucao proprio
+const PERFIS_VALIDOS = new Set(['cliente', 'parceiro', 'entregador']);
+
+const CONTEXTO_PERFIL: Record<string, string> = {
+  cliente:
+    'O usuario e um CLIENTE final que recebeu um pedido com problema. Conduza como atendimento ao consumidor: colete dados do pedido, evidencias e aplique as politicas de disputa e reembolso.',
+  parceiro:
+    'O usuario e um VENDEDOR PARCEIRO (restaurante ou loja). Ajude com demandas do estabelecimento: pedido cancelado indevidamente, avaliacao contestada, divergencia de repasse, problema no cardapio. Aplique as mesmas regras de evidencia; nao prometa acoes no sistema.',
+  entregador:
+    'O usuario e um ENTREGADOR parceiro. Ajude com demandas de entrega: pedido nao entregue, dificuldade na retirada, pagamento da corrida, atraso. Aplique as mesmas regras de evidencia; nao prometa acoes no sistema.',
+};
 
 const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
@@ -160,10 +173,14 @@ export default async function handler(req: Request): Promise<Response> {
     minute: '2-digit',
   });
 
+  const perfil =
+    typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
+
   const promptSistema = [
     montarPromptSistema(diretrizes),
     '',
     `Data e hora atuais: ${agora}.`,
+    perfil ? `Perfil do usuario: ${CONTEXTO_PERFIL[perfil]}` : '',
     '',
     montarContextoRAG(busca.trechos),
   ].join('\n');
