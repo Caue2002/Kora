@@ -120,6 +120,12 @@ de entrega.
   imagem base64 ao /api/chat, Gemini analisa visualmente (inline_data),
   provedores OpenAI-compat recebem nota textual; marcador de imagem entra
   na extracao do caso
+- Seletor de perfil no chat vazio: Cliente / Vendedor parceiro / Entregador
+  (cards com icone, persistido em localStorage); /api/chat aceita campo
+  perfil e injeta contexto de solucao especifico por papel no prompt
+- Acoes da mensagem (fontes, copiar, avaliar, ouvir) dentro da bolha em
+  todas as respostas, menores e sempre visiveis a direita; voz do TTS
+  prioriza vozes pt-BR naturais (Google/Microsoft/Amazon)
 
 ## Em andamento
 
