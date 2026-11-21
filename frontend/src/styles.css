@@ -344,7 +344,8 @@ body {
 .chat-quick {
   display: flex;
   gap: 8px;
-  padding: 6px 12px 0;
+  padding: 10px 12px 14px;
+  background: var(--fundo);
 }
 
 .btn-quick {
@@ -781,7 +782,7 @@ body {
 .chat-quick {
   display: flex;
   gap: 8px;
-  padding: 6px 12px 0;
+  padding: 10px 12px 14px;
 }
 
 .btn-quick {
