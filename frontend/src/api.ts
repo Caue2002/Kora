@@ -1,10 +1,19 @@
 // Cliente da API do chat e persistencia da sessao na aba (sessionStorage)
 
+export interface Fonte {
+  titulo: string;
+  categoria?: string | null;
+}
+
 export interface Mensagem {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  ts?: number;
   modelo?: string;
+  categoria?: string | null;
+  fontes?: Fonte[];
+  tokens?: number;
 }
 
 export interface RespostaChat {
@@ -12,7 +21,8 @@ export interface RespostaChat {
   modelo?: string;
   provedor?: string;
   aviso?: string;
-  fontes?: Array<{ titulo: string; categoria?: string | null }>;
+  tokens?: number;
+  fontes?: Fonte[];
   erro?: string;
 }
 

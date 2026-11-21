@@ -163,6 +163,7 @@ export default async function handler(req: Request): Promise<Response> {
     modelo: gerado.modelo.nomeModelo,
     provedor: gerado.modelo.provedor,
     aviso,
+    tokens: tokensUso,
     fontes: busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria })),
   });
 }
