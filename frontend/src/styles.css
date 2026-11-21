@@ -342,28 +342,33 @@ body {
   text-align: center;
 }
 
-/* campo de envio fixo no rodape */
+/* campo de envio: barra inteira dentro de uma bolha arredondada */
 .chat-form {
   display: flex;
-  gap: 8px;
-  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--cartao) 95%, transparent);
-  border-top: 1px solid var(--agente-borda);
+  gap: 6px;
+  align-items: center;
+  margin: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  padding: 6px;
+  background: var(--cartao);
+  border: 1px solid var(--agente-borda);
+  border-radius: 26px;
+  box-shadow: var(--sombra);
 }
 
 .chat-input {
   flex: 1;
-  border: 1px solid var(--agente-borda);
-  border-radius: 20px;
-  padding: 10px 16px;
+  border: none;
+  border-radius: 18px;
+  padding: 10px 12px;
   font-size: 16px;
   outline: none;
-  background: var(--fundo);
+  background: transparent;
+  color: var(--texto);
+  min-width: 0;
 }
 
 .chat-input:focus {
-  border-color: var(--acento);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: none;
 }
 
 .chat-enviar {
@@ -450,7 +455,7 @@ body {
 }
 
 [data-theme='escuro'] .chat-input {
-  background: #0b1424;
+  background: transparent;
   color: var(--texto);
 }
 
