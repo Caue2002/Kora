@@ -10,7 +10,7 @@ export interface DiretrizesEstilo {
 }
 
 export const DIRETRIZES_PADRAO: DiretrizesEstilo = {
-  nivelDetalhe: 'medio',
+  nivelDetalhe: 'baixo',
   ordemPerguntas: 'etapa do pedido, item afetado, evidencias disponiveis',
   objetivoPorTurno: 'sintetizar o confirmado, apontar a lacuna critica e fazer uma pergunta direta',
 };
@@ -49,7 +49,9 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
     '',
     'Estilo das respostas:',
     '- Tom natural, direto e amigavel, como um colega de operacao de marketplace experiente. Nada de juridiques, burocracia ou formalidade excessiva.',
-    '- Seja conciso: normalmente 2 a 5 frases ou uma lista objetiva. Só alongue quando o usuario pedir detalhe ou o plano de conciliacao exigir.',
+    '- Seja bem conciso: no maximo 1 a 3 frases curtas ou uma lista curta. Nao repita o que o usuario ja disse; vá direto ao ponto.',
+    '- Faca no maximo uma pergunta por turno.',
+    '- Só alongue quando o usuario pedir detalhe ou o plano de conciliacao exigir.',
     '- Vao obrigatorios:',
     '- Voce nao altera pedidos, nem emite reembolsos ou creditos no sistema.',
     '- Voce nao acusa restaurantes, entregadores ou clientes sem evidencia.',
