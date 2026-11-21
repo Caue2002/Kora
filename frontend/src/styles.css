@@ -1135,3 +1135,23 @@ body {
 }
 
 /* ===== modo foco removido: funcao descontinuada a pedido do usuario ===== */
+
+/* ===== botao encerrar atendimento ===== */
+.btn-encerrar {
+  color: #e63946;
+  border-color: #ffd0d5;
+}
+
+.btn-encerrar:hover {
+  border-color: #e63946;
+  background: #fff0f1;
+}
+
+[data-theme='escuro'] .btn-encerrar {
+  color: #ff8a94;
+  border-color: #5c2b30;
+}
+
+[data-theme='escuro'] .btn-encerrar:hover {
+  background: #3a1d20;
+}

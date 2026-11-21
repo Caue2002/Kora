@@ -175,6 +175,13 @@ const iconeBaixo = (
     <polyline points="6 9 12 15 18 9" />
   </Icone>
 );
+const iconeEncerrar = (
+  <Icone size={13}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <polyline points="16 17 21 12 16 7" />
+    <line x1="21" y1="12" x2="9" y2="12" />
+  </Icone>
+);
 
 // Tipo minimo da Web Speech API para o ditado por voz
 interface ReconhecimentoVoz {
@@ -652,6 +659,10 @@ export default function App() {
             <button className="btn-quick" onClick={() => processarEnvio(ACAO_CHECKLIST)} disabled={enviando}>
               {iconeChecklist}
               <span className="quick-label">Checklist</span>
+            </button>
+            <button className="btn-quick btn-encerrar" onClick={novaConversa} disabled={enviando} title="Encerra o atendimento e inicia um novo chat">
+              {iconeEncerrar}
+              <span className="quick-label">Encerrar</span>
             </button>
           </div>
         )}
