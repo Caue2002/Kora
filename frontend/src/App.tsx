@@ -24,48 +24,27 @@ import Sidebar from './Sidebar';
 
 const AVISOS = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 
-// Sugestoes rapidas de primeiro contato, uma por categoria de divergencia
-const SUGESTOES: Array<{ texto: string; icone: ReactNode }> = [
-  {
-    texto: 'Chegou faltando item no meu pedido',
-    icone: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" />
-        <path d="M3.3 8.3L12 13l8.7-4.7" />
-        <path d="M12 13v9" />
-      </svg>
-    ),
-  },
-  {
-    texto: 'Veio item errado ou trocado sem aviso',
-    icone: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-        <polyline points="17 1 21 5 17 9" />
-        <path d="M3 11V9a4 4 0 0 1 4-4h14" />
-        <polyline points="7 23 3 19 7 15" />
-        <path d="M21 13v2a4 4 0 0 1-4 4H3" />
-      </svg>
-    ),
-  },
-  {
-    texto: 'Comida fria, derramada ou estragada',
-    icone: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-        <line x1="12" y1="9" x2="12" y2="13" />
-        <line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-    ),
-  },
-  {
-    texto: 'Pedido atrasado ou não recebido',
-    icone: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="3 11 22 2 13 21 11 13 3 11" />
-      </svg>
-    ),
-  },
-];
+// Sugestoes rapidas por perfil: cada papel do marketplace tem situacoes tipicas diferentes
+const SUGESTOES_POR_PERFIL: Record<PerfilId, string[]> = {
+  cliente: [
+    'Chegou faltando item no meu pedido',
+    'Veio item errado ou trocado',
+    'Comida fria, derramada ou estragada',
+    'Pedido atrasado ou não recebido',
+  ],
+  parceiro: [
+    'Um pedido foi cancelado indevidamente',
+    'Recebi uma avaliação injusta',
+    'O repasse do pedido está divergente',
+    'Problema com item do cardápio ou pedido',
+  ],
+  entregador: [
+    'Não recebi o pagamento da corrida',
+    'Pedido foi cancelado após a retirada',
+    'Cliente não estava no endereço de entrega',
+    'Tive problema com o pagamento ou a rota',
+  ],
+};
 
 // Acoes rapidas sobre o caso em andamento
 const ACAO_RESUMO = 'Faça um resumo do que já foi confirmado nesta disputa até agora.';
@@ -687,14 +666,13 @@ export default function App() {
         <main className="chat-mensagens" ref={scrollRef} onScroll={aoRolar}>
           {conversaVazia && (
             <div className="chat-vazio">
-              <img src="/logo.png" alt="Nori" className="chat-vazio-logo" />
               <div className="msg msg-assistant msg-entra">
                 <img src="/logo.png" alt="" className="msg-avatar" />
                 <div className="msg-assistant-corpo">
                   <div className="msg-balao">
                     <Markdown
                       texto={
-                        'Oi! Eu sou a **Nori**, a agente de IA do **Kora** — o app de delivery que conecta clientes, restaurantes e entregadores.\n\nMe conta o que aconteceu com o seu pedido (item faltando, errado, gelado ou atrasado) que eu ajudo a resolver. Você também pode me perguntar qualquer coisa sobre mim.'
+                        'Oi! Eu sou a **Nori**, agente de IA do **Kora Delivery**. Me conta o que houve com o seu pedido que eu ajudo a resolver.'
                       }
                     />
                   </div>
@@ -707,26 +685,28 @@ export default function App() {
                     {PERFIS.map((p) => (
                       <button key={p.id} className="perfil-card" onClick={() => escolherPerfil(p.id)}>
                         <span className="perfil-icone">{p.icone}</span>
-                        <span className="perfil-label">{p.label}</span>
-                        <span className="perfil-desc">{p.descricao}</span>
+                        <span className="perfil-textos">
+                          <span className="perfil-label">{p.label}</span>
+                          <span className="perfil-desc">{p.descricao}</span>
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
               ) : (
-                <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
-                  {PERFIS.find((p) => p.id === perfil)?.label} · trocar
-                </button>
-              )}
-              <p className="chat-vazio-dica">Ou comece por uma das situações abaixo:</p>
-              <div className="chat-sugestoes">
-                {SUGESTOES.map((s) => (
-                  <button key={s.texto} className="chip-sugestao" onClick={() => processarEnvio(s.texto)}>
-                    {s.icone}
-                    <span>{s.texto}</span>
+                <>
+                  <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
+                    {PERFIS.find((p) => p.id === perfil)?.label} · trocar
                   </button>
-                ))}
-              </div>
+                  <div className="chat-sugestoes">
+                    {SUGESTOES_POR_PERFIL[perfil].map((texto) => (
+                      <button key={texto} className="chip-sugestao" onClick={() => processarEnvio(texto)}>
+                        {texto}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
 
