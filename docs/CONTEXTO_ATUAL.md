@@ -102,6 +102,14 @@ de entrega.
   Kora delivery"; secao "Sobre voce" no prompt permite a Nori explicar sua
   arquitetura/busca/aprendizado quando perguntada; botao "Encerrar" encerra
   o caso e inicia chat limpo; espacamento das acoes rapidas acima do input
+- Botoes Resumir/Checklist/Encerrar substituidos por menu "..." (estilo
+  ChatGPT) com Resumir caso, Checklist de evidencias, Gerar parecer e
+  Encerrar atendimento; card "Caso" ganhou timeline visual das etapas
+  (Triagem > Coleta > Analise > Parecer > Encerrado); botao de ouvir
+  resposta (TTS Web Speech API) nas mensagens da Nori; respostas encurtadas
+  para 1-3 frases com no maximo uma pergunta por turno; paleta migrada de
+  laranja para azul (#2563EB/#1D4ED8/#06B6D4) e logo aplicada em PNG
+  (emblema azul glossy, fundo transparente)
 
 ## Em andamento
 

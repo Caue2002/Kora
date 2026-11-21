@@ -96,6 +96,10 @@ const CATEGORIAS_CASO: Record<string, string> = {
   outro: 'Outro',
 };
 
+// Ordem das etapas do atendimento para a timeline do card de caso
+const ORDEM_ETAPAS = ['triagem', 'coleta_evidencias', 'analise', 'parecer', 'encerrado'];
+const ETAPAS_CURTAS = ['Triagem', 'Coleta', 'Análise', 'Parecer', 'Encerrado'];
+
 const CHAVE_TEMA = 'kora-tema';
 
 function novoId(): string {
@@ -203,6 +207,20 @@ const iconeEncerrar = (
     <line x1="21" y1="12" x2="9" y2="12" />
   </Icone>
 );
+const iconeMais = (
+  <Icone size={18}>
+    <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
+  </Icone>
+);
+const iconeSom = (
+  <Icone size={14}>
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+  </Icone>
+);
 
 // Tipo minimo da Web Speech API para o ditado por voz
 interface ReconhecimentoVoz {
@@ -233,6 +251,8 @@ export default function App() {
   const [fontesAbertas, setFontesAbertas] = useState<string | null>(null);
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
+  const [menuAcoes, setMenuAcoes] = useState(false);
+  const [falandoId, setFalandoId] = useState<string | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -317,6 +337,24 @@ export default function App() {
     reconhecimentoRef.current = rec;
     setOuvindo(true);
     rec.start();
+  }
+
+  // Le a resposta em voz alta usando a Web Speech API (TTS do navegador)
+  function falar(texto: string, msgId: string) {
+    if (!('speechSynthesis' in window)) return;
+    if (falandoId === msgId) {
+      speechSynthesis.cancel();
+      setFalandoId(null);
+      return;
+    }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'pt-BR';
+    u.rate = 1.05;
+    u.onend = () => setFalandoId((v) => (v === msgId ? null : v));
+    u.onerror = () => setFalandoId((v) => (v === msgId ? null : v));
+    setFalandoId(msgId);
+    speechSynthesis.speak(u);
   }
 
   // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
@@ -632,6 +670,15 @@ export default function App() {
                       >
                         Avaliar
                       </button>
+                      {('speechSynthesis' in window) && (
+                        <button
+                          className={`btn-mini ${falandoId === m.id ? 'ativo' : ''}`}
+                          onClick={() => falar(m.content, m.id)}
+                          title={falandoId === m.id ? 'Parar leitura' : 'Ouvir resposta'}
+                        >
+                          {iconeSom}
+                        </button>
+                      )}
                     </div>
                   )}
                   {avaliacaoAberta === m.id && m === ultimaResposta && !enviando && (
@@ -694,6 +741,19 @@ export default function App() {
 
         {caso && (caso.resumo || caso.fatos.length > 0 || caso.pendencias.length > 0) && (
           <div className="caso-card">
+            <div className="caso-passos">
+              {ORDEM_ETAPAS.map((e, i) => {
+                const idx = ORDEM_ETAPAS.indexOf(caso.etapa);
+                return (
+                  <span
+                    key={e}
+                    className={`caso-passo ${i < idx ? 'feito' : ''} ${i === idx ? 'atual' : ''}`}
+                  >
+                    {ETAPAS_CURTAS[i]}
+                  </span>
+                );
+              })}
+            </div>
             <div className="caso-header">
               <span className="caso-titulo">Caso</span>
               <span className="caso-etapa">{ETAPAS_CASO[caso.etapa] ?? caso.etapa}</span>
@@ -742,19 +802,66 @@ export default function App() {
         )}
 
         {mensagens.length > 0 && (
-          <div className="chat-quick">
-            <button className="btn-quick" onClick={() => processarEnvio(ACAO_RESUMO)} disabled={enviando}>
-              {iconeResumo}
-              <span className="quick-label">Resumir caso</span>
+          <div className="chat-acoes-barra">
+            <button
+              className="btn-menu-acoes"
+              onClick={() => setMenuAcoes((v) => !v)}
+              title="Ações do caso"
+              aria-label="Ações do caso"
+            >
+              {iconeMais}
             </button>
-            <button className="btn-quick" onClick={() => processarEnvio(ACAO_CHECKLIST)} disabled={enviando}>
-              {iconeChecklist}
-              <span className="quick-label">Checklist</span>
-            </button>
-            <button className="btn-quick btn-encerrar" onClick={encerrarAtendimento} disabled={enviando} title="Encerra o atendimento e inicia um novo chat">
-              {iconeEncerrar}
-              <span className="quick-label">Encerrar</span>
-            </button>
+            {menuAcoes && (
+              <>
+                <div className="menu-acoes-overlay" onClick={() => setMenuAcoes(false)} />
+                <div className="menu-acoes">
+                  <button
+                    className="menu-item"
+                    disabled={enviando}
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      processarEnvio(ACAO_RESUMO);
+                    }}
+                  >
+                    {iconeResumo}
+                    Resumir caso
+                  </button>
+                  <button
+                    className="menu-item"
+                    disabled={enviando}
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      processarEnvio(ACAO_CHECKLIST);
+                    }}
+                  >
+                    {iconeChecklist}
+                    Checklist de evidências
+                  </button>
+                  <button
+                    className="menu-item"
+                    disabled={exportando}
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      exportarParecer();
+                    }}
+                  >
+                    {iconeDownload}
+                    Gerar parecer
+                  </button>
+                  <button
+                    className="menu-item menu-item-perigo"
+                    disabled={enviando}
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      encerrarAtendimento();
+                    }}
+                  >
+                    {iconeEncerrar}
+                    Encerrar atendimento
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

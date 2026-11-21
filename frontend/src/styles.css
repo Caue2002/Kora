@@ -341,31 +341,6 @@ body {
   text-align: center;
 }
 
-/* acoes rapidas do caso: resumo e checklist */
-.chat-quick {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 14px;
-  background: var(--fundo);
-}
-
-.btn-quick {
-  flex: 1;
-  background: var(--cartao);
-  border: 1px solid var(--agente-borda);
-  color: var(--acento);
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 16px;
-  padding: 8px 10px;
-  cursor: pointer;
-}
-
-.btn-quick:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
 /* campo de envio fixo no rodape */
 .chat-form {
   display: flex;
@@ -563,14 +538,6 @@ body {
 
 .msg-fontes li {
   margin-bottom: 3px;
-}
-
-/* icones dentro dos botoes de acao rapida */
-.btn-quick {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
 }
 
 /* mini botoes com icone */
@@ -782,45 +749,6 @@ body {
 .msg-avatar {
   border-radius: 8px;
   object-fit: cover;
-}
-
-/* ===== acoes rapidas responsivas ===== */
-.chat-quick {
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px 14px;
-}
-
-.btn-quick {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: var(--cartao);
-  border: 1px solid var(--agente-borda);
-  color: var(--acento);
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 16px;
-  padding: 8px 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.btn-quick svg {
-  flex-shrink: 0;
-}
-
-@media (max-width: 400px) {
-  .quick-label {
-    display: none;
-  }
-  .btn-quick {
-    padding: 8px;
-  }
 }
 
 /* ===== busca e renomear no historico ===== */
@@ -1143,24 +1071,138 @@ body {
 
 /* ===== modo foco removido: funcao descontinuada a pedido do usuario ===== */
 
-/* ===== botao encerrar atendimento ===== */
-.btn-encerrar {
-  color: #e63946;
-  border-color: #ffd0d5;
+/* ===== menu de acoes do caso ===== */
+.chat-acoes-barra {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px 10px;
+  background: var(--fundo);
 }
 
-.btn-encerrar:hover {
-  border-color: #e63946;
-  background: #fff0f1;
+.btn-menu-acoes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--agente-borda);
+  background: var(--cartao);
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-[data-theme='escuro'] .btn-encerrar {
-  color: #ff8a94;
-  border-color: #5c2b30;
+.btn-menu-acoes:hover {
+  color: var(--acento);
+  border-color: var(--acento);
+  background: var(--acento-claro);
 }
 
-[data-theme='escuro'] .btn-encerrar:hover {
+.menu-acoes-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.menu-acoes {
+  position: absolute;
+  right: 12px;
+  bottom: calc(100% - 4px);
+  z-index: 41;
+  min-width: 220px;
+  background: var(--cartao);
+  border: 1px solid var(--agente-borda);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(15, 30, 60, 0.16);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--texto);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--acento-claro);
+  color: var(--acento);
+}
+
+.menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+  color: var(--acento);
+}
+
+.menu-item-perigo {
+  color: #dc2626;
+  border-top: 1px solid var(--agente-borda);
+  border-radius: 0 0 9px 9px;
+  margin-top: 4px;
+  padding-top: 12px;
+}
+
+.menu-item-perigo svg {
+  color: #dc2626;
+}
+
+.menu-item-perigo:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+[data-theme='escuro'] .menu-item-perigo:hover:not(:disabled) {
   background: #3a1d20;
+}
+
+/* ===== timeline de etapas do caso ===== */
+.caso-passos {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.caso-passo {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--texto-suave);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--agente-borda);
+  opacity: 0.55;
+}
+
+.caso-passo.feito {
+  opacity: 0.8;
+  background: var(--acento-claro);
+  color: var(--acento);
+  border-color: transparent;
+}
+
+.caso-passo.atual {
+  opacity: 1;
+  background: var(--acento);
+  color: #fff;
+  border-color: transparent;
 }
 
 /* ===== card de estado do caso ===== */
@@ -1255,4 +1297,10 @@ body {
   font-size: 12px;
   color: var(--acento);
   font-weight: 600;
+}
+
+/* botao de ouvir resposta ativo */
+.btn-mini.ativo {
+  color: var(--acento);
+  border-color: var(--acento);
 }
