@@ -1,17 +1,17 @@
 /* Estilos do chat Nori - mobile-first
-   Paleta azul delivery/tech: fundo branco #FFFFFF, usuario azul #2563EB,
-   agente branco com borda azul-clara #D9E6FF, acentos #1D4ED8/#06B6D4 */
+   Paleta neutra quente (stone): fundo off-white, usuario grafite,
+   acentos em tons de cinza, cores semanticas preservadas */
 
 :root {
-  --fundo: #ffffff;
-  --usuario: #2563eb;
-  --agente-borda: #d9e6ff;
-  --acento: #1d4ed8;
-  --acento-claro: #dbeafe;
-  --texto: #17233b;
-  --texto-suave: #5d6b85;
+  --fundo: #fafaf9;
+  --usuario: #292524;
+  --agente-borda: #e7e5e4;
+  --acento: #44403c;
+  --acento-claro: #f5f5f4;
+  --texto: #1c1917;
+  --texto-suave: #78716c;
   --cartao: #ffffff;
-  --sombra: 0 1px 3px rgba(13, 30, 70, 0.1);
+  --sombra: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 * {
@@ -34,7 +34,7 @@ body {
     Roboto,
     sans-serif;
   color: var(--texto);
-  background: #ffffff;
+  background: var(--fundo);
 }
 
 .chat {
@@ -79,7 +79,7 @@ body {
 .chat-titulo {
   font-weight: 700;
   font-size: 16px;
-  background: linear-gradient(90deg, #60a5fa 0%, #2563eb 55%, #06b6d4 100%);
+  background: linear-gradient(90deg, var(--texto) 0%, var(--texto-suave) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -223,7 +223,7 @@ body {
 }
 
 .msg-user .msg-balao {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--usuario);
   color: #ffffff;
   border-bottom-right-radius: 4px;
   box-shadow: var(--sombra);
@@ -252,7 +252,7 @@ body {
   padding: 2px 10px;
   background: var(--acento-claro);
   color: var(--acento);
-  border: 1px solid #bfdbfe;
+  border: 1px solid var(--agente-borda);
 }
 
 .msg-meta {
@@ -373,7 +373,7 @@ body {
 }
 
 .chat-enviar {
-  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  background: linear-gradient(135deg, #57534e 0%, #292524 100%);
   color: #ffffff;
   border: none;
   border-radius: 20px;
@@ -441,13 +441,13 @@ body {
 /* ===== tema escuro ===== */
 [data-theme='escuro'] {
   --fundo: #000000;
-  --cartao: #101a30;
-  --usuario: #3b82f6;
-  --agente-borda: #223354;
-  --acento: #60a5fa;
-  --acento-claro: #16263f;
-  --texto: #e6edfb;
-  --texto-suave: #94a5c8;
+  --cartao: #1c1917;
+  --usuario: #44403c;
+  --agente-borda: #292524;
+  --acento: #d6d3d1;
+  --acento-claro: #292524;
+  --texto: #fafaf9;
+  --texto-suave: #a8a29e;
   --sombra: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
@@ -458,6 +458,11 @@ body {
 [data-theme='escuro'] .chat-input {
   background: transparent;
   color: var(--texto);
+}
+
+[data-theme='escuro'] .chat-enviar {
+  background: linear-gradient(135deg, #fafaf9 0%, #d6d3d1 100%);
+  color: #1c1917;
 }
 
 /* ===== animacao de entrada das mensagens ===== */
@@ -622,10 +627,9 @@ body {
   gap: 8px;
   margin: 12px;
   padding: 10px 14px;
-  border: 1px solid transparent;
+  border: 1px solid var(--agente-borda);
   border-radius: 12px;
-  background: linear-gradient(var(--fundo), var(--fundo)) padding-box,
-    linear-gradient(90deg, #60a5fa, #38bdf8) border-box;
+  background: var(--cartao);
   color: var(--texto);
   font-size: 13px;
   font-weight: 600;
@@ -735,10 +739,10 @@ body {
 @keyframes brilho-logo {
   0%,
   100% {
-    filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.35));
+    filter: drop-shadow(0 0 3px rgba(120, 113, 108, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 9px rgba(6, 182, 212, 0.55));
+    filter: drop-shadow(0 0 9px rgba(168, 162, 158, 0.5));
   }
 }
 
@@ -881,8 +885,8 @@ body {
 }
 
 .md-pre {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #1c1917;
+  color: #e7e5e4;
   border-radius: 10px;
   padding: 12px 14px;
   overflow-x: auto;
@@ -1380,7 +1384,7 @@ body {
 
 .perfil-card:hover {
   border-color: var(--acento);
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
 }
 

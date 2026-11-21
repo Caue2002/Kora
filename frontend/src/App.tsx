@@ -592,7 +592,7 @@ export default function App() {
         '</pre>',
     ].join('\n');
 
-    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo do Caso - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#0f172a;line-height:1.5}h1{color:#1d4ed8}h2{color:#2563eb;border-bottom:1px solid #bfdbfe;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Resumo do Caso</h1><p><em>Gerado pela agente Nori - Kora Delivery${perfilLabel ? ` · Perfil: ${perfilLabel}` : ''}</em></p>${corpo}</body></html>`;
+    const html = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resumo do Caso - Nori</title><style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 20px;color:#1c1917;line-height:1.5}h1{color:#1c1917}h2{color:#44403c;border-bottom:1px solid #e7e5e4;padding-bottom:4px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><h1>Resumo do Caso</h1><p><em>Gerado pela agente Nori - Kora Delivery${perfilLabel ? ` · Perfil: ${perfilLabel}` : ''}</em></p>${corpo}</body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
