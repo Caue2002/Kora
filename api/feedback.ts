@@ -3,9 +3,9 @@
 // Aceita comentario opcional (requer migracao 0005_feedback_comentario.sql)
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { tratarRequisicaoNode } from '../shared/http';
-import { inserir } from '../shared/supabase';
-import { verificarLimite } from '../shared/ratelimit';
+import { tratarRequisicaoNode } from '../shared/http.js';
+import { inserir } from '../shared/supabase.js';
+import { verificarLimite } from '../shared/ratelimit.js';
 
 const AVALIACOES = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 type Avaliacao = (typeof AVALIACOES)[number];

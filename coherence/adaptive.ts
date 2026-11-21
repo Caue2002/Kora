@@ -2,8 +2,8 @@
 // Sem treino de pesos: avaliacoes agregadas ajustam diretrizes de estilo injetadas no prompt
 // Limiares: minimo de volume para evitar ajuste por ruido
 
-import { consultar } from '../shared/supabase';
-import { DIRETRIZES_PADRAO, type DiretrizesEstilo } from './prompt';
+import { consultar } from '../shared/supabase.js';
+import { DIRETRIZES_PADRAO, type DiretrizesEstilo } from './prompt.js';
 
 const VOLUME_MINIMO = 20;
 const LIMIAR_DOMINANTE = 0.3;

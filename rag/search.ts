@@ -2,8 +2,8 @@
 // Executada via funcao SQL buscar_conhecimento_hibrido no Supabase
 // Sem embedding disponivel, degrada para busca puramente textual
 
-import { rpc } from '../shared/supabase';
-import { embedTexts } from './embeddings';
+import { rpc } from '../shared/supabase.js';
+import { embedTexts } from './embeddings.js';
 
 export interface TrechoConhecimento {
   id: string;
@@ -57,7 +57,7 @@ async function buscaLexical(consulta: string, limite: number): Promise<TrechoCon
 
   const filtro = termos.map((t) => `conteudo.ilike.*${t}*`).join(',');
   try {
-    const { consultar } = await import('../shared/supabase');
+    const { consultar } = await import('../shared/supabase.js');
     return await consultar<TrechoConhecimento>(
       'conhecimento_chunks',
       `ativo=eq.true&or=(${filtro})&select=id,origem,titulo,conteudo,categoria&order=updated_at.desc&limit=${limite}`,

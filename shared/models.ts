@@ -2,9 +2,9 @@
 // Le o estado das cotas no PostgreSQL e seleciona o proximo modelo disponivel
 // Em caso de falha do banco, cai para selecao em memoria sem persistencia
 
-import { consultar, rpc } from './supabase';
-import { catalogoModelos, limitesJanela, maxTokensSaida } from './env';
-import type { ModeloConfig } from './env';
+import { consultar, rpc } from './supabase.js';
+import { catalogoModelos, limitesJanela, maxTokensSaida } from './env.js';
+import type { ModeloConfig } from './env.js';
 
 export interface UsoModelo {
   tokensMinuto: number;

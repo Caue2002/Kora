@@ -4,21 +4,21 @@
 // Aceita { stream: true } para resposta token a token (sem validacao pos-geracao)
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { tratarRequisicaoNode } from '../shared/http';
-import { catalogoModelos, janelaHistorico } from '../shared/env';
-import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm';
-import type { ModeloConfig } from '../shared/env';
-import { estimarMensagens, estimarTokens } from '../shared/tokens';
-import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models';
-import { verificarLimite } from '../shared/ratelimit';
-import { buscaHibrida } from '../rag/search';
+import { tratarRequisicaoNode } from '../shared/http.js';
+import { catalogoModelos, janelaHistorico } from '../shared/env.js';
+import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm.js';
+import type { ModeloConfig } from '../shared/env.js';
+import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
+import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
+import { verificarLimite } from '../shared/ratelimit.js';
+import { buscaHibrida } from '../rag/search.js';
 import {
   carregarDiretrizes,
   montarContextoRAG,
   montarPromptSistema,
   validarComLLM,
   validarHeuristico,
-} from '../coherence/index';
+} from '../coherence/index.js';
 
 interface CorpoRequisicao {
   mensagem?: unknown;

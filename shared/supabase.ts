@@ -1,7 +1,7 @@
 // Cliente minimo do Supabase via PostgREST + RPC
 // Evita dependencia pesada; usa service role apenas no servidor
 
-import { supabaseServiceKey, supabaseUrl } from './env';
+import { supabaseServiceKey, supabaseUrl } from './env.js';
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const res = await fetch(`${supabaseUrl()}/rest/v1/${path}`, {

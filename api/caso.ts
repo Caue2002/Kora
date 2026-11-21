@@ -6,11 +6,11 @@
 //      sem chamada ao modelo (usado pelo botao "Encerrar atendimento")
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { tratarRequisicaoNode } from '../shared/http';
-import { catalogoModelos } from '../shared/env';
-import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm';
-import { verificarLimite } from '../shared/ratelimit';
-import { consultar, upsert } from '../shared/supabase';
+import { tratarRequisicaoNode } from '../shared/http.js';
+import { catalogoModelos } from '../shared/env.js';
+import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm.js';
+import { verificarLimite } from '../shared/ratelimit.js';
+import { consultar, upsert } from '../shared/supabase.js';
 
 interface CorpoRequisicao {
   conversaId?: unknown;

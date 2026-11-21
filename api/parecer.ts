@@ -3,14 +3,14 @@
 // Chamado sob demanda pelo botao Exportar do frontend
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { tratarRequisicaoNode } from '../shared/http';
-import { catalogoModelos } from '../shared/env';
-import { chamarLLM, ErroLimiteModelo } from '../shared/llm';
-import type { ModeloConfig } from '../shared/env';
-import { estimarMensagens, estimarTokens } from '../shared/tokens';
-import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models';
-import { verificarLimite } from '../shared/ratelimit';
-import type { MensagemChat } from '../shared/llm';
+import { tratarRequisicaoNode } from '../shared/http.js';
+import { catalogoModelos } from '../shared/env.js';
+import { chamarLLM, ErroLimiteModelo } from '../shared/llm.js';
+import type { ModeloConfig } from '../shared/env.js';
+import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
+import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
+import { verificarLimite } from '../shared/ratelimit.js';
+import type { MensagemChat } from '../shared/llm.js';
 
 const TAMANHO_MAX_HISTORICO = 30;
 

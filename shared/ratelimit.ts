@@ -4,7 +4,7 @@
 // 2) Fallback em memoria por instancia quando o banco esta indisponivel
 //    ou a migration 0008 ainda nao foi aplicada
 
-import { rpc } from './supabase';
+import { rpc } from './supabase.js';
 
 interface Entrada {
   timestamps: number[];
