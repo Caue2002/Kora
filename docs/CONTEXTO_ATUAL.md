@@ -163,7 +163,9 @@ de entrega.
   atualizar docs/CONTEXTO_ATUAL.md (e docs relevantes) antes de commitar
 - Comando direto de encerramento: mensagens como "encerre o chat", "quero
   encerrar", "pode encerrar" encerram a conversa na hora (sem botao e sem
-  chamada ao modelo) e voltam a tela de perfis
+  chamada ao modelo) e voltam a tela de perfis. Todo pedido de encerramento
+  (comando, botao "Encerrar conversa" ou timeout de 3min) passa por uma tela
+  "Encerrando..." com contagem regressiva de 3s antes de voltar a tela inicial
 - Encerramento prematuro marcado como incompleto: POST /api/caso {encerrar}
   preserva pendencias/fatos/evidencias extraidos (antes zerava pendencias) e
   grava status "incompleto" quando a etapa anterior nao era parecer/encerrado;

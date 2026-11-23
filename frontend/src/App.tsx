@@ -357,6 +357,8 @@ export default function App() {
   const [menuAcoes, setMenuAcoes] = useState(false);
   // Id da mensagem da Nori que perguntou se pode encerrar; enquanto existir, o timer de 3min corre
   const [perguntaEncerramentoId, setPerguntaEncerramentoId] = useState<string | null>(null);
+  // Segundos restantes da contagem regressiva de encerramento (null = fora do fluxo)
+  const [encerrandoEm, setEncerrandoEm] = useState<number | null>(null);
   // Anexo de evidencia: guardamos so a miniatura (dataURL) para exibir na bolha;
   // a imagem nao e enviada ao modelo — o agente apenas confirma o recebimento
   const [anexo, setAnexo] = useState<{ nome: string; preview: string } | null>(null);
@@ -453,6 +455,19 @@ export default function App() {
     const timer = setTimeout(() => encerrarRef.current(), 3 * 60 * 1000);
     return () => clearTimeout(timer);
   }, [perguntaEncerramentoId]);
+
+  // Contagem regressiva de 3s exibida na tela ao encerrar: ao zerar, executa
+  // o encerramento de fato (marca o caso e volta a tela de escolha de perfil)
+  useEffect(() => {
+    if (encerrandoEm === null) return;
+    if (encerrandoEm <= 0) {
+      setEncerrandoEm(null);
+      encerrarAtendimento();
+      return;
+    }
+    const t = setTimeout(() => setEncerrandoEm((v) => (v === null ? null : v - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [encerrandoEm]);
 
   // Define o perfil do usuario (cliente, parceiro ou entregador) e persiste
   function escolherPerfil(p: PerfilId) {
@@ -561,7 +576,7 @@ export default function App() {
     // Comando explicito do usuario ("encerre o chat", "quero encerrar"): encerra
     // na hora, sem passar pelo modelo — a triagem incompleta fica registrada
     if (mensagens.length > 0 && ehComandoEncerramento(texto)) {
-      encerrarAtendimento();
+      iniciarEncerramento();
       return;
     }
 
@@ -694,7 +709,13 @@ export default function App() {
     novaConversa();
     if (cid) void encerrarCaso(cid);
   }
-  encerrarRef.current = encerrarAtendimento;
+
+  // Inicio do encerramento: exibe "Encerrando..." com contagem de 3s antes de
+  // voltar a tela inicial — feedback visual do pedido de encerrar do usuario
+  function iniciarEncerramento() {
+    setEncerrandoEm((v) => v ?? 3);
+  }
+  encerrarRef.current = iniciarEncerramento;
 
   // Exclui uma conversa do historico
   function excluirConversa(id: string) {
@@ -1107,7 +1128,7 @@ export default function App() {
         {perguntaEncerramentoId && !enviando && (
           <div className="encerrar-barra">
             {mostrarBotaoEncerrar ? (
-              <button className="btn-encerrar" onClick={encerrarAtendimento}>
+              <button className="btn-encerrar" onClick={iniciarEncerramento}>
                 {iconeEncerrar}
                 Encerrar conversa
               </button>
@@ -1190,6 +1211,17 @@ export default function App() {
           </button>
         </form>
       </div>
+
+      {/* Tela de encerramento: cobre o app durante a contagem regressiva de 3s */}
+      {encerrandoEm !== null && (
+        <div className="encerrando-overlay" role="status" aria-live="polite">
+          <div className="encerrando-card">
+            <span className="encerrando-spinner" aria-hidden="true" />
+            <p className="encerrando-titulo">Encerrando...</p>
+            <p className="encerrando-contagem">{encerrandoEm}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
