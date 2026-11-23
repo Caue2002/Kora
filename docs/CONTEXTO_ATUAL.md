@@ -150,8 +150,8 @@ de entrega.
   ampliado ("pode seguir", "ta certo", "blz", "bora", "manda ver"...) e de
   negacao ("errei", "outro pedido", "mentira"); Nori escrevendo "seu pedido
   e o X" tambem e detectado. Testes em tests/pedidos.test.ts (8 casos)
-- Observabilidade, cache e persistencia (migration 0009 PENDENTE de aplicar
-  no Supabase): metricas_chat grava 1 linha por request do /api/chat
+- Observabilidade, cache e persistencia (migration 0009 APLICADA no
+  Supabase): metricas_chat grava 1 linha por request do /api/chat
   (modelo, provedor, stream, cache_hit, tokens, latencia_ms, fontes, perfil,
   erro) e GET /api/metricas devolve agregados via RPC metricas_chat_resumo;
   cache semantico conservador so para PRIMEIRA mensagem sem contexto (sem
@@ -315,11 +315,12 @@ de entrega.
   projeto (kora-frontend-jade.vercel.app seguia ativo apos o rename)
 - Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
   `_rodar_uma_vez_0005_0008.sql`
-- **Migration 0009_melhorias_observabilidade.sql PENDENTE**: criar no
-  Supabase SQL Editor as tabelas metricas_chat, cache_respostas, conversas,
-  conciliacoes e as funcoes buscar_cache_resposta, metricas_chat_resumo.
-  Sem ela tudo degrada em silencio (cache/metricas/historico/conciliacao
-  viram no-op com warn no log)
+- ~~Migration 0009_melhorias_observabilidade.sql PENDENTE~~ FEITO: tabelas
+  metricas_chat, cache_respostas, conversas, conciliacoes e funcoes
+  buscar_cache_resposta, metricas_chat_resumo criadas no SQL Editor.
+  ATENCAO: tabelas criadas via SQL Editor nao herdam grants — foi preciso
+  rodar grants manuais para service_role (select/insert/update/delete nas
+  tabelas + execute nas funcoes); os grants ja estao no fim da migration
 
 ## Decisoes tecnicas tomadas
 

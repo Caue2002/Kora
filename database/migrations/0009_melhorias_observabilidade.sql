@@ -100,6 +100,10 @@ alter table conversas enable row level security;
 alter table conciliacoes enable row level security;
 -- Sem policies: acesso somente via service role no backend
 
+-- Tabelas criadas via SQL Editor nao herdam os privilegios default do
+-- projeto: sem estes grants o PostgREST (service_role) toma 42501
+grant select, insert, update, delete on metricas_chat, cache_respostas, conversas, conciliacoes to service_role;
+
 -- ===== Resumo de metricas para observabilidade =====
 -- Agregados simples para acompanhamento de custo, latencia e uso de cache
 create or replace function metricas_chat_resumo() returns jsonb
@@ -136,3 +140,6 @@ begin
   return r;
 end;
 $$;
+
+grant execute on function buscar_cache_resposta(vector, text) to service_role;
+grant execute on function metricas_chat_resumo() to service_role;
