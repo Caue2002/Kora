@@ -174,6 +174,8 @@ de entrega.
   vira "Enviei uma foto como evidencia." O prompt instrui a Nori a pedir foto
   dizendo "envie qualquer imagem ou escreva enviei" e a apenas confirmar o
   recebimento, sem analisar o conteudo
+- Regra de ouro no prompt: dados do Kora (politicas, prazos, valores, pedidos)
+  so vem do contexto recuperado ou dos fatos do usuario — proibido inventar
 - Conversa mais natural: temperatura do chat subiu para 0.4 (validacao de
   coerencia segue em 0.1); atalho deterministico de confirmacao de pedido
   removido — o modelo sempre confirma o pedido via LLM com dados injetados;
