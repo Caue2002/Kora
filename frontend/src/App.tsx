@@ -133,7 +133,8 @@ const formatarHora = formatarHoraMensagem;
 // Detecta quando a Nori pergunta se pode encerrar a conversa
 // (ex.: "Podemos encerrar a conversa?") — usado para o fluxo de encerramento
 function ehPerguntaEncerramento(texto: string): boolean {
-  if (!/\?\s*$/.test(texto.trim())) return false;
+  // Aceita a pergunta em qualquer ponto da mensagem (a Nori pode encadear frases depois)
+  if (!texto.includes('?')) return false;
   return /(podemos|posso|poderia|deseja|gostaria|queria|vamos|bora|encerramos|finalizamos|conclu[ií]mos)[^\n?]{0,120}(encerr|finaliz|conclu|parar)/i.test(
     texto,
   );

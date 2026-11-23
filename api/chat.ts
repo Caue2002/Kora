@@ -70,7 +70,7 @@ function normalizarHistorico(historico: unknown): MensagemChat[] {
     )
     .map((m) => ({
       role: (m.role === 'assistant' ? 'assistant' : m.role === 'system' ? 'system' : 'user') as MensagemChat['role'],
-      content: m.content.slice(0, TAMANHO_MAX_MENSAGEM),
+      content: m.content.slice(0, 2000),
     }))
     .slice(-TAMANHO_MAX_HISTORICO);
 }
@@ -184,8 +184,21 @@ async function webHandler(req: Request): Promise<Response> {
     return json(200, { resposta, modelo: 'simulacao', provedor: 'kora', tokens: 0, fontes: [] });
   }
 
-  // Busca RAG e diretrizes adaptativas em paralelo para baixa latencia
-  const [busca, diretrizes] = await Promise.all([buscaHibrida(mensagem), carregarDiretrizes()]);
+  // Estimativa antecipada de tokens de entrada (historico + mensagem + margem
+  // para prompt de sistema e contexto RAG) permite escolher o modelo em
+  // paralelo com a busca, sem esperar o RAG terminar — corta uma round-trip
+  const tokensEntradaPrev = estimarMensagens(historicoJanela) + estimarTokens(mensagem) + 2600;
+  const [busca, diretrizes, modelo] = await Promise.all([
+    buscaHibrida(mensagem),
+    carregarDiretrizes(),
+    selecionarModelo(tokensEntradaPrev),
+  ]);
+  if (!modelo) {
+    // Esgotamento total dos 4 modelos no ciclo vigente
+    return json(429, {
+      erro: 'As cotas gratuitas dos modelos de IA estao temporariamente esgotadas. Tente novamente em instantes.',
+    });
+  }
 
   // Data e hora atuais permitem responder perguntas casuais sem inventar
   const agora = new Date().toLocaleString('pt-BR', {
@@ -223,15 +236,9 @@ async function webHandler(req: Request): Promise<Response> {
     { role: 'user', content: mensagem + (imagem ? '\n[O usuario anexou uma foto como evidencia.]' : ''), imagem },
   ];
 
-  // Estimativa de entrada com teto de seguranca antes de escolher o modelo
+  // Estimativa de entrada com teto de seguranca (o modelo ja foi escolhido
+  // em paralelo com o RAG usando a estimativa antecipada)
   const tokensEntrada = estimarMensagens(mensagens);
-  const modelo = await selecionarModelo(tokensEntrada);
-  if (!modelo) {
-    // Esgotamento total dos 4 modelos no ciclo vigente
-    return json(429, {
-      erro: 'As cotas gratuitas dos modelos de IA estao temporariamente esgotadas. Tente novamente em instantes.',
-    });
-  }
 
   const fontes = busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria }));
 

@@ -32,25 +32,33 @@ function limites(): { minuto: number; hora: number; dia: number } {
   return { minuto: l.minuto, hora: l.hora, dia: l.dia };
 }
 
-// Soma do consumo registrado nas janelas correntes para um modelo
-async function consumoBanco(modeloId: number): Promise<UsoModelo | null> {
+// Consumo das janelas correntes para varios modelos em uma unica consulta
+// (antes era uma query por modelo, em sequencia — atrasava a escolha do modelo)
+async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoModelo>> {
+  const mapa = new Map<number, UsoModelo>();
   const j = inicioJanelas();
   try {
-    const linhas = await consultar<{ janela_tipo: string; tokens_estimados: number; esgotado: boolean }>(
+    const linhas = await consultar<{
+      modelo_id: number;
+      janela_tipo: string;
+      tokens_estimados: number;
+      esgotado: boolean;
+    }>(
       'cotas_modelos',
-      `modelo_id=eq.${modeloId}&janela_inicio=in.("${j.minuto}","${j.hora}","${j.dia}")&select=janela_tipo,tokens_estimados,esgotado`,
+      `modelo_id=in.(${modeloIds.join(',')})&janela_inicio=in.("${j.minuto}","${j.hora}","${j.dia}")&select=modelo_id,janela_tipo,tokens_estimados,esgotado`,
     );
-    const uso: UsoModelo = { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
     for (const l of linhas) {
+      const uso = mapa.get(l.modelo_id) ?? { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
       if (l.esgotado) uso.esgotado = true;
       if (l.janela_tipo === 'minuto') uso.tokensMinuto += Number(l.tokens_estimados);
       if (l.janela_tipo === 'hora') uso.tokensHora += Number(l.tokens_estimados);
       if (l.janela_tipo === 'dia') uso.tokensDia += Number(l.tokens_estimados);
+      mapa.set(l.modelo_id, uso);
     }
-    return uso;
   } catch {
-    return null;
+    // banco indisponivel: cada modelo cai no consumo em memoria
   }
+  return mapa;
 }
 
 function consumoMemoria(modeloId: number): UsoModelo {
@@ -73,9 +81,9 @@ export function temFolga(uso: UsoModelo, tokensEntrada: number): boolean {
 export async function selecionarModelo(tokensEntradaEstimados: number): Promise<ModeloConfig | null> {
   const catalogo = catalogoModelos().filter((m) => m.apiKey);
   const ordenados = catalogo.sort((a, b) => a.prioridade - b.prioridade);
+  const usos = await consumoBancoTodos(ordenados.map((m) => m.id));
   for (const modelo of ordenados) {
-    const usoBanco = await consumoBanco(modelo.id);
-    const uso = usoBanco ?? consumoMemoria(modelo.id);
+    const uso = usos.get(modelo.id) ?? consumoMemoria(modelo.id);
     if (temFolga(uso, tokensEntradaEstimados)) return modelo;
   }
   return null;

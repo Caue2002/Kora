@@ -153,6 +153,14 @@ de entrega.
   "Fale com a Nori...". Foco automatico do input restrito a pointer:fine
   (desktop) — no mobile nao abre mais o teclado ao chegar resposta da Nori
 - Botao de som removido do header (icone, estado kora-som e WebAudio)
+- Otimizacao de latencia do /api/chat: selecionarModelo agora busca o consumo
+  das cotas de todos os modelos em UMA query (antes era sequencial por
+  modelo) e roda em paralelo com buscaHibrida + carregarDiretrizes usando
+  estimativa antecipada de tokens; historico injetado no prompt limitado a
+  2000 chars por mensagem. Deteccao da pergunta de encerramento tolera '?'
+  em qualquer ponto da mensagem da Nori
+- Skill .devin/skills/atualizar-documentacao: protocolo obrigatorio de
+  atualizar docs/CONTEXTO_ATUAL.md (e docs relevantes) antes de commitar
 
 ## Em andamento
 
