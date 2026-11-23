@@ -73,14 +73,16 @@ export function detalhesPedido(codigo: string): { loja: string; itens: string; v
 // Depois que o usuario confirma o pedido ("sim", "esse mesmo"...), o codigo
 // fica travado ate o fim da conversa: a Nori nao pode trocá-lo depois.
 
-// "Pedido 4521", "pedido nº AB123", "pedido codigo K7X9" etc. na fala da Nori
-const PADRAO_CODIGO_FALA = /pedido\s*(?:n[ºo°]?\s*|numero\s*|c[oó]digo\s*)?([A-Za-z0-9][A-Za-z0-9-]{2,19})/gi;
+// "Pedido 4521", "pedido nº AB123", "seu pedido é o K7X9" etc. na fala da Nori.
+// Permite palavras entre "pedido" e o codigo ("é o", "numero", "codigo");
+// o filtro de digito/caixa-alta elimina falsos positivos como "pedido entregue"
+const PADRAO_CODIGO_FALA = /pedido[^.\n]{0,30}?([A-Za-z0-9][A-Za-z0-9-]{2,19})/gi;
 
 // Confirmacoes curtas que o usuario usa para validar o pedido apresentado
-const CONFIRMACAO = /^\s*(sim|isso|isso mesmo|esse|essa|esse mesmo|essa mesma|confirmo|correto|exato|pode ser|pode confirmar|ok|okay|certo|certinho|ta certo|tá certo|e esse|é esse|o primeiro|o segundo)\b/i;
-const CONFIRMACAO_CURTA = /\b(esse mesmo|essa mesma|confirmo|correto|exato|pode ser|pode confirmar)\b/i;
+const CONFIRMACAO = /^\s*(sim|isso|isso mesmo|isso ai|isso aí|esse|essa|esse mesmo|essa mesma|confirmo|correto|exato|exata|pode ser|pode confirmar|ok|okay|certo|certinho|ta certo|tá certo|ta bom|tá bom|blz|beleza|show|fechado|bora|uhum|e esse|é esse|o primeiro|o segundo|pode seguir|pode ir|segue|manda ver)\b/i;
+const CONFIRMACAO_CURTA = /\b(esse mesmo|essa mesma|confirmo|correto|exato|exata|pode ser|pode confirmar|ta certo|tá certo)\b/i;
 // Respostas que descartam o pedido apresentado ("nao", "errado", "na verdade")
-const NEGACAO = /^\s*(n[ãa]o|errado|troquei|outro|na verdade)\b/i;
+const NEGACAO = /^\s*(n[ãa]o|errado|errei|troquei|outro|outro pedido|na verdade|mentira)\b/i;
 
 // Extrai codigos de pedido citados num texto (ex.: "Pedido 4521 - Loja...")
 function codigosNaFala(texto: string): string[] {
@@ -93,9 +95,11 @@ function codigosNaFala(texto: string): string[] {
   return achados;
 }
 
-// Varre o historico e devolve o codigo do ultimo pedido CONFIRMADO pelo
-// usuario. Um codigo fica "aguardando" quando o usuario informa ou a Nori
-// apresenta; a confirmacao curta do turno seguinte o trava.
+// Varre o historico e devolve o codigo do PRIMEIRO pedido CONFIRMADO pelo
+// usuario — uma vez travado, nenhum codigo posterior o substitui (a Nori
+// recusa trocas, entao uma "confirmacao" posterior seria um falso positivo).
+// Um codigo fica "aguardando" quando o usuario informa ou a Nori apresenta;
+// a confirmacao curta do turno seguinte o trava.
 export function pedidoConfirmadoNaHistorico(
   historico: Array<{ role: string; content: string }>,
 ): string | undefined {
@@ -119,7 +123,7 @@ export function pedidoConfirmadoNaHistorico(
       continue;
     }
     if (CONFIRMACAO.test(m.content) || (m.content.length <= 60 && CONFIRMACAO_CURTA.test(m.content))) {
-      confirmado = aguardando;
+      if (!confirmado) confirmado = aguardando;
       aguardando = undefined;
     }
   }

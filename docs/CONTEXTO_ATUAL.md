@@ -144,6 +144,35 @@ de entrega.
   informar outro codigo, diretiva explicita de recusa ("esse pedido nao consta
   em seu nome"); prompt atualizado — correcao de pedido so e aceita ANTES da
   confirmacao final. Testes unitarios em tests/pedidos.test.ts
+- Melhoria do pedido travado: o PRIMEIRO pedido confirmado pelo usuario
+  vence (codigos posteriores nunca o substituem — evita falso positivo se o
+  usuario disser "sim" apos uma recusa de troca); regex de confirmacao
+  ampliado ("pode seguir", "ta certo", "blz", "bora", "manda ver"...) e de
+  negacao ("errei", "outro pedido", "mentira"); Nori escrevendo "seu pedido
+  e o X" tambem e detectado. Testes em tests/pedidos.test.ts (8 casos)
+- Observabilidade, cache e persistencia (migration 0009 PENDENTE de aplicar
+  no Supabase): metricas_chat grava 1 linha por request do /api/chat
+  (modelo, provedor, stream, cache_hit, tokens, latencia_ms, fontes, perfil,
+  erro) e GET /api/metricas devolve agregados via RPC metricas_chat_resumo;
+  cache semantico conservador so para PRIMEIRA mensagem sem contexto (sem
+  pedido, sem historico, sem pergunta temporal, sem imagem): embedding da
+  mensagem e calculado UMA vez e reutilizado pela busca RAG e pelo cache
+  (buscar_cache_resposta, score >= 0.95, validade 72h, perfil igual);
+  tabela conversas espelha o historico no servidor (upsert por conversa_id
+  a cada resposta; GET /api/conversa devolve as mensagens) — backup do
+  localStorage, base para sync futura; GET /api/conversa e /api/metricas
+  registradas no dev-server
+- Acao real da conciliacao: quando o caso chega a etapa parecer/encerrado,
+  /api/caso faz upsert em conciliacoes (conversa_id, categoria, status,
+  resumo); /api/parecer aceita conversaId opcional e grava o texto do
+  parecer na mesma tabela (unique por conversa_id)
+- Retry de stream invisivel: streamComFailover agora le o PRIMEIRO chunk
+  antes de responder — stream que abre e morre sem emitir byte aciona o
+  proximo modelo da fila; o texto do stream e acumulado para alimentar
+  cache/historico/metricas no fechamento
+- Golden dataset de evals (tests/evals.test.ts): 6 cenarios com rubricas
+  objetivas (item faltante, item errado, nao recebido, fora de escopo,
+  politica, pedido travado) rodando contra a API real com credenciais
 - Fluxo de encerramento conversacional: o prompt instrui a Nori a perguntar
   "Podemos encerrar a conversa?" quando o caso conclui; o frontend detecta a
   pergunta, mostra dica de timeout, intercepta respostas afirmativas ("sim",
@@ -211,6 +240,11 @@ de entrega.
   projeto (kora-frontend-jade.vercel.app seguia ativo apos o rename)
 - Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
   `_rodar_uma_vez_0005_0008.sql`
+- **Migration 0009_melhorias_observabilidade.sql PENDENTE**: criar no
+  Supabase SQL Editor as tabelas metricas_chat, cache_respostas, conversas,
+  conciliacoes e as funcoes buscar_cache_resposta, metricas_chat_resumo.
+  Sem ela tudo degrada em silencio (cache/metricas/historico/conciliacao
+  viram no-op com warn no log)
 
 ## Decisoes tecnicas tomadas
 

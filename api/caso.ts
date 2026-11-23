@@ -253,6 +253,23 @@ async function webHandler(req: Request): Promise<Response> {
       },
       'conversa_id',
     );
+
+    // Acao real da conciliacao: disputa concluida (parecer/encerrado) vira
+    // registro persistente em conciliacoes — uma linha por conversa
+    if (estado.etapa === 'parecer' || estado.etapa === 'encerrado') {
+      await upsert(
+        'conciliacoes',
+        {
+          conversa_id: conversaId,
+          categoria: estado.categoria,
+          status: estado.status,
+          resumo: typeof estado.resumo === 'string' ? estado.resumo.slice(0, 500) : null,
+          criado_em: new Date().toISOString(),
+        },
+        'conversa_id',
+      ).catch((erro) => console.warn('[caso] conciliacao nao persistida:', erro));
+    }
+
     return json(200, { caso: await buscarCaso(conversaId) });
   } catch (erro) {
     // Se a migration 0007 ainda nao foi aplicada, devolve o estado extraido

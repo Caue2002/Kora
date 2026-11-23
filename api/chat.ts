@@ -13,6 +13,8 @@ import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/mo
 import { verificarLimite } from '../shared/ratelimit.js';
 import { extrairCodigoPedido, pedidoConfirmadoNaHistorico, pedidoFicticio } from '../shared/pedidos.js';
 import { buscaHibrida } from '../rag/search.js';
+import { embedTexts } from '../rag/embeddings.js';
+import { inserir, rpc, upsert } from '../shared/supabase.js';
 import {
   carregarDiretrizes,
   montarContextoRAG,
@@ -27,6 +29,7 @@ interface CorpoRequisicao {
   stream?: unknown;
   imagem?: unknown;
   perfil?: unknown;
+  conversaId?: unknown;
 }
 
 // Perfis de usuario do marketplace: cada um recebe um contexto de solucao proprio
@@ -49,6 +52,16 @@ const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
 const MIMES_IMAGEM = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const TAMANHO_MAX_IMAGEM_B64 = 4_200_000; // ~3MB em base64 (body total fica abaixo do limite da Vercel)
+
+// Ids de conversa gerados no frontend como `${timestamp}-${aleatorio}`
+const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
+const MAX_MENSAGENS_CONVERSA = 60;
+
+// Cache semantico: so primeira mensagem (sem contexto), score minimo alto e
+// perguntas temporais excluidas — respostas dependentes de data/hora nunca
+// podem ser servidas dias depois
+const CACHE_SCORE_MIN = 0.95;
+const PERGUNTA_TEMPORAL = /que dia|dia é hoje|dia e hoje|que horas|hora agora|horas agora|data de hoje|clima|previsão do tempo|previsao do tempo|temperatura fora/i;
 
 // Valida o anexo de imagem opcional (evidencia fotografica da disputa)
 function normalizarImagem(imagem: unknown): { base64: string; mime: string } | undefined {
@@ -86,6 +99,127 @@ function json(status: number, corpo: unknown): Response {
   });
 }
 
+// ===== Observabilidade, cache semantico e persistencia =====
+// Tudo fire-and-forget: nunca bloqueia nem quebra a resposta do chat
+
+// Converte vetor para o literal aceito pelo pgvector ('[1,2,3]')
+function vetorParaTexto(v: number[]): string {
+  return `[${v.join(',')}]`;
+}
+
+interface LinhaCache {
+  pergunta: string;
+  resposta: string;
+  fontes: Array<{ titulo: string; categoria?: string | null }>;
+  modelo: string | null;
+  score: number;
+}
+
+// Busca o vizinho mais proximo no cache de respostas; null se indisponivel
+async function buscarCache(embedding: number[], perfil: string): Promise<LinhaCache | null> {
+  try {
+    const linhas = await rpc<LinhaCache[]>('buscar_cache_resposta', {
+      p_embedding: vetorParaTexto(embedding),
+      p_perfil: perfil,
+    });
+    const linha = linhas?.[0];
+    return linha && linha.score >= CACHE_SCORE_MIN ? linha : null;
+  } catch {
+    return null; // migration 0009 ainda nao aplicada ou banco fora
+  }
+}
+
+// Grava a resposta no cache (somente primeira mensagem sem contexto)
+function guardarCache(
+  embedding: number[] | undefined,
+  pergunta: string,
+  perfil: string,
+  resposta: string,
+  fontes: Array<{ titulo: string; categoria?: string | null }>,
+  modelo: string | undefined,
+  tokensTotal: number | undefined,
+): void {
+  if (!embedding) return;
+  void inserir('cache_respostas', {
+    embedding: vetorParaTexto(embedding),
+    pergunta: pergunta.slice(0, 500),
+    perfil,
+    resposta: resposta.slice(0, 8000),
+    fontes,
+    modelo: modelo ?? null,
+    tokens_total: tokensTotal ?? null,
+  }).catch(() => undefined);
+}
+
+interface MetricaChat {
+  modelo?: string;
+  provedor?: string;
+  stream: boolean;
+  cacheHit?: boolean;
+  tokensEntrada?: number;
+  tokensSaida?: number;
+  tokensTotal?: number;
+  latenciaMs: number;
+  fontes?: number;
+  perfil?: string;
+  erro?: string;
+}
+
+// Uma linha por requisicao em metricas_chat; resumo via GET /api/metricas
+function registrarMetrica(m: MetricaChat): void {
+  void inserir('metricas_chat', {
+    modelo: m.modelo ?? null,
+    provedor: m.provedor ?? null,
+    stream: m.stream,
+    cache_hit: m.cacheHit ?? false,
+    tokens_entrada: m.tokensEntrada ?? null,
+    tokens_saida: m.tokensSaida ?? null,
+    tokens_total: m.tokensTotal ?? null,
+    latencia_ms: m.latenciaMs,
+    fontes: m.fontes ?? 0,
+    perfil: m.perfil ?? null,
+    erro: m.erro ?? null,
+  }).catch(() => undefined);
+}
+
+// Historico completo da conversa no formato persistido (user/assistant)
+function montarHistoricoConversa(
+  historico: MensagemChat[],
+  mensagem: string,
+  resposta: string,
+  temImagem: boolean,
+): Array<{ role: string; content: string }> {
+  const msgs = historico.map((m) => ({
+    role: m.role === 'assistant' ? 'assistant' : 'user',
+    content: m.content,
+  }));
+  msgs.push({
+    role: 'user',
+    content: mensagem + (temImagem ? '\n[O usuario anexou uma foto como evidencia.]' : ''),
+  });
+  msgs.push({ role: 'assistant', content: resposta });
+  return msgs.slice(-MAX_MENSAGENS_CONVERSA);
+}
+
+// Espelha a conversa no Postgres (backup do localStorage; base p/ sync futura)
+function persistirConversa(
+  conversaId: string | undefined,
+  perfil: string | undefined,
+  mensagens: Array<{ role: string; content: string }>,
+): void {
+  if (!conversaId) return;
+  void upsert(
+    'conversas',
+    {
+      conversa_id: conversaId,
+      perfil: perfil ?? '',
+      mensagens,
+      atualizado_em: new Date().toISOString(),
+    },
+    'conversa_id',
+  ).catch((erro) => console.warn('[chat] persistir conversa falhou:', erro));
+}
+
 // Tenta gerar a resposta percorrendo a fila de modelos na ordem de prioridade
 // Em limite de cota ou falha transitoria, marca esgotado e passa ao proximo
 async function gerarComFailover(
@@ -114,7 +248,9 @@ async function gerarComFailover(
   return null;
 }
 
-// Tenta abrir o stream percorrendo a fila; retorna stream + modelo ou null
+// Tenta abrir o stream percorrendo a fila; retorna stream + modelo ou null.
+// Valida o PRIMEIRO chunk antes de responder: stream que abre e morre sem
+// emitir nenhum byte aciona o proximo modelo da fila (retry transparente)
 async function streamComFailover(
   modeloInicial: ModeloConfig,
   mensagens: MensagemChat[],
@@ -125,8 +261,36 @@ async function streamComFailover(
   const fila = catalogo.filter((m) => m.prioridade >= modeloInicial.prioridade);
 
   for (const modelo of fila) {
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
-      const stream = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
+      const bruto = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
+      reader = bruto.getReader();
+      const primeiro = await reader.read();
+      if (primeiro.done || !primeiro.value || primeiro.value.length === 0) {
+        // Stream vazio ou morto antes do primeiro byte: proximo modelo
+        void reader.cancel().catch(() => undefined);
+        continue;
+      }
+      const primeiroChunk = primeiro.value;
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          controller.enqueue(primeiroChunk);
+          try {
+            while (true) {
+              const { done, value } = await reader!.read();
+              if (done) break;
+              if (value && value.length > 0) controller.enqueue(value);
+            }
+          } catch {
+            // Stream interrompido no meio: mantem o que ja foi enviado
+          } finally {
+            controller.close();
+          }
+        },
+        cancel() {
+          void reader?.cancel().catch(() => undefined);
+        },
+      });
       return { stream, modelo };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
@@ -142,6 +306,7 @@ async function streamComFailover(
 
 async function webHandler(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json(405, { erro: 'Metodo nao permitido' });
+  const t0 = Date.now();
 
   // Rate limit simples por IP: 20 requisicoes por minuto (best-effort em serverless)
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
@@ -166,21 +331,101 @@ async function webHandler(req: Request): Promise<Response> {
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
 
+  const conversaId =
+    typeof corpo.conversaId === 'string' && CONVERSA_ID_VALIDO.test(corpo.conversaId)
+      ? corpo.conversaId
+      : undefined;
+  const perfil =
+    typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
+  const perfilChave = perfil ?? '';
+
   // Codigo de pedido informado: os dados deterministicos sao injetados no
   // prompt abaixo e o proprio modelo confirma o pedido com variacao natural
   const codigoPedido = extrairCodigoPedido(mensagem);
 
+  // Pedido confirmado em turno anterior fica TRAVADO ate o fim da conversa:
+  // os dados deterministicos dele sao injetados e o modelo e proibido de
+  // troca-lo, mesmo que o usuario informe outro codigo ou descreva outro pedido
+  const codigoTravado = pedidoConfirmadoNaHistorico(historico);
+  const tentandoTrocar = !!codigoTravado && !!codigoPedido && codigoPedido !== codigoTravado;
+
+  // Cache so em primeira mensagem sem contexto: sem pedido, sem historico e
+  // sem pergunta temporal — a resposta nao depende de estado da conversa
+  const cacheElegivel =
+    !imagem &&
+    historico.length === 0 &&
+    !codigoPedido &&
+    !codigoTravado &&
+    !PERGUNTA_TEMPORAL.test(mensagem);
+
   // Estimativa antecipada de tokens de entrada (historico + mensagem + margem
   // para prompt de sistema e contexto RAG) permite escolher o modelo em
-  // paralelo com a busca, sem esperar o RAG terminar — corta uma round-trip
+  // paralelo com a busca, sem esperar o RAG terminar — corta uma round-trip.
+  // O embedding e calculado uma unica vez e reutilizado pela busca RAG e pelo
+  // cache semantico (antes cada um embedava a mensagem separadamente)
   const tokensEntradaPrev = estimarMensagens(historicoJanela) + estimarTokens(mensagem) + 2600;
-  const [busca, diretrizes, modelo] = await Promise.all([
-    buscaHibrida(mensagem),
+  const pVetores = embedTexts([mensagem]);
+  const [vetores, diretrizes, modelo, cache] = await Promise.all([
+    pVetores,
     carregarDiretrizes(),
     selecionarModelo(tokensEntradaPrev),
+    cacheElegivel
+      ? pVetores.then((v) => (v?.[0] ? buscarCache(v[0], perfilChave) : null))
+      : Promise.resolve(null),
   ]);
+  const embedding = vetores?.[0];
+
+  // Cache hit: resposta identica ja gerada para a mesma pergunta+perfil.
+  // Economiza a chamada ao LLM inteira; vale mesmo com cotas esgotadas
+  if (cache) {
+    const fontesCache = cache.fontes ?? [];
+    persistirConversa(
+      conversaId,
+      perfil,
+      montarHistoricoConversa(historico, mensagem, cache.resposta, !!imagem),
+    );
+    registrarMetrica({
+      stream: corpo.stream === true,
+      cacheHit: true,
+      latenciaMs: Date.now() - t0,
+      fontes: fontesCache.length,
+      perfil,
+      tokensEntrada: tokensEntradaPrev,
+    });
+    const headers = {
+      'x-modelo': cache.modelo ?? 'cache',
+      'x-fontes': encodeURIComponent(JSON.stringify(fontesCache)),
+    };
+    if (corpo.stream === true) {
+      const texto = cache.resposta;
+      const codificador = new TextEncoder();
+      const fluxo = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (let i = 0; i < texto.length; i += 400) {
+            controller.enqueue(codificador.encode(texto.slice(i, i + 400)));
+          }
+          controller.close();
+        },
+      });
+      return new Response(fluxo, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8', ...headers },
+      });
+    }
+    return json(200, {
+      resposta: cache.resposta,
+      modelo: cache.modelo ?? 'cache',
+      provedor: 'cache',
+      tokens: 0,
+      fontes: fontesCache,
+    });
+  }
+
+  const busca = await buscaHibrida(mensagem, undefined, embedding);
+
   if (!modelo) {
-    // Esgotamento total dos 4 modelos no ciclo vigente
+    // Esgotamento total dos modelos no ciclo vigente
+    registrarMetrica({ stream: corpo.stream === true, latenciaMs: Date.now() - t0, perfil, erro: 'cotas_esgotadas' });
     return json(429, {
       erro: 'As cotas gratuitas dos modelos de IA estao temporariamente esgotadas. Tente novamente em instantes.',
     });
@@ -196,15 +441,6 @@ async function webHandler(req: Request): Promise<Response> {
     hour: '2-digit',
     minute: '2-digit',
   });
-
-  const perfil =
-    typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
-
-  // Pedido confirmado em turno anterior fica TRAVADO ate o fim da conversa:
-  // os dados deterministicos dele sao injetados e o modelo e proibido de
-  // troca-lo, mesmo que o usuario informe outro codigo ou descreva outro pedido
-  const codigoTravado = pedidoConfirmadoNaHistorico(historico);
-  const tentandoTrocar = !!codigoTravado && !!codigoPedido && codigoPedido !== codigoTravado;
 
   // Injeta o pedido ficticio deterministico sempre que um codigo for informado:
   // o modelo usa esses dados para confirmar o pedido de forma natural e variada
@@ -241,13 +477,58 @@ async function webHandler(req: Request): Promise<Response> {
   const fontes = busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria }));
 
   // ===== Modo streaming: resposta token a token =====
-  // Nao roda a validacao pos-geracao (texto ja foi enviado); heuristica fica para o modo normal
+  // Nao roda a validacao pos-geracao (texto ja foi enviado); heuristica fica para o modo normal.
+  // O stream e envelopado para acumular o texto: no fechamento alimenta o
+  // cache semantico, o historico no servidor e a metrica de uso
   if (corpo.stream === true) {
     const gerado = await streamComFailover(modelo, mensagens);
     if (!gerado) {
+      registrarMetrica({ stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
       return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
     }
-    return new Response(gerado.stream, {
+    let acumulado = '';
+    const decodificador = new TextDecoder();
+    const fluxo = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const leitor = gerado.stream.getReader();
+        try {
+          while (true) {
+            const { done, value } = await leitor.read();
+            if (done) break;
+            if (value && value.length > 0) {
+              controller.enqueue(value);
+              if (cacheElegivel) acumulado += decodificador.decode(value, { stream: true });
+            }
+          }
+        } catch {
+          // Cliente desconectou ou stream morreu: encerra o que ja saiu
+        } finally {
+          controller.close();
+          const texto = (acumulado + decodificador.decode()).trim();
+          if (cacheElegivel && texto) {
+            guardarCache(embedding, mensagem, perfilChave, texto, fontes, gerado.modelo.nomeModelo, undefined);
+          }
+          persistirConversa(
+            conversaId,
+            perfil,
+            montarHistoricoConversa(historico, mensagem, texto || '[resposta interrompida]', !!imagem),
+          );
+          registrarMetrica({
+            modelo: gerado.modelo.nomeModelo,
+            provedor: gerado.modelo.provedor,
+            stream: true,
+            latenciaMs: Date.now() - t0,
+            fontes: fontes.length,
+            perfil,
+            tokensEntrada,
+          });
+        }
+      },
+      cancel() {
+        void gerado.stream.cancel().catch(() => undefined);
+      },
+    });
+    return new Response(fluxo, {
       status: 200,
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
@@ -259,6 +540,7 @@ async function webHandler(req: Request): Promise<Response> {
 
   const gerado = await gerarComFailover(modelo, mensagens);
   if (!gerado) {
+    registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
     return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
   }
 
@@ -295,6 +577,25 @@ async function webHandler(req: Request): Promise<Response> {
       aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
     }
   }
+
+  if (cacheElegivel) {
+    guardarCache(embedding, mensagem, perfilChave, resposta, fontes, gerado.modelo.nomeModelo, tokensUso);
+  }
+  persistirConversa(
+    conversaId,
+    perfil,
+    montarHistoricoConversa(historico, mensagem, resposta, !!imagem),
+  );
+  registrarMetrica({
+    modelo: gerado.modelo.nomeModelo,
+    provedor: gerado.modelo.provedor,
+    stream: false,
+    latenciaMs: Date.now() - t0,
+    fontes: fontes.length,
+    perfil,
+    tokensEntrada,
+    tokensTotal: tokensUso,
+  });
 
   return json(200, {
     resposta,

@@ -10,9 +10,12 @@ import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
+import { upsert } from '../shared/supabase.js';
 import type { MensagemChat } from '../shared/llm.js';
 
 const TAMANHO_MAX_HISTORICO = 30;
+// Mesmo formato de id de conversa do /api/caso e do frontend
+const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
 
 function json(status: number, corpo: unknown): Response {
   return new Response(JSON.stringify(corpo), {
@@ -52,7 +55,7 @@ async function webHandler(req: Request): Promise<Response> {
     return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
   }
 
-  let corpo: { mensagens?: unknown };
+  let corpo: { mensagens?: unknown; conversaId?: unknown };
   try {
     corpo = (await req.json()) as typeof corpo;
   } catch {
@@ -99,6 +102,24 @@ async function webHandler(req: Request): Promise<Response> {
 
   const tokensUso = gerado.tokensUso ?? estimarTokens(gerado.texto) + tokensEntrada;
   await registrarConsumo(gerado.modelo.id, tokensUso);
+
+  // Registra a conciliacao gerada (acao real do agente); falha nao bloqueia
+  const conversaId =
+    typeof corpo.conversaId === 'string' && CONVERSA_ID_VALIDO.test(corpo.conversaId)
+      ? corpo.conversaId
+      : null;
+  if (conversaId) {
+    void upsert(
+      'conciliacoes',
+      {
+        conversa_id: conversaId,
+        parecer: gerado.texto.slice(0, 8000),
+        modelo: gerado.modelo.nomeModelo,
+        criado_em: new Date().toISOString(),
+      },
+      'conversa_id',
+    ).catch((erro) => console.warn('[parecer] conciliacao nao persistida:', erro));
+  }
 
   return json(200, { parecer: gerado.texto });
 }

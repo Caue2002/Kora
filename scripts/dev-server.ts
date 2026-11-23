@@ -11,6 +11,8 @@ import chatHandler from '../api/chat';
 import feedbackHandler from '../api/feedback';
 import parecerHandler from '../api/parecer';
 import casoHandler from '../api/caso';
+import conversaHandler from '../api/conversa';
+import metricasHandler from '../api/metricas';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -30,6 +32,8 @@ const rotas: Record<string, (req: Request) => Promise<Response>> = {
   '/api/feedback': feedbackHandler,
   '/api/parecer': parecerHandler,
   '/api/caso': casoHandler,
+  '/api/conversa': conversaHandler,
+  '/api/metricas': metricasHandler,
 };
 
 const servidor = createServer(async (req, res) => {

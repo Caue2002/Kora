@@ -94,6 +94,7 @@ export async function enviarMensagemStream(
   onDelta: (texto: string) => void,
   imagem?: ImagemAnexo,
   perfil?: string,
+  conversaId?: string,
 ): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -104,6 +105,7 @@ export async function enviarMensagemStream(
       stream: true,
       imagem,
       perfil,
+      conversaId,
     }),
   });
 

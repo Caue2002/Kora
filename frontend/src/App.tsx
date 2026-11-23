@@ -628,7 +628,7 @@ export default function App() {
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
-      }, undefined, perfil ?? undefined);
+      }, undefined, perfil ?? undefined, cid);
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
         setErro({ mensagem: r.erro, retryTexto: textoMsg });

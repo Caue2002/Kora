@@ -27,12 +27,17 @@ function vetorParaTexto(v: number[]): string {
 }
 
 // Busca os trechos mais relevantes para a consulta do usuario
-export async function buscaHibrida(consulta: string, limite = LIMITE_TRECHOS): Promise<ResultadoBusca> {
+// embeddingOpcional: vetor ja calculado pelo chamador (evita embed duplicado)
+export async function buscaHibrida(
+  consulta: string,
+  limite = LIMITE_TRECHOS,
+  embeddingOpcional?: number[],
+): Promise<ResultadoBusca> {
   const consultaLimpa = consulta.trim();
   if (consultaLimpa.length === 0) return { trechos: [], modo: 'lexical' };
 
-  const vetores = await embedTexts([consultaLimpa]);
-  const embedding = vetores?.[0];
+  const vetores = embeddingOpcional ? null : await embedTexts([consultaLimpa]);
+  const embedding = embeddingOpcional ?? vetores?.[0];
 
   try {
     const linhas = await rpc<TrechoConhecimento[]>('buscar_conhecimento_hibrido', {

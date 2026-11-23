@@ -53,4 +53,39 @@ describe('pedidoConfirmadoNaHistorico', () => {
     ]);
     expect(h).toBe('AB1234');
   });
+
+  it('reconhece variacoes naturais de confirmacao', () => {
+    for (const confirma of ['pode seguir', 'ta certo', 'blz', 'bora', 'isso ai', 'manda ver']) {
+      const h = pedidoConfirmadoNaHistorico([
+        { role: 'user', content: 'pedido 7777' },
+        { role: 'assistant', content: 'Pedido 7777 - Açaí da Praça. Confere?' },
+        { role: 'user', content: confirma },
+      ]);
+      expect(h, `confirmacao "${confirma}"`).toBe('7777');
+    }
+  });
+
+  it('detecta codigo quando a Nori escreve "seu pedido é o X"', () => {
+    const h = pedidoConfirmadoNaHistorico([
+      { role: 'user', content: 'quero tratar uma disputa' },
+      { role: 'assistant', content: 'Claro! Qual o numero do seu pedido?' },
+      { role: 'user', content: 'eh o 8123' },
+      { role: 'assistant', content: 'Perfeito, seu pedido é o 8123 - Sushi Yama: combo 20 peças. É esse?' },
+      { role: 'user', content: 'isso, pode seguir' },
+    ]);
+    expect(h).toBe('8123');
+  });
+
+  it('pedido travado nao e substituido por codigo posterior + "sim"', () => {
+    const h = pedidoConfirmadoNaHistorico([
+      { role: 'user', content: 'pedido 1111' },
+      { role: 'assistant', content: 'Pedido 1111 - Burger Bros. Confere?' },
+      { role: 'user', content: 'sim' },
+      { role: 'assistant', content: 'Em que posso ajudar com o pedido 1111?' },
+      { role: 'user', content: 'na verdade o codigo e 2222' },
+      { role: 'assistant', content: 'Esse pedido não consta em seu nome; o pedido em atendimento é o 1111.' },
+      { role: 'user', content: 'sim, entendi' },
+    ]);
+    expect(h).toBe('1111');
+  });
 });
