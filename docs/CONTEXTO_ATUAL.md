@@ -261,6 +261,20 @@ de entrega.
   um retry silencioso automatico (~1.2s) limpando o stream parcial antes
   de exibir o erro — cobre streams que morrem no meio por timeout da
   function
+- Varredura de resiliencia (causa do "nao consegue responder" persistente):
+  o frontend SEMPRE usa stream:true, entao a guarda anti-recusa so valia
+  no modo nao-stream — o stream agora retem os primeiros ~220 bytes e, se
+  detectar recusa generica ou resposta vazia, descarta e regenera via
+  failover antes de enviar ao usuario (respostas normais seguem token a
+  token sem latencia extra). Catalogo de modelos saneado: gemini-2.5-flash
+  e gemini-2.0-flash retornavam 404 (descontinuados) — defaults agora sao
+  gemini-3.8-flash e gemini-3.5-flash-lite (unico que respondeu 200 na
+  verificacao); ATENCAO: se GEMINI_MODEL_3/4 estiverem definidos na Vercel
+  com nomes antigos, atualizar para os novos. Quando TODOS os provedores
+  falham, /api/chat devolve RESPOSTA_FALLBACK com 200 (stream e normal)
+  em vez de 502 — a falha segue registrada em metricas_chat
+- Timeout de 10s em todas as chamadas PostgREST (shared/supabase.ts):
+  banco pendurado nao segura mais a request do chat
 
 ## Em andamento
 

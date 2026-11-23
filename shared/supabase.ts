@@ -3,9 +3,14 @@
 
 import { supabaseServiceKey, supabaseUrl } from './env.js';
 
+// Timeout curto em toda chamada ao PostgREST: banco pendurado nao pode
+// segurar a request do chat (consultas auxiliares degradam com fallback)
+const SINAL = () => AbortSignal.timeout(10_000);
+
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const res = await fetch(`${supabaseUrl()}/rest/v1/${path}`, {
     ...init,
+    signal: SINAL(),
     headers: {
       apikey: supabaseServiceKey(),
       Authorization: `Bearer ${supabaseServiceKey()}`,
@@ -37,6 +42,7 @@ export async function inserir<T = unknown>(tabela: string, dados: Record<string,
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },
+    signal: SINAL(),
     body: JSON.stringify(dados),
   });
   if (!res.ok) {
@@ -55,6 +61,7 @@ export async function upsert(tabela: string, dados: Record<string, unknown>, onC
       'Content-Type': 'application/json',
       Prefer: 'resolution=merge-duplicates,return=minimal',
     },
+    signal: SINAL(),
     body: JSON.stringify(dados),
   });
   if (!res.ok) {

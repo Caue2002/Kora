@@ -257,6 +257,29 @@ async function gerarComFailover(
   return null;
 }
 
+// Ultima instancia quando TODOS os provedores falham: em vez de um erro 502
+// ("tentar novamente"), o usuario recebe o fallback educado com 200 — a falha
+// continua registrada nas metricas para observabilidade
+function respostaFallbackStream(): Response {
+  const codificador = new TextEncoder();
+  const fluxo = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (let i = 0; i < RESPOSTA_FALLBACK.length; i += 400) {
+        controller.enqueue(codificador.encode(RESPOSTA_FALLBACK.slice(i, i + 400)));
+      }
+      controller.close();
+    },
+  });
+  return new Response(fluxo, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'x-modelo': 'fallback',
+      'x-fontes': '[]',
+    },
+  });
+}
+
 // Tenta abrir o stream percorrendo a fila; retorna stream + modelo ou null.
 // Valida o PRIMEIRO chunk antes de responder: stream que abre e morre sem
 // emitir nenhum byte aciona o proximo modelo da fila (retry transparente)
@@ -498,35 +521,101 @@ async function webHandler(req: Request): Promise<Response> {
   const fontes = busca.trechos.map((t) => ({ titulo: t.titulo, categoria: t.categoria }));
 
   // ===== Modo streaming: resposta token a token =====
-  // Nao roda a validacao pos-geracao (texto ja foi enviado); heuristica fica para o modo normal.
-  // O stream e envelopado para acumular o texto: no fechamento alimenta o
-  // cache semantico, o historico no servidor e a metrica de uso
+  // Os primeiros bytes sao inspecionados: recusa generica ou resposta vazia
+  // e substituida por regeneracao antes de chegar ao usuario. O restante do
+  // fluxo segue token a token; no fechamento alimenta cache, historico e metricas
   if (corpo.stream === true) {
     const gerado = await streamComFailover(modelo, mensagens);
     if (!gerado) {
       registrarMetrica({ stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
-      return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
+      persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
+      return respostaFallbackStream();
     }
     let acumulado = '';
     const decodificador = new TextDecoder();
+    const codificador = new TextEncoder();
+    // Os primeiros bytes ficam retidos para inspecao: no modo stream nao ha
+    // validacao pos-geracao, entao uma recusa generica ("nao consegui
+    // responder") ou resposta vazia e detectada no inicio do fluxo,
+    // descartada e substituida por uma regeneracao antes de chegar ao usuario
+    const LIMIAR_INSPECAO = 220;
+    let textoFinal = '';
     const fluxo = new ReadableStream<Uint8Array>({
       async start(controller) {
         const leitor = gerado.stream.getReader();
+        let segurando = true;
+        let pendentes: Uint8Array[] = [];
+        let substituido = false;
+        const emitir = (bytes: Uint8Array) => controller.enqueue(bytes);
         try {
           while (true) {
             const { done, value } = await leitor.read();
             if (done) break;
-            if (value && value.length > 0) {
-              controller.enqueue(value);
-              if (cacheElegivel) acumulado += decodificador.decode(value, { stream: true });
+            if (!value || value.length === 0) continue;
+            acumulado += decodificador.decode(value, { stream: true });
+            if (segurando) {
+              pendentes.push(value);
+              if (acumulado.length >= LIMIAR_INSPECAO) {
+                segurando = false;
+                if (ehRespostaDeRecusa(acumulado)) {
+                  substituido = true;
+                  void leitor.cancel().catch(() => undefined);
+                  break;
+                }
+                for (const b of pendentes) emitir(b);
+                pendentes = [];
+              }
+            } else {
+              emitir(value);
             }
+          }
+          // Flush do decoder para nao perder caracteres multibyte no fim
+          acumulado += decodificador.decode();
+          // Stream terminou ainda segurando (resposta curta): decide com o todo
+          if (segurando) {
+            segurando = false;
+            if (acumulado.trim().length === 0 || ehRespostaDeRecusa(acumulado)) {
+              substituido = true;
+            } else {
+              for (const b of pendentes) emitir(b);
+              pendentes = [];
+            }
+          }
+          if (substituido || acumulado.trim().length === 0) {
+            // So regenera quando a resposta e inutil (vazia ou recusa);
+            // caso contrario o texto original ja foi enviado e nada muda
+            const correcao: MensagemChat[] = [
+              ...mensagens,
+              { role: 'assistant', content: acumulado || '(resposta vazia)' },
+              {
+                role: 'user',
+                content:
+                  'Sua resposta anterior foi vazia ou uma recusa generica, sem responder a pergunta. Responda de verdade: para perguntas sobre suas capacidades, liste o que voce faz; para conhecimento geral, use seu proprio conhecimento de forma resumida; para dados do Kora, use apenas o contexto fornecido.',
+              },
+            ];
+            let novo = '';
+            try {
+              // Failover na regeneracao tambem: o modelo original pode ter
+              // sido o que falhou; a fila tenta os demais antes do fallback
+              const r2 = await gerarComFailover(gerado.modelo, correcao);
+              novo = (r2?.texto ?? '').trim();
+            } catch (erroRegen) {
+              console.warn('[chat] regeneracao de stream falhou:', erroRegen);
+            }
+            if (!novo || ehRespostaDeRecusa(novo)) novo = RESPOSTA_FALLBACK;
+            textoFinal = novo;
+            for (let i = 0; i < novo.length; i += 400) {
+              emitir(codificador.encode(novo.slice(i, i + 400)));
+            }
+          } else {
+            textoFinal = acumulado.trim();
           }
         } catch {
           // Cliente desconectou ou stream morreu: encerra o que ja saiu
         } finally {
           controller.close();
-          const texto = (acumulado + decodificador.decode()).trim();
-          if (cacheElegivel && texto && !ehRespostaDeRecusa(texto)) {
+          const texto = textoFinal || acumulado.trim() || '[resposta interrompida]';
+          if (cacheElegivel && texto && !ehRespostaDeRecusa(texto) && texto !== RESPOSTA_FALLBACK) {
             guardarCache(embedding, mensagem, perfilChave, texto, fontes, gerado.modelo.nomeModelo, undefined);
           }
           persistirConversa(
@@ -562,7 +651,14 @@ async function webHandler(req: Request): Promise<Response> {
   const gerado = await gerarComFailover(modelo, mensagens);
   if (!gerado) {
     registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
-    return json(502, { erro: 'Nao foi possivel obter resposta dos modelos disponiveis no momento.' });
+    persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
+    return json(200, {
+      resposta: RESPOSTA_FALLBACK,
+      modelo: 'fallback',
+      provedor: 'sistema',
+      tokens: 0,
+      fontes,
+    });
   }
 
   // Registra consumo real quando informado, senao a estimativa consolidada
@@ -591,13 +687,14 @@ async function webHandler(req: Request): Promise<Response> {
       { role: 'user', content: motivo },
     ];
     try {
-      const r2 = await chamarLLM(gerado.modelo, correcao);
-      const h2 = validarHeuristico(r2.texto);
-      if (h2.ok && !ehRespostaDeRecusa(r2.texto)) {
-        resposta = r2.texto;
-        await registrarConsumo(gerado.modelo.id, r2.tokensUso ?? estimarTokens(r2.texto));
-      } else if (ehRespostaDeRecusa(r2.texto)) {
-        // Modelo insistiu na recusa: ultima instancia e a mensagem de fallback
+      const r2 = await gerarComFailover(gerado.modelo, correcao);
+      const texto2 = (r2?.texto ?? '').trim();
+      const h2 = validarHeuristico(texto2);
+      if (r2 && h2.ok && !ehRespostaDeRecusa(texto2)) {
+        resposta = texto2;
+        await registrarConsumo(r2.modelo.id, r2.tokensUso ?? estimarTokens(texto2));
+      } else if (ehRespostaDeRecusa(texto2) || !texto2) {
+        // Modelo insistiu na recusa ou a fila inteira falhou: ultima instancia
         resposta = RESPOSTA_FALLBACK;
       } else {
         aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';

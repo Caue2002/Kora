@@ -62,7 +62,7 @@ export function catalogoModelos(): ModeloConfig[] {
     {
       id: 1,
       provedor: 'gemini',
-      nomeModelo: env('GEMINI_MODEL_3', 'gemini-2.5-flash')!,
+      nomeModelo: env('GEMINI_MODEL_3', 'gemini-3.8-flash')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
       prioridade: 4,
@@ -70,7 +70,7 @@ export function catalogoModelos(): ModeloConfig[] {
     {
       id: 3,
       provedor: 'gemini',
-      nomeModelo: env('GEMINI_MODEL_4', 'gemini-2.0-flash')!,
+      nomeModelo: env('GEMINI_MODEL_4', 'gemini-3.5-flash-lite')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
       prioridade: 5,

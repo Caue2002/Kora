@@ -34,7 +34,10 @@ export function validarHeuristico(resposta: string): ResultadoValidacao {
 // resposta inteira falhou e deve ser regenerada ou substituida.
 const PADROES_RECUSA = [
   /\b(n[aã]o|nao)\s+(consegui|consigo|conseguiu|pude|posso)\s+(te\s+|lhe\s+)?(responder|ajudar|atender)\b/i,
-  /\bn[aã]o\s+(tenho|ha|há)\s+(como|informacoes|informações|dados|capacidade|condicoes|condições)\b(?:\s+\w+){0,4}?\s+(responder|ajudar|atender|concluir)\b/i,
+  // "nao tenho como responder/ajudar" — o verbo vem logo apos "como",
+  // entao limites legitimos ("nao tenho como reembolsar") nao disparam
+  /\bn[aã]o\s+(tenho|ha|há)\s+como\s+(te\s+|lhe\s+)?(responder|ajudar|atender|concluir)\b/i,
+  /\bn[aã]o\s+(tenho|ha|há)\s+(informacoes|informações|dados|capacidade|condicoes|condições)\b[^.]{0,30}?\b(responder|ajudar|atender|concluir)\b/i,
   /\b(desculpe|desculpa|sinto muito)[,.]?\s+(mas\s+)?n[aã]o\s+(consegui|consigo|entendi|compreendi|posso)/i,
   /\bn[aã]o\s+(entendi|compreendi)\s+(sua|o que|a sua)\s+(mensagem|pergunta|solicitacao|solicitação)/i,
   /\b(n[aã]o|nao)\s+foi\s+possivel\s+(gerar|obter|processar|responder|concluir)/i,
