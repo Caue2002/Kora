@@ -4,5 +4,5 @@
 export { montarPromptSistema, montarContextoRAG, DIRETRIZES_PADRAO } from './prompt.js';
 export type { DiretrizesEstilo } from './prompt.js';
 export { carregarDiretrizes } from './adaptive.js';
-export { validarHeuristico, validarComLLM } from './validacao.js';
+export { validarHeuristico, validarComLLM, ehRespostaDeRecusa } from './validacao.js';
 export type { ResultadoValidacao } from './validacao.js';

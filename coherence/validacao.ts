@@ -28,6 +28,29 @@ export function validarHeuristico(resposta: string): ResultadoValidacao {
   return { ok: problemas.length === 0, problemas };
 }
 
+// Frases de incapacidade generica que o modelo as vezes emite em vez de
+// responder (ex.: perguntas meta ou de conhecimento geral). Diferente dos
+// limites legitimos ("nao posso cancelar pedidos"), estas indicam que a
+// resposta inteira falhou e deve ser regenerada ou substituida.
+const PADROES_RECUSA = [
+  /\b(n[aã]o|nao)\s+(consegui|consigo|conseguiu|pude|posso)\s+(te\s+|lhe\s+)?(responder|ajudar|atender)\b/i,
+  /\bn[aã]o\s+(tenho|ha|há)\s+(como|informacoes|informações|dados|capacidade|condicoes|condições)\b(?:\s+\w+){0,4}?\s+(responder|ajudar|atender|concluir)\b/i,
+  /\b(desculpe|desculpa|sinto muito)[,.]?\s+(mas\s+)?n[aã]o\s+(consegui|consigo|entendi|compreendi|posso)/i,
+  /\bn[aã]o\s+(entendi|compreendi)\s+(sua|o que|a sua)\s+(mensagem|pergunta|solicitacao|solicitação)/i,
+  /\b(n[aã]o|nao)\s+foi\s+possivel\s+(gerar|obter|processar|responder|concluir)/i,
+  /\bfora\s+do\s+meu\s+(alcance|escopo|conhecimento)\b/i,
+];
+
+// Detecta se o texto e uma recusa/incapacidade generica em vez de resposta.
+// Usado para regenerar a resposta ou aplicar o fallback de ultima instancia.
+export function ehRespostaDeRecusa(texto: string): boolean {
+  const t = texto.trim();
+  if (t.length === 0) return false;
+  // Respostas longas que apenas mencionam um limite legitimo nao sao recusa
+  if (t.length > 600) return false;
+  return PADROES_RECUSA.some((p) => p.test(t));
+}
+
 // Verificacao semantica via LLM: compara resposta com historico e contexto
 // Usa o modelo de menor prioridade disponivel para economizar tokens do principal
 export async function validarComLLM(

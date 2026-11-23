@@ -21,6 +21,7 @@ import {
   montarPromptSistema,
   validarComLLM,
   validarHeuristico,
+  ehRespostaDeRecusa,
 } from '../coherence/index.js';
 
 interface CorpoRequisicao {
@@ -52,6 +53,11 @@ const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
 const MIMES_IMAGEM = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const TAMANHO_MAX_IMAGEM_B64 = 4_200_000; // ~3MB em base64 (body total fica abaixo do limite da Vercel)
+
+// Ultima instancia quando o modelo nao consegue formular resposta nenhuma:
+// avisa com educacao e lembra o que a Nori faz, em vez de uma recusa seca
+const RESPOSTA_FALLBACK =
+  'Tive uma dificuldade para formular essa resposta agora. Posso te ajudar com disputas de pedidos do Kora (item faltante, item errado, qualidade, atraso), confirmacao de pedido por codigo, orientacao sobre evidencias e parecer de conciliacao — e tambem respondo assuntos gerais. Como posso ajudar?';
 
 // Ids de conversa gerados no frontend como `${timestamp}-${aleatorio}`
 const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
@@ -123,7 +129,9 @@ async function buscarCache(embedding: number[], perfil: string): Promise<LinhaCa
       p_perfil: perfil,
     });
     const linha = linhas?.[0];
-    return linha && linha.score >= CACHE_SCORE_MIN ? linha : null;
+    // Respostas de recusa nunca sao servidas do cache: uma entrada envenenada
+    // faria o agente repetir a falha para sempre na mesma pergunta
+    return linha && linha.score >= CACHE_SCORE_MIN && !ehRespostaDeRecusa(linha.resposta) ? linha : null;
   } catch {
     return null; // migration 0009 ainda nao aplicada ou banco fora
   }
@@ -505,7 +513,7 @@ async function webHandler(req: Request): Promise<Response> {
         } finally {
           controller.close();
           const texto = (acumulado + decodificador.decode()).trim();
-          if (cacheElegivel && texto) {
+          if (cacheElegivel && texto && !ehRespostaDeRecusa(texto)) {
             guardarCache(embedding, mensagem, perfilChave, texto, fontes, gerado.modelo.nomeModelo, undefined);
           }
           persistirConversa(
@@ -548,37 +556,49 @@ async function webHandler(req: Request): Promise<Response> {
   const tokensUso = gerado.tokensUso ?? estimarTokens(gerado.texto) + tokensEntrada;
   await registrarConsumo(gerado.modelo.id, tokensUso);
 
-  // Validacao obrigatoria de coerencia antes da entrega
+  // Validacao obrigatoria de coerencia antes da entrega.
+  // Recusa generica do modelo ("nao consegui responder") conta como falha:
+  // dispara a mesma regeneracao apontando o problema
   let resposta = gerado.texto;
   let aviso: string | undefined;
   const heuristica = validarHeuristico(resposta);
-  if (!heuristica.ok) {
-    console.warn('[chat] heuristica de coerencia falhou:', heuristica.problemas);
+  const recusaInicial = ehRespostaDeRecusa(resposta);
+  if (!heuristica.ok || recusaInicial) {
+    console.warn(
+      '[chat] validacao falhou:',
+      recusaInicial ? 'resposta de recusa/incapacidade' : heuristica.problemas,
+    );
     // Uma tentativa de regeneracao apontando os problemas detectados
+    const motivo = recusaInicial
+      ? 'Sua resposta anterior foi uma recusa generica, sem responder a pergunta. Responda de verdade: para perguntas sobre suas capacidades, liste o que voce faz; para conhecimento geral, use seu proprio conhecimento de forma resumida; para dados do Kora, use apenas o contexto fornecido.'
+      : `Sua resposta anterior apresentou problemas de coerencia: ${heuristica.problemas.join('; ')}. Reescreva corrigindo esses pontos, sem inventar dados.`;
     const correcao: MensagemChat[] = [
       ...mensagens,
       { role: 'assistant', content: resposta },
-      {
-        role: 'user',
-        content: `Sua resposta anterior apresentou problemas de coerencia: ${heuristica.problemas.join('; ')}. Reescreva corrigindo esses pontos, sem inventar dados.`,
-      },
+      { role: 'user', content: motivo },
     ];
     try {
       const r2 = await chamarLLM(gerado.modelo, correcao);
       const h2 = validarHeuristico(r2.texto);
-      if (h2.ok) {
+      if (h2.ok && !ehRespostaDeRecusa(r2.texto)) {
         resposta = r2.texto;
         await registrarConsumo(gerado.modelo.id, r2.tokensUso ?? estimarTokens(r2.texto));
+      } else if (ehRespostaDeRecusa(r2.texto)) {
+        // Modelo insistiu na recusa: ultima instancia e a mensagem de fallback
+        resposta = RESPOSTA_FALLBACK;
       } else {
         aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
       }
     } catch (erro) {
       console.warn('[chat] regeneracao de coerencia falhou:', erro);
-      aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
+      if (recusaInicial) resposta = RESPOSTA_FALLBACK;
+      else aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
     }
   }
 
-  if (cacheElegivel) {
+  // Recusas e o fallback nunca entram no cache semantico: evita perpetuar a falha
+  const cacheavel = !ehRespostaDeRecusa(resposta) && resposta !== RESPOSTA_FALLBACK;
+  if (cacheElegivel && cacheavel) {
     guardarCache(embedding, mensagem, perfilChave, resposta, fontes, gerado.modelo.nomeModelo, tokensUso);
   }
   persistirConversa(

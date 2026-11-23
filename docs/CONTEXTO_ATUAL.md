@@ -231,6 +231,20 @@ de entrega.
   "Ver mais/Ver menos" (componente TextoAssistente em App.tsx); ao fim do
   streaming a tela alinha o TOPO da ultima mensagem da Nori para leitura
   comecar do inicio
+- Anti-recusa do agente: o modelo as vezes respondia perguntas meta
+  ("o que voce sabe fazer?") ou de conhecimento geral com frases de
+  incapacidade ("nao consegui responder agora"). Correcao em 3 camadas:
+  prompt ganhou secao de capacidades, escopo de conhecimento geral
+  respondido com o proprio conhecimento do modelo (a REGRA DE OURO passa
+  a valer so para dados do Kora) e instrucao de identificar a intencao da
+  mensagem antes de responder; coherence/validacao.ts ganhou
+  ehRespostaDeRecusa (regex de incapacidade generica, ignora limites
+  legitimos como "nao posso cancelar pedidos"); /api/chat trata recusa
+  como falha de validacao — regenera uma vez com instrucao especifica e,
+  se persistir, devolve RESPOSTA_FALLBACK (aviso de dificuldade + o que a
+  Nori faz). Cache semantico nao serve nem grava respostas de recusa nem
+  o fallback (inclusive entradas ja envenenadas sao ignoradas na leitura).
+  Streaming nao tem validacao pos-geracao — a correcao depende do prompt
 
 ## Em andamento
 
