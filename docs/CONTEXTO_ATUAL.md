@@ -141,10 +141,13 @@ de entrega.
   "Podemos encerrar a conversa?" quando o caso conclui; o frontend detecta a
   pergunta, mostra dica de timeout, intercepta respostas afirmativas ("sim",
   "pode encerrar"...) sem chamar o modelo e exibe o botao "Encerrar conversa";
-  sem resposta em 3 minutos o caso encerra automaticamente. O card do caso
-  (timeline triagem>coleta>analise>parecer>encerrado, resumo, pendencias) so
-  renderiza quando caso.etapa === 'encerrado' — durante a conversa ficam so
-  as mensagens. Item "Encerrar atendimento" removido do menu "..."
+  sem resposta em 3 minutos o caso encerra automaticamente. Ao encerrar
+  (botao ou timeout), o app volta a tela inicial de escolha de perfil; a
+  bolha do caso concluido fica salva na conversa e aparece no fim ao reabri-la
+  pelo historico. O card do caso (timeline
+  triagem>coleta>analise>parecer>encerrado, resumo, pendencias) so renderiza
+  quando caso.etapa === 'encerrado' — durante a conversa ficam so as
+  mensagens. Item "Encerrar atendimento" removido do menu "..."
 - Input do chat virou textarea: Enter/tecla de enviar do teclado so insere
   quebra de linha; o envio acontece apenas pelo botao Enviar. Placeholder:
   "Fale com a Nori...". Foco automatico do input restrito a pointer:fine
@@ -153,7 +156,10 @@ de entrega.
 
 ## Em andamento
 
-- Deploy em producao na Vercel: https://kora-frontend-jade.vercel.app
+- Deploy em producao na Vercel: projeto renomeado para `nori-agente-ai`.
+  ATENCAO: renomear o projeto NAO troca o dominio `.vercel.app` — o dominio
+  de producao precisa ser removido/adicionado em Settings > Domains do
+  projeto (kora-frontend-jade.vercel.app seguia ativo apos o rename)
 - Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
   `_rodar_uma_vez_0005_0008.sql`
 
@@ -167,7 +173,7 @@ de entrega.
 ## Pendencias (proximos passos, em ordem)
 
 1. ~~Aplicar migrations 0005-0008~~ FEITO (via `_rodar_uma_vez_0005_0008.sql`)
-2. ~~Deploy na Vercel~~ FEITO: https://kora-frontend-jade.vercel.app
+2. ~~Deploy na Vercel~~ FEITO: projeto `nori-agente-ai`
    (Root Directory = raiz do repo; env vars SUPABASE_URL,
    SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, GROQ_API_KEY)
 3. Testar o chat em producao com cenarios de disputa reais e ajustar
