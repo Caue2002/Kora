@@ -359,16 +359,16 @@ async function webHandler(req: Request): Promise<Response> {
 
   // Rate limit simples por IP: 20 requisicoes por minuto (best-effort em serverless)
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'local';
+  // Leitura do corpo e rate limit sao independentes: disparam juntos para
+  // nao somar a round-trip do Postgres a latencia de cada mensagem
+  const pCorpo = req.json().catch(() => undefined);
   if (!(await verificarLimite(`chat:${ip}`, 20, 60_000))) {
     return json(429, { erro: 'Muitas requisicoes. Aguarde um instante.' });
   }
 
-  let corpo: CorpoRequisicao;
-  try {
-    corpo = (await req.json()) as CorpoRequisicao;
-  } catch {
-    return json(400, { erro: 'JSON invalido' });
-  }
+  const corpoBruto = await pCorpo;
+  if (corpoBruto === undefined) return json(400, { erro: 'JSON invalido' });
+  const corpo = corpoBruto as CorpoRequisicao;
 
   const mensagem = typeof corpo.mensagem === 'string' ? corpo.mensagem.trim() : '';
   if (mensagem.length === 0 || mensagem.length > TAMANHO_MAX_MENSAGEM) {
@@ -420,7 +420,12 @@ async function webHandler(req: Request): Promise<Response> {
   const mensagemCasual =
     !imagem && !codigoPedido && !codigoTravado && ehMensagemCasual(mensagem);
 
-  const pVetores = embedTexts([mensagem]);
+  // O embedding so e necessario para a busca RAG ou para o cache semantico.
+  // Mensagem casual no meio da conversa (sem historico vazio e sem cache
+  // elegivel) nao usa nenhum dos dois: pula a chamada ao Gemini e corta
+  // uma round-trip inteira do caminho critico
+  const precisaEmbedding = !mensagemCasual || cacheElegivel;
+  const pVetores = precisaEmbedding ? embedTexts([mensagem]) : Promise.resolve(null);
   // A busca RAG depende so do embedding: dispara em paralelo com a selecao
   // de modelo, diretrizes e cache — corta uma round-trip inteira do caminho
   const pBusca = mensagemCasual

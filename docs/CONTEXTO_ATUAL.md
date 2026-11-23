@@ -291,6 +291,13 @@ de entrega.
   byte ficava pendurado para sempre — o handshake so cobria os headers);
   marcarEsgotado virou fire-and-forget nos dois loops de failover (a RPC
   de cota nao atrasa a tentativa ao proximo modelo)
+- Terceira rodada de latencia do /api/chat: rate limit (RPC Postgres) e
+  leitura do body passam a rodar em paralelo; mensagem casual no meio da
+  conversa pula a chamada de embedding do Gemini (nao usa RAG nem cache);
+  carregarDiretrizes ganhou cache em memoria (60s sucesso / 15s falha);
+  selecionarModelo cacheia o consumo de cotas por 10s (marcas de esgotado
+  locais continuam valendo); registrarConsumo grava as 3 janelas em
+  paralelo em vez de sequencial
 
 ## Em andamento
 

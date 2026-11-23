@@ -16,6 +16,13 @@ export interface UsoModelo {
 // Consumo em memoria por modelo (fallback quando o banco esta indisponivel)
 const usoMemoria = new Map<number, UsoModelo>();
 
+// Cache curto do consumo de cotas lido do banco: a consulta entrava no
+// caminho critico de cada mensagem e o estado muda devagar. 10s de
+// defasagem e seguro porque um 429 real ainda e tratado pelo failover;
+// marcas de esgotado feitas nesta instancia continuam valendo na leitura
+const TTL_CACHE_USOS_MS = 10_000;
+let cacheUsos: { mapa: Map<number, UsoModelo>; expira: number } | null = null;
+
 function inicioJanelas(): { minuto: string; hora: string; dia: string } {
   const agora = new Date();
   const minuto = new Date(agora);
@@ -81,9 +88,19 @@ export function temFolga(uso: UsoModelo, tokensEntrada: number): boolean {
 export async function selecionarModelo(tokensEntradaEstimados: number): Promise<ModeloConfig | null> {
   const catalogo = catalogoModelos().filter((m) => m.apiKey);
   const ordenados = catalogo.sort((a, b) => a.prioridade - b.prioridade);
-  const usos = await consumoBancoTodos(ordenados.map((m) => m.id));
+
+  let usos = cacheUsos && cacheUsos.expira > Date.now() ? cacheUsos.mapa : null;
+  if (!usos) {
+    usos = await consumoBancoTodos(ordenados.map((m) => m.id));
+    cacheUsos = { mapa: usos, expira: Date.now() + TTL_CACHE_USOS_MS };
+  }
+
   for (const modelo of ordenados) {
-    const uso = usos.get(modelo.id) ?? consumoMemoria(modelo.id);
+    const base = usos.get(modelo.id) ?? consumoMemoria(modelo.id);
+    // Esgotamento marcado nesta instancia (apos um 429) vale mesmo quando
+    // o cache/DB ainda mostra o modelo como disponivel
+    const usoMem = consumoMemoria(modelo.id);
+    const uso = usoMem.esgotado && !base.esgotado ? { ...base, esgotado: true } : base;
     if (temFolga(uso, tokensEntradaEstimados)) return modelo;
   }
   return null;
@@ -118,19 +135,23 @@ export async function registrarConsumo(modeloId: number, tokens: number): Promis
   if (tokens <= 0) return;
   const j = inicioJanelas();
   const lim = limites();
-  for (const janela_tipo of ['minuto', 'hora', 'dia'] as const) {
-    try {
-      await rpc('registrar_consumo_tokens', {
-        p_modelo_id: modeloId,
-        p_janela_tipo: janela_tipo,
-        p_janela_inicio: j[janela_tipo],
-        p_tokens: tokens,
-        p_limite: lim[janela_tipo],
-      });
-    } catch {
-      // consumo em memoria como fallback
-    }
-  }
+  // As 3 janelas sao independentes: registram em paralelo em vez de
+  // somar 3 round-trips sequenciais ao caminho da resposta
+  await Promise.all(
+    (['minuto', 'hora', 'dia'] as const).map(async (janela_tipo) => {
+      try {
+        await rpc('registrar_consumo_tokens', {
+          p_modelo_id: modeloId,
+          p_janela_tipo: janela_tipo,
+          p_janela_inicio: j[janela_tipo],
+          p_tokens: tokens,
+          p_limite: lim[janela_tipo],
+        });
+      } catch {
+        // consumo em memoria como fallback
+      }
+    }),
+  );
   const u = consumoMemoria(modeloId);
   u.tokensMinuto += tokens;
   u.tokensHora += tokens;
