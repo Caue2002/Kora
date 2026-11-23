@@ -58,17 +58,26 @@ describe('Cenarios fixos da Kora', () => {
 
   it('Cenario completo: relato com pedido, item e evidencia', async () => {
     if (!temCredenciais()) return;
-    const r = await perguntar(
-      'No pedido 4521 pedi 2 burgers e 1 batata, mas chegou so 1 burger. Tenho foto da sacola e o protocolo de entrega. O que faco?',
-    );
-    expect(r.status).toBe(200);
-    expect(r.resposta).toBeTruthy();
-    // deve reconhecer item faltante e conduzir conciliacao
+    const relato =
+      'No pedido 4521 pedi 2 burgers e 1 batata, mas chegou so 1 burger. Tenho foto da sacola e o protocolo de entrega. O que faco?';
+    const h1 = await perguntar(relato);
+    expect(h1.status).toBe(200);
+    expect(h1.resposta).toBeTruthy();
+    // O fluxo atual confirma o pedido antes da triagem, entao a primeira
+    // resposta pode ser so a confirmacao; um "sim" destrava a analise
+    const h2 = await perguntar('sim, pode seguir', [
+      { role: 'user', content: relato },
+      { role: 'assistant', content: h1.resposta ?? '' },
+    ]);
+    expect(h2.status).toBe(200);
+    expect(h2.resposta).toBeTruthy();
+    // em algum turno deve reconhecer item faltante e conduzir conciliacao
     // (aceita variacoes naturais: "faltou", "nao chegou", "só veio um")
-    expect(r.resposta!.toLowerCase()).toMatch(
+    const texto = `${h1.resposta}\n${h2.resposta}`.toLowerCase();
+    expect(texto).toMatch(
       /item|faltante|faltou|quantidade|diverg|concilia|reembolso|credito|nao chegou|so veio|chegou so/,
     );
-  }, 150000);
+  }, 240000);
 
   it('Cenario incompleto/ambiguo: deve pedir esclarecimentos', async () => {
     if (!temCredenciais()) return;

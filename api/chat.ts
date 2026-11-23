@@ -1,6 +1,6 @@
 // Endpoint POST /api/chat
 // Orquestra o fluxo do Nori: validacao, RAG, selecao de modelo com cota,
-// geracao com temperatura baixa, validacao de coerencia e registro de consumo
+// geracao com temperatura levemente maior para conversa natural, validacao de coerencia e registro de consumo
 // Aceita { stream: true } para resposta token a token (sem validacao pos-geracao)
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -11,7 +11,7 @@ import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
-import { detalhesPedido, extrairCodigoPedido, pedidoFicticio } from '../shared/pedidos.js';
+import { extrairCodigoPedido, pedidoFicticio } from '../shared/pedidos.js';
 import { buscaHibrida } from '../rag/search.js';
 import {
   carregarDiretrizes,
@@ -40,6 +40,10 @@ const CONTEXTO_PERFIL: Record<string, string> = {
   entregador:
     'O usuario e um ENTREGADOR parceiro. Ajude com demandas de entrega: pedido nao entregue, dificuldade na retirada, pagamento da corrida, atraso. Aplique as mesmas regras de evidencia; nao prometa acoes no sistema.',
 };
+
+// Temperatura do chat: um pouco acima do minimo para conversa mais natural
+// (validacao de coerencia e regeneracao continuam na temperatura padrao baixa)
+const TEMPERATURA_CHAT = 0.4;
 
 const TAMANHO_MAX_MENSAGEM = 4000;
 const TAMANHO_MAX_HISTORICO = 24;
@@ -95,7 +99,7 @@ async function gerarComFailover(
 
   for (const modelo of fila) {
     try {
-      const r = await chamarLLM(modelo, mensagens);
+      const r = await chamarLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
       return { texto: r.texto, modelo, tokensUso: r.tokensUso };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
@@ -122,7 +126,7 @@ async function streamComFailover(
 
   for (const modelo of fila) {
     try {
-      const stream = await streamLLM(modelo, mensagens);
+      const stream = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
       return { stream, modelo };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
@@ -162,27 +166,9 @@ async function webHandler(req: Request): Promise<Response> {
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
 
-  // Codigo de pedido informado: resposta deterministica de confirmacao
-  // (mesmo codigo = mesmo pedido; pula o LLM e economiza cota).
-  // Se a mensagem ja descreve um problema, deixa o LLM triar com os dados injetados.
-  const RELATO_PROBLEMA =
-    /errad|falt|frio|derramad|estragad|atras|cancel|nao chegou|não chegou|nao recebi|não recebi|trocad|substitu|reprov|qualidad|s[óo]\s+\d|veio s[óo]|chegou s[óo]|diverg/i;
+  // Codigo de pedido informado: os dados deterministicos sao injetados no
+  // prompt abaixo e o proprio modelo confirma o pedido com variacao natural
   const codigoPedido = extrairCodigoPedido(mensagem);
-  const relatoComProblema = RELATO_PROBLEMA.test(mensagem);
-  const jaConfirmado =
-    codigoPedido !== undefined &&
-    historicoJanela.some((m) => m.role === 'assistant' && m.content.includes(codigoPedido));
-  if (codigoPedido && !jaConfirmado && !relatoComProblema) {
-    const d = detalhesPedido(codigoPedido);
-    const resposta = `Encontrei o pedido ${codigoPedido} — ${d.itens} (${d.loja}, ${d.valor}). Confere? Se sim, me conta o que houve.`;
-    if (corpo.stream === true) {
-      return new Response(resposta, {
-        status: 200,
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'x-modelo': 'simulacao' },
-      });
-    }
-    return json(200, { resposta, modelo: 'simulacao', provedor: 'kora', tokens: 0, fontes: [] });
-  }
 
   // Estimativa antecipada de tokens de entrada (historico + mensagem + margem
   // para prompt de sistema e contexto RAG) permite escolher o modelo em
@@ -214,10 +200,10 @@ async function webHandler(req: Request): Promise<Response> {
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
 
-  // Injeta o pedido ficticio deterministico quando o codigo ja foi confirmado antes
-  // (ex.: usuario repete o codigo ou o fluxo chega aqui com o codigo no historico)
+  // Injeta o pedido ficticio deterministico sempre que um codigo for informado:
+  // o modelo usa esses dados para confirmar o pedido de forma natural e variada
   const dadosPedido = codigoPedido
-    ? `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Confirme esses itens com o usuario; se ele corrigir, passe a usar a descricao dele.`
+    ? `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Se a descricao do usuario divergir desses dados, o relato dele prevalece — ele conhece o proprio pedido. Confirme os itens com o usuario usando a descricao que fizer mais sentido para a conversa.`
     : '';
 
   const promptSistema = [

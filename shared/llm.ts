@@ -176,7 +176,11 @@ async function bombearSSE(
 }
 
 // Abre a conexao de streaming com o provedor
-async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Promise<Response> {
+async function abrirStream(
+  modelo: ModeloConfig,
+  mensagens: MensagemChat[],
+  temperatura = 0.1,
+): Promise<Response> {
   if (modelo.provedor === 'gemini') {
     const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
     const contents = mensagens
@@ -192,7 +196,7 @@ async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Pro
       body: JSON.stringify({
         systemInstruction: system ? { parts: [{ text: system }] } : undefined,
         contents,
-        generationConfig: { temperature: 0.1, maxOutputTokens: maxTokensSaida() },
+        generationConfig: { temperature: temperatura, maxOutputTokens: maxTokensSaida() },
       }),
     });
   }
@@ -205,7 +209,7 @@ async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Pro
     body: JSON.stringify({
       model: modelo.nomeModelo,
       messages: mensagensOpenAI(mensagens),
-      temperature: 0.1,
+      temperature: temperatura,
       max_tokens: maxTokensSaida(),
       stream: true,
     }),
@@ -213,8 +217,12 @@ async function abrirStream(modelo: ModeloConfig, mensagens: MensagemChat[]): Pro
 }
 
 // Gera a resposta em streaming real; lanca ErroLimiteModelo em falha de cota
-export async function streamLLM(modelo: ModeloConfig, mensagens: MensagemChat[]): Promise<ReadableStream<Uint8Array>> {
-  const res = await abrirStream(modelo, mensagens);
+export async function streamLLM(
+  modelo: ModeloConfig,
+  mensagens: MensagemChat[],
+  opcoes?: { temperatura?: number },
+): Promise<ReadableStream<Uint8Array>> {
+  const res = await abrirStream(modelo, mensagens, opcoes?.temperatura ?? 0.1);
   if (!res.ok || !res.body) {
     const corpo = await res.text().catch(() => '');
     if (ehErroLimite(res.status, corpo)) throw new ErroLimiteModelo(`stream ${modelo.provedor} limite`);

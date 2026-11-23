@@ -174,6 +174,14 @@ de entrega.
   vira "Enviei uma foto como evidencia." O prompt instrui a Nori a pedir foto
   dizendo "envie qualquer imagem ou escreva enviei" e a apenas confirmar o
   recebimento, sem analisar o conteudo
+- Conversa mais natural: temperatura do chat subiu para 0.4 (validacao de
+  coerencia segue em 0.1); atalho deterministico de confirmacao de pedido
+  removido — o modelo sempre confirma o pedido via LLM com dados injetados;
+  prompt reescrito para tom caloroso, respostas adaptativas ao contexto e
+  secao de mensagem final estruturada (decisao, motivo, proxima acao, pendencias)
+- Layout desktop full-width: em telas >=720px o chat nao tem mais max-width
+  de 720px e o padding lateral das mensagens caiu de 20% para 5%; mobile
+  (<720px) permanece identico
 
 ## Em andamento
 
