@@ -130,6 +130,42 @@ function novoId(): string {
 
 const formatarHora = formatarHoraMensagem;
 
+// Detecta quando a Nori pergunta se pode encerrar a conversa
+// (ex.: "Podemos encerrar a conversa?") — usado para o fluxo de encerramento
+function ehPerguntaEncerramento(texto: string): boolean {
+  if (!/\?\s*$/.test(texto.trim())) return false;
+  return /(podemos|posso|poderia|deseja|gostaria|queria|vamos|bora|encerramos|finalizamos|conclu[ií]mos)[^\n?]{0,120}(encerr|finaliz|conclu|parar)/i.test(
+    texto,
+  );
+}
+
+// Palavras aceitas como confirmacao de encerramento; a mensagem inteira precisa ser afirmativa
+const PALAVRAS_CONFIRMACAO = new Set([
+  'sim', 's', 'ok', 'okay', 'claro', 'certo', 'exato', 'isso', 'mesmo', 'certeza', 'com',
+  'pode', 'quero', 'bora', 'vamos', 'encerrar', 'conversa', 'finalizar',
+  'encerra', 'fecha', 'fechar', 'concluir', 'por', 'favor', 'obrigado', 'obrigada',
+  'valeu', 'beleza', 'blz', 'show', 'perfeito', 'fechado', 'otimo', 'maravilha', 'joia',
+]);
+
+// Retorna true quando o usuario responde apenas uma confirmacao curta ("sim", "pode encerrar" etc.)
+function ehRespostaAfirmativa(texto: string): boolean {
+  const normalizado = texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // remove acentos para comparar sem diacriticos
+    .replace(/[^a-z\s]/g, ' ')
+    .trim();
+  const palavras = normalizado.split(/\s+/).filter(Boolean);
+  if (palavras.length === 0 || palavras.length > 8) return false;
+  return palavras.every((p) => PALAVRAS_CONFIRMACAO.has(p));
+}
+
+// Foco automatico so faz sentido em dispositivos com ponteiro preciso (desktop);
+// no mobile o focus() abre o teclado sem o usuario ter tocado no campo
+function podeFocarInput(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches;
+}
+
 // Extrai a categoria mais frequente entre as fontes recuperadas pelo RAG
 function categoriaPredominante(fontes?: Fonte[]): string | null {
   if (!fontes?.length) return null;
@@ -230,20 +266,6 @@ const iconeMais = (
     <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
   </Icone>
 );
-const iconeVolume = (
-  <Icone size={16}>
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-    <path d="M18.5 5.5a9 9 0 0 1 0 13" />
-  </Icone>
-);
-const iconeMudo = (
-  <Icone size={16}>
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-    <line x1="23" y1="9" x2="17" y2="15" />
-    <line x1="17" y1="9" x2="23" y2="15" />
-  </Icone>
-);
 const iconeClipe = (
   <Icone size={16}>
     <path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
@@ -286,7 +308,8 @@ export default function App() {
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
-  const [somAtivo, setSomAtivo] = useState(() => localStorage.getItem('kora-som') === '1');
+  // Id da mensagem da Nori que perguntou se pode encerrar; enquanto existir, o timer de 3min corre
+  const [perguntaEncerramentoId, setPerguntaEncerramentoId] = useState<string | null>(null);
   const [anexo, setAnexo] = useState<{ imagem: ImagemAnexo; nome: string; preview: string } | null>(null);
   const [perfil, setPerfil] = useState<PerfilId | null>(() => {
     const salvo = localStorage.getItem(CHAVE_PERFIL);
@@ -294,13 +317,13 @@ export default function App() {
   });
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const comentarioRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
   const conversasRef = useRef(conversas);
   conversasRef.current = conversas;
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const encerrarRef = useRef<() => void>(() => {});
 
   // Na primeira carga, abre a conversa mais recente se existir
   useEffect(() => {
@@ -346,16 +369,34 @@ export default function App() {
     if (avaliacaoPendente) comentarioRef.current?.focus();
   }, [avaliacaoPendente]);
 
-  // Mantem o foco no campo apos cada resposta
+  // Mantem o foco no campo apos cada resposta — apenas em desktop (pointer fino);
+  // no mobile o focus() programatico abre o teclado sem o usuario tocar no campo
   useEffect(() => {
-    if (!enviando) inputRef.current?.focus();
+    if (!enviando && podeFocarInput()) inputRef.current?.focus();
   }, [enviando]);
+
+  // Vigia a ultima mensagem: quando a Nori pergunta se pode encerrar, arma o estado
+  // de encerramento pendente; qualquer outra resposta dela encerra a espera
+  useEffect(() => {
+    if (enviando || mensagens.length === 0) return;
+    const ultima = mensagens[mensagens.length - 1];
+    if (ultima?.role === 'assistant') {
+      setPerguntaEncerramentoId(ehPerguntaEncerramento(ultima.content) ? ultima.id : null);
+    }
+  }, [mensagens, enviando]);
+
+  // Sem resposta do usuario em 3 minutos apos a pergunta de encerramento, encerra sozinho
+  useEffect(() => {
+    if (!perguntaEncerramentoId) return;
+    const timer = setTimeout(() => encerrarRef.current(), 3 * 60 * 1000);
+    return () => clearTimeout(timer);
+  }, [perguntaEncerramentoId]);
 
   // Define o perfil do usuario (cliente, parceiro ou entregador) e persiste
   function escolherPerfil(p: PerfilId) {
     setPerfil(p);
     localStorage.setItem(CHAVE_PERFIL, p);
-    inputRef.current?.focus();
+    if (podeFocarInput()) inputRef.current?.focus();
   }
 
   // Inicia ou para o ditado por voz usando a Web Speech API do navegador
@@ -421,38 +462,6 @@ export default function App() {
     reader.readAsDataURL(file);
   }
 
-  // Som de feedback sutil (WebAudio): pop curto ao enviar e ao concluir a resposta
-  function tocarSom(subindo: boolean) {
-    if (!somAtivo) return;
-    try {
-      const Ctor =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return;
-      audioCtxRef.current ??= new Ctor();
-      const ctx = audioCtxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = subindo ? 620 : 440;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.04, ctx.currentTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.13);
-    } catch {
-      // audio indisponivel: segue sem som
-    }
-  }
-
-  function alternarSom() {
-    setSomAtivo((v) => {
-      localStorage.setItem('kora-som', v ? '0' : '1');
-      return !v;
-    });
-  }
-
   // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
   async function processarEnvio(texto: string) {
     if (!texto || enviando) return;
@@ -460,8 +469,21 @@ export default function App() {
     setOuvindo(false);
     setErro(null);
     setEntrada('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
     setSidebarAberta(false);
     setAvaliacaoPendente(null);
+
+    // Se a Nori perguntou se pode encerrar e o usuario confirmou, apenas registra
+    // a resposta e exibe o botao de encerrar — sem gastar chamada ao modelo
+    if (perguntaEncerramentoId && ehRespostaAfirmativa(texto)) {
+      const cid = conversaId ?? novoId();
+      if (!conversaId) setConversaId(cid);
+      setMensagens((atual) => [
+        ...atual,
+        { id: novoId(), role: 'user', content: texto, ts: Date.now() },
+      ]);
+      return;
+    }
 
     // garante um id de conversa antes do primeiro envio
     const cid = conversaId ?? novoId();
@@ -476,7 +498,6 @@ export default function App() {
     ]);
     setEnviando(true);
     setEtapaStream('contexto');
-    tocarSom(true);
     let primeiroDelta = true;
     let textoStream = '';
     const imagemEnvio = anexo?.imagem;
@@ -529,7 +550,6 @@ export default function App() {
       setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
       setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: texto });
     } finally {
-      tocarSom(false);
       setEnviando(false);
       setEtapaStream(null);
       setAnexo(null);
@@ -546,6 +566,7 @@ export default function App() {
     setMensagens(c.mensagens);
     setErro(null);
     setSidebarAberta(false);
+    setPerguntaEncerramentoId(null);
     void buscarCaso(c.id).then((c2) => setCaso(c2));
   }
 
@@ -557,15 +578,23 @@ export default function App() {
     setSidebarAberta(false);
     setAvaliacaoPendente(null);
     setCaso(null);
+    setPerguntaEncerramentoId(null);
   }
 
-  // Encerra o atendimento: marca o caso como encerrado e volta a tela de escolha de perfil
+  // Encerra o atendimento: marca o caso como encerrado no servidor e exibe o
+  // card do caso concluido no fim da conversa; o proximo chat pede o perfil de novo
   function encerrarAtendimento() {
-    if (conversaId) void encerrarCaso(conversaId);
+    setPerguntaEncerramentoId(null);
+    setErro(null);
     localStorage.removeItem(CHAVE_PERFIL);
     setPerfil(null);
-    novaConversa();
+    if (conversaId) {
+      void encerrarCaso(conversaId).then((c) => {
+        if (c) setCaso(c);
+      });
+    }
   }
+  encerrarRef.current = encerrarAtendimento;
 
   // Exclui uma conversa do historico
   function excluirConversa(id: string) {
@@ -637,7 +666,13 @@ export default function App() {
   }
 
   const ultimaResposta = [...mensagens].reverse().find((m) => m.role === 'assistant');
+  const ultimaMsg = mensagens[mensagens.length - 1];
   const conversaVazia = mensagens.length === 0 && !enviando;
+  // Botao de encerrar so aparece depois que o usuario confirma a pergunta da Nori
+  const mostrarBotaoEncerrar =
+    !!perguntaEncerramentoId &&
+    ultimaMsg?.role === 'user' &&
+    ehRespostaAfirmativa(ultimaMsg.content);
 
   // Detecta se o usuario subiu no historico para exibir o botao de voltar ao fim
   function aoRolar() {
@@ -667,17 +702,9 @@ export default function App() {
           <div className="chat-titulo-bloco">
             <img src="/logo.png" alt="Nori" className="chat-logo" />
             <span className="chat-titulo">Nori</span>
-            <span className="chat-subtitulo">- Agent AI</span>
+            <span className="chat-subtitulo">- Agente AI</span>
           </div>
           <div className="chat-acoes">
-            <button
-              className={`btn-icon ${somAtivo ? 'som-ligado' : ''}`}
-              onClick={alternarSom}
-              title={somAtivo ? 'Desativar sons' : 'Ativar sons'}
-              aria-label="Alternar sons"
-            >
-              {somAtivo ? iconeVolume : iconeMudo}
-            </button>
             <button
               className="btn-icon"
               onClick={() => setEscuro((v) => !v)}
@@ -850,7 +877,10 @@ export default function App() {
           )}
         </main>
 
-        {caso && (caso.resumo || caso.fatos.length > 0 || caso.pendencias.length > 0) && (
+        {/* O card do caso (etapas, resumo, pendencias) so aparece no fim da conversa,
+            quando o atendimento esta encerrado — durante a conversa ficam so as mensagens */}
+        {caso?.etapa === 'encerrado' &&
+          (caso.resumo || caso.fatos.length > 0 || caso.pendencias.length > 0) && (
           <div className="caso-card">
             <div className="caso-passos">
               {ORDEM_ETAPAS.map((e, i) => {
@@ -959,19 +989,25 @@ export default function App() {
                     {iconeDownload}
                     Exportar resumo
                   </button>
-                  <button
-                    className="menu-item menu-item-perigo"
-                    disabled={enviando}
-                    onClick={() => {
-                      setMenuAcoes(false);
-                      encerrarAtendimento();
-                    }}
-                  >
-                    {iconeEncerrar}
-                    Encerrar atendimento
-                  </button>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Barra de encerramento: aparece quando a Nori pergunta se pode encerrar.
+            Mostra o botao apos a confirmacao do usuario; senao, avisa do timeout de 3min */}
+        {perguntaEncerramentoId && !enviando && (
+          <div className="encerrar-barra">
+            {mostrarBotaoEncerrar ? (
+              <button className="btn-encerrar" onClick={encerrarAtendimento}>
+                {iconeEncerrar}
+                Encerrar conversa
+              </button>
+            ) : (
+              <span className="encerrar-dica">
+                Se você não responder, a conversa encerra automaticamente em 3 minutos.
+              </span>
             )}
           </div>
         )}
@@ -1019,14 +1055,20 @@ export default function App() {
             {iconeMicrofone}
           </button>
           <div className="chat-input-bloco">
-            <input
+            <textarea
               ref={inputRef}
               className="chat-input"
               value={entrada}
-              onChange={(e) => setEntrada(e.target.value)}
-              placeholder="Relate o problema com o pedido..."
+              onChange={(e) => {
+                setEntrada(e.target.value);
+                // Cresce ate o limite visual; depois rola internamente
+                e.target.style.height = 'auto';
+                e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
+              }}
+              placeholder="Fale com a Nori..."
               maxLength={4000}
-              enterKeyHint="send"
+              rows={1}
+              enterKeyHint="enter"
             />
             {entrada.length > 3200 && (
               <span className="contador-chars">{entrada.length}/4000</span>

@@ -162,13 +162,20 @@ export async function atualizarCaso(conversaId: string, mensagens: Mensagem[]): 
   }
 }
 
-// Marca o caso como encerrado sem custo de modelo
-export async function encerrarCaso(conversaId: string): Promise<void> {
-  await fetch('/api/caso', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ conversaId, encerrar: true }),
-  }).catch(() => undefined);
+// Marca o caso como encerrado sem custo de modelo e devolve o estado persistido
+export async function encerrarCaso(conversaId: string): Promise<EstadoCaso | null> {
+  try {
+    const res = await fetch('/api/caso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ conversaId, encerrar: true }),
+    });
+    if (!res.ok) return null;
+    const dados = (await res.json()) as { caso?: EstadoCaso | null };
+    return dados.caso ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // Busca o estado persistido do caso ao abrir uma conversa do historico

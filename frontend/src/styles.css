@@ -374,10 +374,16 @@ body {
   border-radius: 18px;
   padding: 10px 12px;
   font-size: 16px;
+  font-family: inherit;
+  line-height: 1.4;
   outline: none;
   background: transparent;
   color: var(--texto);
   min-width: 0;
+  resize: none;
+  max-height: 140px;
+  overflow-y: auto;
+  display: block;
 }
 
 .chat-input:focus {
@@ -1335,6 +1341,46 @@ body {
 .btn-mini.ativo {
   color: var(--acento);
   border-color: var(--acento);
+}
+
+/* ===== barra de encerramento da conversa ===== */
+.encerrar-barra {
+  display: flex;
+  justify-content: center;
+  padding: 0 12px 8px;
+}
+
+.btn-encerrar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: transform 0.12s, filter 0.15s;
+}
+
+.btn-encerrar:hover {
+  filter: brightness(1.1);
+}
+
+.btn-encerrar:active {
+  transform: scale(0.97);
+}
+
+.encerrar-dica {
+  font-size: 12px;
+  color: var(--texto-suave);
+  background: var(--cartao);
+  border: 1px solid var(--agente-borda);
+  border-radius: 999px;
+  padding: 8px 14px;
 }
 
 /* ===== anexo de evidencia (foto) ===== */

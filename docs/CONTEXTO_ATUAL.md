@@ -137,6 +137,19 @@ de entrega.
   hash do codigo informado (catalogo variado de 14 lojas); /api/chat responde
   a confirmacao sem LLM quando a mensagem e so o codigo, e injeta os dados
   no prompt quando ha relato de problema junto
+- Fluxo de encerramento conversacional: o prompt instrui a Nori a perguntar
+  "Podemos encerrar a conversa?" quando o caso conclui; o frontend detecta a
+  pergunta, mostra dica de timeout, intercepta respostas afirmativas ("sim",
+  "pode encerrar"...) sem chamar o modelo e exibe o botao "Encerrar conversa";
+  sem resposta em 3 minutos o caso encerra automaticamente. O card do caso
+  (timeline triagem>coleta>analise>parecer>encerrado, resumo, pendencias) so
+  renderiza quando caso.etapa === 'encerrado' — durante a conversa ficam so
+  as mensagens. Item "Encerrar atendimento" removido do menu "..."
+- Input do chat virou textarea: Enter/tecla de enviar do teclado so insere
+  quebra de linha; o envio acontece apenas pelo botao Enviar. Placeholder:
+  "Fale com a Nori...". Foco automatico do input restrito a pointer:fine
+  (desktop) — no mobile nao abre mais o teclado ao chegar resposta da Nori
+- Botao de som removido do header (icone, estado kora-som e WebAudio)
 
 ## Em andamento
 
