@@ -581,18 +581,17 @@ export default function App() {
     setPerguntaEncerramentoId(null);
   }
 
-  // Encerra o atendimento: marca o caso como encerrado no servidor e exibe o
-  // card do caso concluido no fim da conversa; o proximo chat pede o perfil de novo
+  // Encerra o atendimento: marca o caso como encerrado no servidor e volta a
+  // tela inicial (escolha de perfil). O card do caso concluido fica salvo na
+  // conversa do historico — ao reabri-la, a bolha de encerrado aparece no fim
   function encerrarAtendimento() {
     setPerguntaEncerramentoId(null);
     setErro(null);
+    const cid = conversaId;
     localStorage.removeItem(CHAVE_PERFIL);
     setPerfil(null);
-    if (conversaId) {
-      void encerrarCaso(conversaId).then((c) => {
-        if (c) setCaso(c);
-      });
-    }
+    novaConversa();
+    if (cid) void encerrarCaso(cid);
   }
   encerrarRef.current = encerrarAtendimento;
 
