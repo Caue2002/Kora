@@ -245,6 +245,22 @@ de entrega.
   Nori faz). Cache semantico nao serve nem grava respostas de recusa nem
   o fallback (inclusive entradas ja envenenadas sao ignoradas na leitura).
   Streaming nao tem validacao pos-geracao — a correcao depende do prompt
+- Resiliencia a provedores pendurados: chamadas LLM e de embedding ganharam
+  timeout (AbortSignal.timeout, LLM_TIMEOUT_MS=25s padrao; handshake do
+  stream aborta so se os headers nao chegarem, sem limitar a duracao do
+  SSE). Antes um fetch sem timeout podia segurar a request por 300s ate o
+  undici desistir — na Vercel a function morria antes e o usuario via
+  "Tentar novamente". Embedding tem timeout fixo de 10s
+- Mensagens casuais pulam o RAG: coherence/intencao.ts (ehMensagemCasual)
+  detecta mensagens compostas so de cortesia/reacao leve ("muito obrigado",
+  "oi, tudo bem?", "valeu, flw") por whitelist de palavras normalizadas;
+  quando casual e sem pedido/codigo/imagem, /api/chat nao chama
+  buscaHibrida (menos uma round-trip, sem fontes irrelevantes na bolha) e
+  injeta instrucao de resposta leve no lugar do contexto RAG
+- Frontend: falha transitoria de rede/stream na primeira tentativa dispara
+  um retry silencioso automatico (~1.2s) limpando o stream parcial antes
+  de exibir o erro — cobre streams que morrem no meio por timeout da
+  function
 
 ## Em andamento
 

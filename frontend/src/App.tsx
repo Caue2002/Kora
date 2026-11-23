@@ -617,9 +617,11 @@ export default function App() {
     let textoStream = '';
     const enviouFoto = !!anexo;
 
-    try {
+    // Uma falha transitoria de rede/stream ganha uma segunda tentativa
+    // automatica e silenciosa antes de exibir o erro para o usuario
+    const chamarApi = () =>
       // A foto nao vai para o modelo: o agente so confirma o recebimento dela
-      const r = await enviarMensagemStream(textoMsg, mensagens, (delta) => {
+      enviarMensagemStream(textoMsg, mensagens, (delta) => {
         textoStream += delta;
         if (primeiroDelta) {
           primeiroDelta = false;
@@ -629,6 +631,22 @@ export default function App() {
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
       }, undefined, perfil ?? undefined, cid);
+
+    try {
+      let r;
+      try {
+        r = await chamarApi();
+      } catch {
+        // Limpa o stream parcial da tentativa que falhou e tenta de novo
+        textoStream = '';
+        primeiroDelta = true;
+        setEtapaStream('contexto');
+        setMensagens((atual) =>
+          atual.map((m) => (m.id === assistId ? { ...m, content: '' } : m)),
+        );
+        await new Promise((res) => setTimeout(res, 1200));
+        r = await chamarApi();
+      }
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
         setErro({ mensagem: r.erro, retryTexto: textoMsg });

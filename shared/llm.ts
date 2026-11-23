@@ -3,7 +3,7 @@
 // Todas as chamadas usam temperatura baixa (0 a 0.1) conforme a especificacao
 
 import type { ModeloConfig } from './env.js';
-import { maxTokensSaida } from './env.js';
+import { maxTokensSaida, timeoutLlmMs } from './env.js';
 
 export interface ImagemAnexo {
   base64: string;
@@ -68,9 +68,12 @@ async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], tem
       parts: partesGemini(m),
     }));
   const url = `${modelo.endpoint}/${modelo.nomeModelo}:generateContent?key=${modelo.apiKey}`;
+  // AbortSignal.timeout limita a chamada inteira: provedor pendurado falha
+  // rapido e o failover tenta o proximo modelo em vez de travar a requisicao
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(timeoutLlmMs()),
     body: JSON.stringify({
       systemInstruction: system ? { parts: [{ text: system }] } : undefined,
       contents,
@@ -98,6 +101,7 @@ async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[
       'Content-Type': 'application/json',
       Authorization: `Bearer ${modelo.apiKey}`,
     },
+    signal: AbortSignal.timeout(timeoutLlmMs()),
     body: JSON.stringify({
       model: modelo.nomeModelo,
       messages: mensagensOpenAI(mensagens),
@@ -175,45 +179,69 @@ async function bombearSSE(
   if (buffer.trim()) processarLinha(buffer);
 }
 
+// Timeout apenas para o handshake HTTP do stream: se os headers nao chegarem
+// a tempo, aborta e o failover tenta o proximo modelo. Uma vez recebidos os
+// headers, o temporizador e cancelado — o corpo SSE pode durar o necessario
+function sinalHandshake(ms: number): { signal: AbortSignal; cancelar: () => void } {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  // nao segura o event loop em scripts/testes
+  if (typeof t === 'object' && 'unref' in t) (t as { unref: () => void }).unref();
+  return { signal: ctrl.signal, cancelar: () => clearTimeout(t) };
+}
+
 // Abre a conexao de streaming com o provedor
 async function abrirStream(
   modelo: ModeloConfig,
   mensagens: MensagemChat[],
   temperatura = 0.1,
 ): Promise<Response> {
-  if (modelo.provedor === 'gemini') {
-    const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
-    const contents = mensagens
-      .filter((m) => m.role !== 'system')
-      .map((m) => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: partesGemini(m),
-      }));
-    const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-        contents,
-        generationConfig: { temperature: temperatura, maxOutputTokens: maxTokensSaida() },
-      }),
-    });
+  const handshake = sinalHandshake(timeoutLlmMs());
+  try {
+    let res: Response;
+    if (modelo.provedor === 'gemini') {
+      const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
+      const contents = mensagens
+        .filter((m) => m.role !== 'system')
+        .map((m) => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: partesGemini(m),
+        }));
+      const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: handshake.signal,
+        body: JSON.stringify({
+          systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+          contents,
+          generationConfig: { temperature: temperatura, maxOutputTokens: maxTokensSaida() },
+        }),
+      });
+    } else {
+      res = await fetch(modelo.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${modelo.apiKey}`,
+        },
+        signal: handshake.signal,
+        body: JSON.stringify({
+          model: modelo.nomeModelo,
+          messages: mensagensOpenAI(mensagens),
+          temperature: temperatura,
+          max_tokens: maxTokensSaida(),
+          stream: true,
+        }),
+      });
+    }
+    // Headers recebidos: o corpo SSE pode fluir sem limite de tempo
+    handshake.cancelar();
+    return res;
+  } catch (erro) {
+    handshake.cancelar();
+    throw erro;
   }
-  return fetch(modelo.endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${modelo.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelo.nomeModelo,
-      messages: mensagensOpenAI(mensagens),
-      temperature: temperatura,
-      max_tokens: maxTokensSaida(),
-      stream: true,
-    }),
-  });
 }
 
 // Gera a resposta em streaming real; lanca ErroLimiteModelo em falha de cota

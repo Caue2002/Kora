@@ -22,6 +22,7 @@ import {
   validarComLLM,
   validarHeuristico,
   ehRespostaDeRecusa,
+  ehMensagemCasual,
 } from '../coherence/index.js';
 
 interface CorpoRequisicao {
@@ -429,7 +430,15 @@ async function webHandler(req: Request): Promise<Response> {
     });
   }
 
-  const busca = await buscaHibrida(mensagem, undefined, embedding);
+  // Mensagem puramente casual (agradecimento, saudacao, reacao leve) nao
+  // precisa da base de conhecimento: pula o RAG e evita fontes irrelevantes.
+  // Nunca se aplica a mensagem com pedido, codigo ou imagem — triagem intacta
+  const mensagemCasual =
+    !imagem && !codigoPedido && !codigoTravado && ehMensagemCasual(mensagem);
+
+  const busca = mensagemCasual
+    ? { trechos: [], modo: 'lexical' as const }
+    : await buscaHibrida(mensagem, undefined, embedding);
 
   if (!modelo) {
     // Esgotamento total dos modelos no ciclo vigente
@@ -469,7 +478,11 @@ async function webHandler(req: Request): Promise<Response> {
     perfil ? `Perfil do usuario: ${CONTEXTO_PERFIL[perfil]}` : '',
     dadosPedido,
     '',
-    montarContextoRAG(busca.trechos),
+    // Mensagem casual nao passa pelo RAG: instrui resposta leve direto,
+    // em vez do texto de "nenhuma politica recuperada" (que empurra triagem)
+    mensagemCasual
+      ? 'A mensagem do usuario e apenas um cumprimento, agradecimento ou reacao leve. Responda de forma breve, calorosa e natural, sem triagem, sem citar regras e sem forcar pergunta de coleta; uma pergunta curta e opcional.'
+      : montarContextoRAG(busca.trechos),
   ].join('\n');
 
   const mensagens: MensagemChat[] = [

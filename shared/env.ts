@@ -101,3 +101,9 @@ export function maxTokensSaida(): number {
 export function janelaHistorico(): number {
   return Number(env('JANELA_HISTORICO', '6'));
 }
+
+// Timeout por tentativa de chamada ao LLM: sem ele um provedor pendurado
+// (headers que nunca chegam) segura a requisicao ate o limite da plataforma
+export function timeoutLlmMs(): number {
+  return Number(env('LLM_TIMEOUT_MS', '25000'));
+}
