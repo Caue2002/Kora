@@ -223,10 +223,18 @@ de entrega.
   de 720px e o padding lateral das mensagens caiu de 20% para 5%; mobile
   (<720px) permanece identico
 - Catalogo de modelos ampliado para 6: dois Gemini extras de fallback
-  (GEMINI_MODEL_3=gemini-2.5-flash, GEMINI_MODEL_4=gemini-2.0-flash) reusando
-  os ids de cota 1 e 3 por compartilharem a mesma API key/quota; Pollinations
-  virou prioridade 6. Ordem: gemini-3.1-flash-lite > groq > gemini-3.5-flash >
-  gemini-2.5-flash > gemini-2.0-flash > pollinations
+  (GEMINI_MODEL_3=gemini-3.8-flash, GEMINI_MODEL_4=gemini-3.5-flash-lite
+  por default) reusando os ids de cota 1 e 3 por compartilharem a mesma
+  API key/quota; Pollinations virou prioridade 6. Ordem padrao:
+  gemini-3.1-flash-lite > groq > gemini-3.5-flash > gemini-3.8-flash >
+  gemini-3.5-flash-lite > pollinations
+- Chave Gemini renovada (formato AQ. do AI Studio, projeto 391015418834):
+  .env local usa GEMINI_MODEL_4=gemini-4-hydrogen como fallback mais forte
+  (free tier, saturado por demanda em picos — failover cobre); gemini-2.5-*
+  retornam 404 para chaves novas e gemini-3.1-pro-preview nao tem free
+  tier. Script scripts/testar_modelos_gemini.mjs mede latencia real por
+  modelo. ATENCAO: replicar GEMINI_API_KEY e GEMINI_MODEL_4 nas env vars
+  da Vercel
 - Respostas longas da Nori colapsadas por padrao (>1100 chars) com botao
   "Ver mais/Ver menos" (componente TextoAssistente em App.tsx); ao fim do
   streaming a tela alinha o TOPO da ultima mensagem da Nori para leitura
