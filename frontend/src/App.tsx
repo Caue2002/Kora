@@ -213,6 +213,24 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
+// Texto de uma resposta da Nori: mensagens longas ficam colapsadas por padrao
+// com um "Ver mais", para nao virar um muro de texto na conversa
+function TextoAssistente({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(false);
+  const longo = texto.length > 1100;
+  if (!longo) return <Markdown texto={texto} />;
+  return (
+    <>
+      <div className={`msg-texto${aberto ? '' : ' colapsado'}`}>
+        <Markdown texto={texto} />
+      </div>
+      <button type="button" className="btn-mini msg-ver-mais" onClick={() => setAberto((v) => !v)}>
+        {aberto ? 'Ver menos' : 'Ver mais'}
+      </button>
+    </>
+  );
+}
+
 // Icones SVG inline para as acoes, sem dependencia externa
 function Icone({ children, size = 14 }: { children: React.ReactNode; size?: number }) {
   return (
@@ -394,6 +412,19 @@ export default function App() {
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [mensagens, enviando]);
+
+  // Quando a resposta termina de gerar, alinha o TOPO da ultima mensagem da
+  // Nori: sem isso, mensagens longas deixavam a tela parada no final do texto
+  // e o usuario precisava subir manualmente para ler o comeco
+  const enviandoAnterior = useRef(enviando);
+  useEffect(() => {
+    const terminou = enviandoAnterior.current && !enviando;
+    enviandoAnterior.current = enviando;
+    if (!terminou || !scrollRef.current) return;
+    const bolhas = scrollRef.current.querySelectorAll('.msg-assistant');
+    const ultima = bolhas[bolhas.length - 1] as HTMLElement | undefined;
+    ultima?.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, [enviando]);
 
   // Foca o campo de comentario quando uma avaliacao fica pendente
   useEffect(() => {
@@ -864,7 +895,7 @@ export default function App() {
                       </span>
                     ) : (
                       <>
-                        <Markdown texto={m.content} />
+                        <TextoAssistente texto={m.content} />
                         {!(enviando && m === ultimaResposta) && (
                           <div className="msg-acoes">
                             <button

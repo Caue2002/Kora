@@ -182,6 +182,15 @@ de entrega.
 - Layout desktop full-width: em telas >=720px o chat nao tem mais max-width
   de 720px e o padding lateral das mensagens caiu de 20% para 5%; mobile
   (<720px) permanece identico
+- Catalogo de modelos ampliado para 6: dois Gemini extras de fallback
+  (GEMINI_MODEL_3=gemini-2.5-flash, GEMINI_MODEL_4=gemini-2.0-flash) reusando
+  os ids de cota 1 e 3 por compartilharem a mesma API key/quota; Pollinations
+  virou prioridade 6. Ordem: gemini-3.1-flash-lite > groq > gemini-3.5-flash >
+  gemini-2.5-flash > gemini-2.0-flash > pollinations
+- Respostas longas da Nori colapsadas por padrao (>1100 chars) com botao
+  "Ver mais/Ver menos" (componente TextoAssistente em App.tsx); ao fim do
+  streaming a tela alinha o TOPO da ultima mensagem da Nori para leitura
+  comecar do inicio
 
 ## Em andamento
 

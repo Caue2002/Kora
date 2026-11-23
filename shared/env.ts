@@ -27,9 +27,11 @@ export function supabaseServiceKey(): string {
   return key;
 }
 
-// Catalogo dos 4 modelos gratuitos na ordem de prioridade
-// Provedor 1-3 Gemini (principal + contingencia) e 2 Groq;
-// 4 Pollinations como ultimo recurso gratuito sem chave
+// Catalogo de modelos gratuitos em ordem de prioridade
+// Gemini primeiro (mesma chave, modelos diferentes como fallback entre si),
+// Groq no meio e Pollinations como ultimo recurso gratuito sem chave.
+// Os modelos Gemini extras reutilizam o id de cota do respectivo slot
+// (1 ou 3), pois compartilham a mesma cota da API key.
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo
 export function catalogoModelos(): ModeloConfig[] {
   return [
@@ -58,12 +60,28 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 3,
     },
     {
+      id: 1,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_3', 'gemini-2.5-flash')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 4,
+    },
+    {
+      id: 3,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_4', 'gemini-2.0-flash')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 5,
+    },
+    {
       id: 4,
       provedor: 'pollinations',
       nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
       apiKey: env('POLLINATIONS_KEY', 'pollinations'),
       endpoint: 'https://text.pollinations.ai/openai',
-      prioridade: 4,
+      prioridade: 6,
     },
   ];
 }
