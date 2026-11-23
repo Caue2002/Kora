@@ -68,3 +68,60 @@ export function detalhesPedido(codigo: string): { loja: string; itens: string; v
   const modelo = CATALOGO[hashCodigo(codigo) % CATALOGO.length]!;
   return { loja: modelo.loja, itens: modelo.itens.join(', '), valor: modelo.valor };
 }
+
+// ===== Pedido confirmado (trava da conversa) =====
+// Depois que o usuario confirma o pedido ("sim", "esse mesmo"...), o codigo
+// fica travado ate o fim da conversa: a Nori nao pode trocá-lo depois.
+
+// "Pedido 4521", "pedido nº AB123", "pedido codigo K7X9" etc. na fala da Nori
+const PADRAO_CODIGO_FALA = /pedido\s*(?:n[ºo°]?\s*|numero\s*|c[oó]digo\s*)?([A-Za-z0-9][A-Za-z0-9-]{2,19})/gi;
+
+// Confirmacoes curtas que o usuario usa para validar o pedido apresentado
+const CONFIRMACAO = /^\s*(sim|isso|isso mesmo|esse|essa|esse mesmo|essa mesma|confirmo|correto|exato|pode ser|pode confirmar|ok|okay|certo|certinho|ta certo|tá certo|e esse|é esse|o primeiro|o segundo)\b/i;
+const CONFIRMACAO_CURTA = /\b(esse mesmo|essa mesma|confirmo|correto|exato|pode ser|pode confirmar)\b/i;
+// Respostas que descartam o pedido apresentado ("nao", "errado", "na verdade")
+const NEGACAO = /^\s*(n[ãa]o|errado|troquei|outro|na verdade)\b/i;
+
+// Extrai codigos de pedido citados num texto (ex.: "Pedido 4521 - Loja...")
+function codigosNaFala(texto: string): string[] {
+  const achados: string[] = [];
+  for (const m of texto.matchAll(PADRAO_CODIGO_FALA)) {
+    const token = m[1]!.toUpperCase();
+    if (/^(PEDIDO|CODIGO|NUMERO|LOJA|ITEM|ITENS)$/.test(token)) continue;
+    if (/\d/.test(token) || /^[A-Z0-9-]{5,}$/.test(token)) achados.push(token);
+  }
+  return achados;
+}
+
+// Varre o historico e devolve o codigo do ultimo pedido CONFIRMADO pelo
+// usuario. Um codigo fica "aguardando" quando o usuario informa ou a Nori
+// apresenta; a confirmacao curta do turno seguinte o trava.
+export function pedidoConfirmadoNaHistorico(
+  historico: Array<{ role: string; content: string }>,
+): string | undefined {
+  let aguardando: string | undefined;
+  let confirmado: string | undefined;
+  for (const m of historico) {
+    if (m.role === 'assistant') {
+      const codigos = codigosNaFala(m.content);
+      if (codigos.length > 0) aguardando = codigos[codigos.length - 1];
+      continue;
+    }
+    if (m.role !== 'user') continue;
+    const codigo = extrairCodigoPedido(m.content);
+    if (codigo) {
+      aguardando = codigo;
+      continue;
+    }
+    if (!aguardando) continue;
+    if (NEGACAO.test(m.content)) {
+      aguardando = undefined;
+      continue;
+    }
+    if (CONFIRMACAO.test(m.content) || (m.content.length <= 60 && CONFIRMACAO_CURTA.test(m.content))) {
+      confirmado = aguardando;
+      aguardando = undefined;
+    }
+  }
+  return confirmado;
+}

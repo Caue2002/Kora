@@ -11,7 +11,7 @@ import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
-import { extrairCodigoPedido, pedidoFicticio } from '../shared/pedidos.js';
+import { extrairCodigoPedido, pedidoConfirmadoNaHistorico, pedidoFicticio } from '../shared/pedidos.js';
 import { buscaHibrida } from '../rag/search.js';
 import {
   carregarDiretrizes,
@@ -200,11 +200,23 @@ async function webHandler(req: Request): Promise<Response> {
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
 
+  // Pedido confirmado em turno anterior fica TRAVADO ate o fim da conversa:
+  // os dados deterministicos dele sao injetados e o modelo e proibido de
+  // troca-lo, mesmo que o usuario informe outro codigo ou descreva outro pedido
+  const codigoTravado = pedidoConfirmadoNaHistorico(historico);
+  const tentandoTrocar = !!codigoTravado && !!codigoPedido && codigoPedido !== codigoTravado;
+
   // Injeta o pedido ficticio deterministico sempre que um codigo for informado:
   // o modelo usa esses dados para confirmar o pedido de forma natural e variada
-  const dadosPedido = codigoPedido
-    ? `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Se a descricao do usuario divergir desses dados, o relato dele prevalece — ele conhece o proprio pedido. Confirme os itens com o usuario usando a descricao que fizer mais sentido para a conversa.`
-    : '';
+  let dadosPedido = '';
+  if (codigoTravado) {
+    dadosPedido = `\nPEDIDO CONFIRMADO E TRAVADO nesta conversa: ${pedidoFicticio(codigoTravado)}. Use SEMPRE estes dados; o pedido nao pode ser trocado. Se o usuario disser que errou, informar outro codigo ou descrever outro pedido, responda que esse pedido nao consta em seu nome e que o unico pedido em atendimento e o confirmado acima — cite loja, itens e valor dele.`;
+    if (tentandoTrocar) {
+      dadosPedido += `\nATENCAO: a mensagem atual informou o codigo ${codigoPedido}, que NAO substitui o pedido confirmado ${codigoTravado}. Recuse a troca de forma educada e mantenha o pedido ${codigoTravado}.`;
+    }
+  } else if (codigoPedido) {
+    dadosPedido = `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Se a descricao do usuario divergir desses dados, o relato dele prevalece — ele conhece o proprio pedido. Confirme os itens com o usuario usando a descricao que fizer mais sentido para a conversa.`;
+  }
 
   const promptSistema = [
     montarPromptSistema(diretrizes),

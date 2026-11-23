@@ -137,6 +137,13 @@ de entrega.
   hash do codigo informado (catalogo variado de 14 lojas); /api/chat responde
   a confirmacao sem LLM quando a mensagem e so o codigo, e injeta os dados
   no prompt quando ha relato de problema junto
+- Pedido confirmado fica TRAVADO ate o fim da conversa: shared/pedidos.ts
+  ganhou pedidoConfirmadoNaHistorico (detecta o codigo que o usuario confirmou
+  com "sim"/"esse mesmo" apos a Nori apresenta-lo); /api/chat injeta os dados
+  deterministicos do pedido travado com proibicao de troca e, se o usuario
+  informar outro codigo, diretiva explicita de recusa ("esse pedido nao consta
+  em seu nome"); prompt atualizado — correcao de pedido so e aceita ANTES da
+  confirmacao final. Testes unitarios em tests/pedidos.test.ts
 - Fluxo de encerramento conversacional: o prompt instrui a Nori a perguntar
   "Podemos encerrar a conversa?" quando o caso conclui; o frontend detecta a
   pergunta, mostra dica de timeout, intercepta respostas afirmativas ("sim",
