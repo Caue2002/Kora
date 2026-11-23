@@ -20,6 +20,8 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
 - `npm test` — testes (unitarios + integracao real com Supabase/Gemini)
 - `node scripts/ingerir_conhecimento.mjs` — re-ingere seeds em
   database/seeds/*.json no Supabase (idempotente)
+- `node scripts/testar_modelos_gemini.mjs` — testa quais modelos Gemini a
+  GEMINI_API_KEY atual acessa e mede a latencia de cada um
 
 ## Dominio
 
