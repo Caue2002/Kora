@@ -5,7 +5,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { tratarRequisicaoNode } from '../shared/http.js';
-import { catalogoModelos, janelaHistorico } from '../shared/env.js';
+import { catalogoModelos, janelaHistorico, timeoutLlmMs } from '../shared/env.js';
 import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm.js';
 import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
@@ -246,7 +246,8 @@ async function gerarComFailover(
       return { texto: r.texto, modelo, tokensUso: r.tokensUso };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
-        await marcarEsgotado(modelo.id);
+        // fire-and-forget: a RPC de cota nao pode atrasar o failover
+        void marcarEsgotado(modelo.id);
         continue;
       }
       // falha transitoria: tenta o proximo modelo preservando a conversa
@@ -297,7 +298,23 @@ async function streamComFailover(
     try {
       const bruto = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
       reader = bruto.getReader();
-      const primeiro = await reader.read();
+      // O handshake so cobre os headers HTTP: um stream que abre e nunca
+      // emite o primeiro byte ficaria pendurado para sempre. Limitamos a
+      // espera do primeiro chunk ao mesmo timeout dos demais LLMs
+      let primeiro: { done: boolean; value?: Uint8Array };
+      try {
+        primeiro = await Promise.race([
+          reader.read(),
+          new Promise<never>((_, rej) => {
+            const t = setTimeout(() => rej(new Error('primeiro chunk timeout')), timeoutLlmMs());
+            // nao segura o event loop em testes/scripts
+            if (typeof t === 'object' && 'unref' in t) (t as { unref: () => void }).unref();
+          }),
+        ]);
+      } catch {
+        void reader.cancel().catch(() => undefined);
+        throw new Error('stream sem primeiro chunk no prazo');
+      }
       if (primeiro.done || !primeiro.value || primeiro.value.length === 0) {
         // Stream vazio ou morto antes do primeiro byte: proximo modelo
         void reader.cancel().catch(() => undefined);
@@ -326,7 +343,7 @@ async function streamComFailover(
       return { stream, modelo };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
-        await marcarEsgotado(modelo.id);
+        void marcarEsgotado(modelo.id);
         continue;
       }
       console.warn(`[chat] stream falhou no modelo ${modelo.provedor}:`, erro);
@@ -396,7 +413,19 @@ async function webHandler(req: Request): Promise<Response> {
   // O embedding e calculado uma unica vez e reutilizado pela busca RAG e pelo
   // cache semantico (antes cada um embedava a mensagem separadamente)
   const tokensEntradaPrev = estimarMensagens(historicoJanela) + estimarTokens(mensagem) + 2600;
+
+  // Mensagem puramente casual (agradecimento, saudacao, reacao leve) nao
+  // precisa da base de conhecimento: pula o RAG e evita fontes irrelevantes.
+  // Nunca se aplica a mensagem com pedido, codigo ou imagem — triagem intacta
+  const mensagemCasual =
+    !imagem && !codigoPedido && !codigoTravado && ehMensagemCasual(mensagem);
+
   const pVetores = embedTexts([mensagem]);
+  // A busca RAG depende so do embedding: dispara em paralelo com a selecao
+  // de modelo, diretrizes e cache — corta uma round-trip inteira do caminho
+  const pBusca = mensagemCasual
+    ? Promise.resolve({ trechos: [] as Awaited<ReturnType<typeof buscaHibrida>>['trechos'], modo: 'lexical' as const })
+    : pVetores.then((v) => buscaHibrida(mensagem, undefined, v?.[0]));
   const [vetores, diretrizes, modelo, cache] = await Promise.all([
     pVetores,
     carregarDiretrizes(),
@@ -406,6 +435,7 @@ async function webHandler(req: Request): Promise<Response> {
       : Promise.resolve(null),
   ]);
   const embedding = vetores?.[0];
+  const busca = await pBusca;
 
   // Cache hit: resposta identica ja gerada para a mesma pergunta+perfil.
   // Economiza a chamada ao LLM inteira; vale mesmo com cotas esgotadas
@@ -453,16 +483,6 @@ async function webHandler(req: Request): Promise<Response> {
     });
   }
 
-  // Mensagem puramente casual (agradecimento, saudacao, reacao leve) nao
-  // precisa da base de conhecimento: pula o RAG e evita fontes irrelevantes.
-  // Nunca se aplica a mensagem com pedido, codigo ou imagem — triagem intacta
-  const mensagemCasual =
-    !imagem && !codigoPedido && !codigoTravado && ehMensagemCasual(mensagem);
-
-  const busca = mensagemCasual
-    ? { trechos: [], modo: 'lexical' as const }
-    : await buscaHibrida(mensagem, undefined, embedding);
-
   if (!modelo) {
     // Esgotamento total dos modelos no ciclo vigente
     registrarMetrica({ stream: corpo.stream === true, latenciaMs: Date.now() - t0, perfil, erro: 'cotas_esgotadas' });
@@ -491,7 +511,7 @@ async function webHandler(req: Request): Promise<Response> {
       dadosPedido += `\nATENCAO: a mensagem atual informou o codigo ${codigoPedido}, que NAO substitui o pedido confirmado ${codigoTravado}. Recuse a troca de forma educada e mantenha o pedido ${codigoTravado}.`;
     }
   } else if (codigoPedido) {
-    dadosPedido = `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. Se a descricao do usuario divergir desses dados, o relato dele prevalece — ele conhece o proprio pedido. Confirme os itens com o usuario usando a descricao que fizer mais sentido para a conversa.`;
+    dadosPedido = `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. REGRA DE CONFIRMACAO: os itens que o USUARIO descreveu na conversa (ex.: "uma coca cola", "2 burgers") sao os itens reais do pedido dele e DEVEM aparecer na confirmacao — o catalogo acima e apenas um modelo de loja/valor; se os itens do catalogo divergirem do que o usuario falou, use os do usuario. Se o usuario corrigir os itens antes de confirmar ("na verdade era X"), a ultima descricao dele vale ate o fim da conversa.`;
   }
 
   const promptSistema = [

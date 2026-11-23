@@ -105,5 +105,7 @@ export function janelaHistorico(): number {
 // Timeout por tentativa de chamada ao LLM: sem ele um provedor pendurado
 // (headers que nunca chegam) segura a requisicao ate o limite da plataforma
 export function timeoutLlmMs(): number {
-  return Number(env('LLM_TIMEOUT_MS', '25000'));
+  // 15s por tentativa: modelos saudaveis respondem em <10s; um pendurado
+  // nao pode segurar a fila de failover por 25s em cada modelo
+  return Number(env('LLM_TIMEOUT_MS', '15000'));
 }

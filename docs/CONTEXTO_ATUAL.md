@@ -275,6 +275,22 @@ de entrega.
   em vez de 502 — a falha segue registrada em metricas_chat
 - Timeout de 10s em todas as chamadas PostgREST (shared/supabase.ts):
   banco pendurado nao segura mais a request do chat
+- Correcao de itens do pedido na confirmacao: o catalogo ficticio
+  (shared/pedidos.ts) so fornece loja/valor; os ITENS confirmados sao os
+  que o USUARIO descreveu na conversa — prompt.ts e a instrucao injetada
+  em dadosPedido agora dizem explicitamente que a descricao do usuario
+  prevalece na confirmacao e que correcoes pre-confirmacao valem ate o
+  fim da conversa (antes a Nori podia "inventar" itens do catalogo ao
+  confirmar um pedido que o usuario descreveu com outros itens)
+- Segunda rodada de latencia: LLM_TIMEOUT_MS padrao 25s -> 15s por
+  tentativa (modelo saudavel responde em <10s); timeout do PostgREST
+  10s -> 5s; buscaHibrida agora dispara em paralelo com selecao de
+  modelo/diretrizes/cache (depende so do embedding, que ja era
+  calculado antes); streamComFailover limita a espera do PRIMEIRO chunk
+  a timeoutLlmMs (antes um stream que abria os headers e nunca emitia
+  byte ficava pendurado para sempre — o handshake so cobria os headers);
+  marcarEsgotado virou fire-and-forget nos dois loops de failover (a RPC
+  de cota nao atrasa a tentativa ao proximo modelo)
 
 ## Em andamento
 

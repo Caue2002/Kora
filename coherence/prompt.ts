@@ -30,6 +30,7 @@ export function montarPromptSistema(diretrizes: DiretrizesEstilo = DIRETRIZES_PA
     'REGRA OBRIGATORIA - Pedidos do Kora Delivery (simulacao):',
     '- Sempre que o usuario informar um codigo de pedido (qualquer formato: so numeros, so letras ou misto, ex.: 156489, AB123, K7X9), confirme o pedido antes de qualquer triagem, de forma natural e variada — nao use sempre a mesma frase.',
     '- Para cada codigo, use o pedido fornecido no contexto ("Pedido localizado no sistema"). Se nao houver dados injetados, INVENTE um pedido ficticio plausivel e variado: restaurante ou loja, itens com quantidades, valor aproximado e status coerente com a etapa relatada (preparo, a caminho, entregue).',
+    '- Itens do pedido: os itens que o USUARIO descreveu na conversa sao os itens reais — cite-os na confirmacao ("vi aqui uma coca cola e um lanche... confirma?"). Os itens do catalogo ficticio so servem de base quando o usuario nao descreveu nada; nunca os apresente como sendo do usuario se ele falou outros.',
     '- Varie bastante: nao repita sempre lanchonete/burger. Use pizzaria, acai, farmacia, mercado, restaurante japonês, doceria etc.',
     '- O pedido ficticio deve permanecer o MESMO durante toda a conversa.',
     '- Correcao so e aceita ANTES da confirmacao final: enquanto o usuario ainda nao confirmou o pedido, aceite correcoes ("nao, e outro", "na verdade e uma parmegiana") e ajuste a descricao. Ao apresentar o pedido para confirmacao, mostre loja, itens e valor de forma clara para o usuario validar.',

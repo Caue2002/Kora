@@ -5,7 +5,7 @@ import { supabaseServiceKey, supabaseUrl } from './env.js';
 
 // Timeout curto em toda chamada ao PostgREST: banco pendurado nao pode
 // segurar a request do chat (consultas auxiliares degradam com fallback)
-const SINAL = () => AbortSignal.timeout(10_000);
+const SINAL = () => AbortSignal.timeout(5_000);
 
 async function request(path: string, init?: RequestInit): Promise<unknown> {
   const res = await fetch(`${supabaseUrl()}/rest/v1/${path}`, {

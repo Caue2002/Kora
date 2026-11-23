@@ -15,7 +15,7 @@ export async function embedTexts(textos: string[]): Promise<number[][] | null> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // Embedding e rapido; timeout curto evita travar a request inteira
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(8_000),
       body: JSON.stringify({
         requests: textos.map((t) => ({
           model: `models/${modelo}`,
