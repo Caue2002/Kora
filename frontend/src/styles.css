@@ -208,6 +208,30 @@ body {
   flex-direction: row;
   gap: 8px;
   max-width: 92%;
+  scroll-margin-top: 12px;
+}
+
+/* mensagem longa colapsada: esmaece o corte e oferece "Ver mais" */
+.msg-texto.colapsado {
+  max-height: 280px;
+  overflow: hidden;
+  position: relative;
+}
+
+.msg-texto.colapsado::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  background: linear-gradient(transparent, var(--cartao));
+  pointer-events: none;
+}
+
+.msg-ver-mais {
+  align-self: flex-start;
+  margin-top: 4px;
 }
 
 .msg-avatar {
@@ -458,10 +482,14 @@ body {
   height: 6px;
 }
 
-/* ajuste para telas maiores: conversa centralizada com limite de largura */
+/* telas grandes (desktop/tablet): o chat ocupa a largura total da janela;
+   as mensagens mantem uma margem lateral proporcional para nao esticar demais */
 @media (min-width: 720px) {
+  .chat {
+    max-width: none;
+  }
   .chat-mensagens {
-    padding: 24px 20%;
+    padding: 24px 5%;
   }
 }
 
