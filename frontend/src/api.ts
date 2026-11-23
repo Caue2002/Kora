@@ -15,6 +15,8 @@ export interface Mensagem {
   categoria?: string | null;
   fontes?: Fonte[];
   tokens?: number;
+  // Miniatura (dataURL) da foto enviada como evidencia, exibida na bolha
+  imagem?: string;
 }
 
 // Conversa completa persistida para o historico lateral

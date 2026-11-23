@@ -161,6 +161,19 @@ de entrega.
   em qualquer ponto da mensagem da Nori
 - Skill .devin/skills/atualizar-documentacao: protocolo obrigatorio de
   atualizar docs/CONTEXTO_ATUAL.md (e docs relevantes) antes de commitar
+- Comando direto de encerramento: mensagens como "encerre o chat", "quero
+  encerrar", "pode encerrar" encerram a conversa na hora (sem botao e sem
+  chamada ao modelo) e voltam a tela de perfis
+- Encerramento prematuro marcado como incompleto: POST /api/caso {encerrar}
+  preserva pendencias/fatos/evidencias extraidos (antes zerava pendencias) e
+  grava status "incompleto" quando a etapa anterior nao era parecer/encerrado;
+  o card de encerrado exibe badge "Triagem incompleta" (ambar) ou "Encerrado"
+- Foto como evidencia simplificada: o frontend nao envia mais a imagem ao
+  modelo (sem analise visual); gera miniatura ~520px JPEG para exibir na bolha
+  do usuario (campo Mensagem.imagem) e permite envio so com foto — o texto
+  vira "Enviei uma foto como evidencia." O prompt instrui a Nori a pedir foto
+  dizendo "envie qualquer imagem ou escreva enviei" e a apenas confirmar o
+  recebimento, sem analisar o conteudo
 
 ## Em andamento
 

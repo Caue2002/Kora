@@ -1299,6 +1299,40 @@ body {
   color: #5fd08a;
 }
 
+.caso-status.incompleto {
+  background: #fef3c7;
+  color: #b45309;
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+[data-theme='escuro'] .caso-status.incompleto {
+  background: #3a2c10;
+  color: #fbbf24;
+}
+
+.caso-status.encerrado {
+  background: var(--acento-claro);
+  color: var(--texto-suave);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* foto enviada como evidencia dentro da bolha do usuario */
+.msg-foto {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  width: auto;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  object-fit: cover;
+}
+
 .caso-resumo {
   margin: 8px 0 0;
   color: var(--texto);

@@ -197,9 +197,14 @@ async function webHandler(req: Request): Promise<Response> {
     return json(400, { erro: 'conversaId ausente ou invalido' });
   }
 
-  // Encerramento direto, sem custo de modelo
+  // Encerramento direto, sem custo de modelo.
+  // Preserva pendencias/fatos/e evidencias ja extraidos para que a bolha de
+  // encerrado mostre o que faltou (foto, informacoes); se a triagem nao
+  // chegou a etapa de parecer, o caso fica marcado como incompleto
   if (corpo.encerrar === true) {
     const existente = await buscarCaso(conversaId).catch(() => null);
+    const etapasConcluidas = ['parecer', 'encerrado'];
+    const incompleto = !!existente && !etapasConcluidas.includes(existente.etapa);
     try {
       await upsert(
         'casos',
@@ -207,10 +212,10 @@ async function webHandler(req: Request): Promise<Response> {
           conversa_id: conversaId,
           etapa: 'encerrado',
           categoria: existente?.categoria ?? null,
-          status: 'encerrado',
+          status: incompleto ? 'incompleto' : 'encerrado',
           fatos: existente?.fatos ?? [],
           evidencias: existente?.evidencias ?? [],
-          pendencias: [],
+          pendencias: existente?.pendencias ?? [],
           resumo: existente?.resumo ?? 'Atendimento encerrado.',
           atualizado_em: new Date().toISOString(),
         },

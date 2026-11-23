@@ -15,7 +15,6 @@ import {
   type Conversa,
   type EstadoCaso,
   type Fonte,
-  type ImagemAnexo,
   type Mensagem,
 } from './api';
 import { formatarHoraMensagem } from './utils';
@@ -140,6 +139,18 @@ function ehPerguntaEncerramento(texto: string): boolean {
   );
 }
 
+// Normaliza o texto para comparacao: minusculo, sem acento e sem pontuacao
+function palavrasNormalize(texto: string): string[] {
+  return texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // remove acentos para comparar sem diacriticos
+    .replace(/[^a-z\s]/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
 // Palavras aceitas como confirmacao de encerramento; a mensagem inteira precisa ser afirmativa
 const PALAVRAS_CONFIRMACAO = new Set([
   'sim', 's', 'ok', 'okay', 'claro', 'certo', 'exato', 'isso', 'mesmo', 'certeza', 'com',
@@ -150,15 +161,32 @@ const PALAVRAS_CONFIRMACAO = new Set([
 
 // Retorna true quando o usuario responde apenas uma confirmacao curta ("sim", "pode encerrar" etc.)
 function ehRespostaAfirmativa(texto: string): boolean {
-  const normalizado = texto
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '') // remove acentos para comparar sem diacriticos
-    .replace(/[^a-z\s]/g, ' ')
-    .trim();
-  const palavras = normalizado.split(/\s+/).filter(Boolean);
+  const palavras = palavrasNormalize(texto);
   if (palavras.length === 0 || palavras.length > 8) return false;
   return palavras.every((p) => PALAVRAS_CONFIRMACAO.has(p));
+}
+
+// Verbos e conectores aceitos num comando direto de encerramento ("encerre o chat")
+const VERBOS_ENCERRAR = new Set([
+  'encerrar', 'encerre', 'encerramento', 'finalizar', 'finalize', 'fechar', 'fecha',
+  'feche', 'concluir', 'conclua', 'encerra',
+]);
+const PALAVRAS_COMANDO_ENCERRAR = new Set([
+  ...PALAVRAS_CONFIRMACAO,
+  'o', 'a', 'os', 'as', 'chat', 'conversa', 'atendimento', 'caso', 'aqui', 'agora',
+  'ja', 'entao', 'vou', 'sair', 'tchau', 'adeus', 'um', 'por', 'favor', 'pf', 'pfv',
+]);
+
+// Detecta comando explicito do usuario para encerrar ("encerre o chat", "quero encerrar")
+// Diferente da confirmacao curta: aqui a intencao e terminar imediatamente
+function ehComandoEncerramento(texto: string): boolean {
+  if (texto.includes('?')) return false;
+  const palavras = palavrasNormalize(texto);
+  if (palavras.length === 0 || palavras.length > 8) return false;
+  return (
+    palavras.some((p) => VERBOS_ENCERRAR.has(p)) &&
+    palavras.every((p) => VERBOS_ENCERRAR.has(p) || PALAVRAS_COMANDO_ENCERRAR.has(p))
+  );
 }
 
 // Foco automatico so faz sentido em dispositivos com ponteiro preciso (desktop);
@@ -311,7 +339,9 @@ export default function App() {
   const [menuAcoes, setMenuAcoes] = useState(false);
   // Id da mensagem da Nori que perguntou se pode encerrar; enquanto existir, o timer de 3min corre
   const [perguntaEncerramentoId, setPerguntaEncerramentoId] = useState<string | null>(null);
-  const [anexo, setAnexo] = useState<{ imagem: ImagemAnexo; nome: string; preview: string } | null>(null);
+  // Anexo de evidencia: guardamos so a miniatura (dataURL) para exibir na bolha;
+  // a imagem nao e enviada ao modelo — o agente apenas confirma o recebimento
+  const [anexo, setAnexo] = useState<{ nome: string; preview: string } | null>(null);
   const [perfil, setPerfil] = useState<PerfilId | null>(() => {
     const salvo = localStorage.getItem(CHAVE_PERFIL);
     return PERFIS.some((p) => p.id === salvo) ? (salvo as PerfilId) : null;
@@ -441,7 +471,29 @@ export default function App() {
     rec.start();
   }
 
-  // Le uma imagem do dispositivo como evidencia do caso (base64 para a API)
+  // Gera uma miniatura da imagem (max ~520px, JPEG) para exibir na bolha do chat
+  // Reduz o dataURL de ~4MB para ~50-150KB, evitando estourar o localStorage
+  function miniaturaDe(dataUrl: string, callback: (thumb: string) => void) {
+    const img = new Image();
+    img.onload = () => {
+      const max = 520;
+      const escala = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * escala);
+      canvas.height = Math.round(img.height * escala);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        callback(dataUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      callback(canvas.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = () => callback(dataUrl);
+    img.src = dataUrl;
+  }
+
+  // Le uma imagem do dispositivo como evidencia do caso (vira miniatura na bolha)
   function selecionarAnexo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -457,15 +509,16 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = String(reader.result ?? '');
-      const base64 = dataUrl.split(',')[1] ?? '';
-      if (base64) setAnexo({ imagem: { base64, mime: file.type }, nome: file.name, preview: dataUrl });
+      if (!dataUrl) return;
+      miniaturaDe(dataUrl, (thumb) => setAnexo({ nome: file.name, preview: thumb }));
     };
     reader.readAsDataURL(file);
   }
 
   // Fluxo unico de envio com streaming: placeholder da resposta e preenchido por deltas
+  // Aceita envio so com foto (sem texto): a mensagem vira "Enviei uma foto como evidencia."
   async function processarEnvio(texto: string) {
-    if (!texto || enviando) return;
+    if ((!texto && !anexo) || enviando) return;
     reconhecimentoRef.current?.stop();
     setOuvindo(false);
     setErro(null);
@@ -473,6 +526,13 @@ export default function App() {
     if (inputRef.current) inputRef.current.style.height = 'auto';
     setSidebarAberta(false);
     setAvaliacaoPendente(null);
+
+    // Comando explicito do usuario ("encerre o chat", "quero encerrar"): encerra
+    // na hora, sem passar pelo modelo — a triagem incompleta fica registrada
+    if (mensagens.length > 0 && ehComandoEncerramento(texto)) {
+      encerrarAtendimento();
+      return;
+    }
 
     // Se a Nori perguntou se pode encerrar e o usuario confirmou, apenas registra
     // a resposta e exibe o botao de encerrar — sem gastar chamada ao modelo
@@ -486,11 +546,19 @@ export default function App() {
       return;
     }
 
+    const textoMsg = texto || 'Enviei uma foto como evidência.';
+
     // garante um id de conversa antes do primeiro envio
     const cid = conversaId ?? novoId();
     if (!conversaId) setConversaId(cid);
 
-    const doUsuario: Mensagem = { id: novoId(), role: 'user', content: texto, ts: Date.now() };
+    const doUsuario: Mensagem = {
+      id: novoId(),
+      role: 'user',
+      content: textoMsg,
+      ts: Date.now(),
+      imagem: anexo?.preview,
+    };
     const assistId = novoId();
     setMensagens((atual) => [
       ...atual,
@@ -501,10 +569,11 @@ export default function App() {
     setEtapaStream('contexto');
     let primeiroDelta = true;
     let textoStream = '';
-    const imagemEnvio = anexo?.imagem;
+    const enviouFoto = !!anexo;
 
     try {
-      const r = await enviarMensagemStream(texto, mensagens, (delta) => {
+      // A foto nao vai para o modelo: o agente so confirma o recebimento dela
+      const r = await enviarMensagemStream(textoMsg, mensagens, (delta) => {
         textoStream += delta;
         if (primeiroDelta) {
           primeiroDelta = false;
@@ -513,10 +582,10 @@ export default function App() {
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
-      }, imagemEnvio, perfil ?? undefined);
+      }, undefined, perfil ?? undefined);
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
-        setErro({ mensagem: r.erro, retryTexto: texto });
+        setErro({ mensagem: r.erro, retryTexto: textoMsg });
       } else {
         setMensagens((atual) =>
           atual.map((m) =>
@@ -537,7 +606,7 @@ export default function App() {
           { id: assistId, role: 'assistant', content: textoStream, ts: Date.now() },
         ];
         // A extracao do caso e textual: registra a presenca da foto como marcador
-        if (imagemEnvio) {
+        if (enviouFoto) {
           msgsFinais[msgsFinais.length - 2] = {
             ...doUsuario,
             content: `${doUsuario.content}\n[O usuario anexou uma foto como evidencia.]`,
@@ -549,7 +618,7 @@ export default function App() {
       }
     } catch {
       setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
-      setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: texto });
+      setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: textoMsg });
     } finally {
       setEnviando(false);
       setEtapaStream(null);
@@ -771,7 +840,10 @@ export default function App() {
           {mensagens.map((m) =>
             m.role === 'user' ? (
               <div key={m.id} className="msg msg-user msg-entra">
-                <div className="msg-balao">{m.content}</div>
+                <div className="msg-balao">
+                  {m.imagem && <img src={m.imagem} alt="Foto enviada como evidência" className="msg-foto" />}
+                  {m.content}
+                </div>
                 <span className="msg-hora">{formatarHora(m.ts)}</span>
               </div>
             ) : (
@@ -902,6 +974,10 @@ export default function App() {
                 <span className="caso-cat">{CATEGORIAS_CASO[caso.categoria] ?? caso.categoria}</span>
               )}
               {caso.status === 'resolvido' && <span className="caso-status resolvido">Resolvido</span>}
+              {caso.status === 'incompleto' && (
+                <span className="caso-status incompleto">Triagem incompleta</span>
+              )}
+              {caso.status === 'encerrado' && <span className="caso-status encerrado">Encerrado</span>}
             </div>
             {caso.resumo && <p className="caso-resumo">{caso.resumo}</p>}
             {caso.pendencias.length > 0 && (
@@ -1074,7 +1150,11 @@ export default function App() {
               <span className="contador-chars">{entrada.length}/4000</span>
             )}
           </div>
-          <button className="chat-enviar" type="submit" disabled={enviando || entrada.trim().length === 0}>
+          <button
+            className="chat-enviar"
+            type="submit"
+            disabled={enviando || (entrada.trim().length === 0 && !anexo)}
+          >
             Enviar
           </button>
         </form>
