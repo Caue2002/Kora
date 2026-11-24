@@ -349,6 +349,30 @@ de entrega.
   Estado vazio do chat nao tem mais texto fixo de saudacao — a mensagem
   de boas-vindas virou apresentacao neutra e a saudacao real e sempre
   gerada pelo modelo
+- Servidor MCP do Kora (spec em spec/SPEC-mcp-server.md): endpoint
+  /api/mcp fala protocolo MCP (Streamable HTTP) via mcp-handler +
+  @modelcontextprotocol/server, expondo o agente como tools para clientes
+  externos (Claude Desktop, Cursor etc.). Autenticacao por API key estatica
+  em MCP_API_KEY (header Authorization Bearer ou x-api-key, comparacao em
+  tempo constante; sem a env o endpoint responde 503). 4 tools read-only:
+  consultar_pedido (dados deterministicos de shared/pedidos.ts),
+  buscar_politica (buscaHibrida/RAG), listar_conciliacoes (tabela
+  conciliacoes) e resumo_metricas (RPC metricas_chat_resumo). maxSubscriptions=0
+  (sem SSE de subscription), rate limit 60/min por IP, schemas validados
+  com zod, anotacao readOnlyHint em todas. Rota registrada no dev-server;
+  documentacao de conexao em api/README.md; testes em tests/mcp.test.ts
+  (9 casos: auth, initialize, tools/list, tools/call). Deps novas:
+  mcp-handler 2.4.0, @modelcontextprotocol/server 2.4.0, zod 4.6.7
+  (o sdk classico @modelcontextprotocol/sdk NAO e usado — o mcp-handler v2
+  trabalha com o pacote @modelcontextprotocol/server)
+- Correcao de truncamento por "thinking" dos Gemini 3.x/4: os modelos
+  gastavam o maxOutputTokens (400) em thoughtsTokenCount invisiveis —
+  gemini-4-hydrogen devolvia finishReason=MAX_TOKENS com texto vazio e
+  respostas saiam cortadas no meio da frase (detectado pelos testes de
+  integracao). shared/llm.ts agora envia thinkingConfig.thinkingBudget=0
+  em generateContent e streamGenerateContent: todo o orcamento vai para o
+  texto visivel, respostas mais rapidas (~4.5s vs ~28s no cenario de
+  teste) e sem pensamento interno — adequado ao formato curto do Nori
 
 ## Em andamento
 
@@ -367,6 +391,9 @@ de entrega.
 - Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
   "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
   api/caso.ts). Sem urgencia — nada quebra sem ela
+- Servidor MCP em producao: cadastrar MCP_API_KEY nas env vars da Vercel
+  (mesmo valor do .env local) e redeploy; sem ela /api/mcp responde 503.
+  Conexao de cliente externo documentada em api/README.md
 
 ## Decisoes tecnicas tomadas
 

@@ -119,6 +119,12 @@ export function catalogoModelos(): ModeloConfig[] {
   ];
 }
 
+// Chave de acesso ao servidor MCP (/api/mcp): sem ela o endpoint fica
+// desabilitado; com ela, o cliente precisa envia-la em Authorization/x-api-key
+export function mcpApiKey(): string | undefined {
+  return env('MCP_API_KEY');
+}
+
 export function limitesJanela() {
   return {
     minuto: Number(env('LIMITE_TOKENS_MINUTO', '8000')),

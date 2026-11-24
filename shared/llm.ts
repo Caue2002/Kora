@@ -77,7 +77,14 @@ async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], tem
     body: JSON.stringify({
       systemInstruction: system ? { parts: [{ text: system }] } : undefined,
       contents,
-      generationConfig: { temperature: temperatura, maxOutputTokens: maxTokens },
+      generationConfig: {
+        temperature: temperatura,
+        maxOutputTokens: maxTokens,
+        // Sem isso os modelos Gemini 3.x/4 gastam o maxOutputTokens em
+        // "thoughts" invisiveis e a resposta visivel sai truncada/vazia.
+        // As respostas do Nori sao curtas por design: thinking desligado.
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     }),
   });
   const corpo = await res.text();
@@ -215,7 +222,13 @@ async function abrirStream(
         body: JSON.stringify({
           systemInstruction: system ? { parts: [{ text: system }] } : undefined,
           contents,
-          generationConfig: { temperature: temperatura, maxOutputTokens: maxTokensSaida() },
+          generationConfig: {
+            temperature: temperatura,
+            maxOutputTokens: maxTokensSaida(),
+            // Mesmo motivo do generateContent: evita que o raciocinio interno
+            // consuma o orcamento de tokens e trunque a resposta visivel
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         }),
       });
     } else {

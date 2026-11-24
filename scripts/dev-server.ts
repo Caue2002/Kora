@@ -13,6 +13,7 @@ import parecerHandler from '../api/parecer';
 import casoHandler from '../api/caso';
 import conversaHandler from '../api/conversa';
 import metricasHandler from '../api/metricas';
+import mcpHandler from '../api/mcp';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -34,6 +35,7 @@ const rotas: Record<string, (req: Request) => Promise<Response>> = {
   '/api/caso': casoHandler,
   '/api/conversa': conversaHandler,
   '/api/metricas': metricasHandler,
+  '/api/mcp': mcpHandler,
 };
 
 const servidor = createServer(async (req, res) => {
