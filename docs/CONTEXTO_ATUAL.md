@@ -299,6 +299,12 @@ de entrega.
   byte ficava pendurado para sempre — o handshake so cobria os headers);
   marcarEsgotado virou fire-and-forget nos dois loops de failover (a RPC
   de cota nao atrasa a tentativa ao proximo modelo)
+- Alertas amarelos de erro da API (frontend/src/alertas.ts): banner
+  pequeno e fixo no topo, some sozinho em 3s. Dispara em qualquer erro do
+  /api/chat — HTTP de erro (mapeado por status: 0 rede, 400, 405, 429
+  cotas x rate limit, 500, 502, 503, 504) e saturacao dos modelos
+  (resposta 200 com fallback agora carrega header x-fallback=1, mapeado
+  como Erro 503). Mensagens curtas, informais e com o numero do erro
 - Terceira rodada de latencia do /api/chat: rate limit (RPC Postgres) e
   leitura do body passam a rodar em paralelo; mensagem casual no meio da
   conversa pula a chamada de embedding do Gemini (nao usa RAG nem cache);

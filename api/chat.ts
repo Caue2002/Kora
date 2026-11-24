@@ -99,10 +99,10 @@ function normalizarHistorico(historico: unknown): MensagemChat[] {
     .slice(-TAMANHO_MAX_HISTORICO);
 }
 
-function json(status: number, corpo: unknown): Response {
+function json(status: number, corpo: unknown, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(corpo), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }
 
@@ -277,6 +277,9 @@ function respostaFallbackStream(): Response {
       'Content-Type': 'text/plain; charset=utf-8',
       'x-modelo': 'fallback',
       'x-fontes': '[]',
+      // Sinaliza ao frontend que a resposta e o fallback de saturacao (todos
+      // os modelos falharam), mesmo com HTTP 200 — dispara o alerta amarelo
+      'x-fallback': '1',
     },
   });
 }
@@ -677,13 +680,17 @@ async function webHandler(req: Request): Promise<Response> {
   if (!gerado) {
     registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
     persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
-    return json(200, {
-      resposta: RESPOSTA_FALLBACK,
-      modelo: 'fallback',
-      provedor: 'sistema',
-      tokens: 0,
-      fontes,
-    });
+    return json(
+      200,
+      {
+        resposta: RESPOSTA_FALLBACK,
+        modelo: 'fallback',
+        provedor: 'sistema',
+        tokens: 0,
+        fontes,
+      },
+      { 'x-fallback': '1' },
+    );
   }
 
   // Registra consumo real quando informado, senao a estimativa consolidada

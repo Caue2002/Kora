@@ -95,7 +95,7 @@ export async function enviarMensagemStream(
   imagem?: ImagemAnexo,
   perfil?: string,
   conversaId?: string,
-): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string }> {
+): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string; status?: number; fallback?: boolean }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -111,10 +111,13 @@ export async function enviarMensagemStream(
 
   if (!res.ok || !res.body) {
     const dados = (await res.json().catch(() => ({}))) as { erro?: string };
-    return { erro: dados.erro ?? 'Falha ao contatar o agente.' };
+    return { erro: dados.erro ?? 'Falha ao contatar o agente.', status: res.ok ? 0 : res.status };
   }
 
   const modelo = res.headers.get('x-modelo') ?? undefined;
+  // Header x-fallback: a API devolveu o fallback de saturacao (todos os
+  // modelos falharam) com HTTP 200 — o frontend exibe o alerta amarelo
+  const fallback = res.headers.get('x-fallback') === '1';
   const fontesBruto = res.headers.get('x-fontes');
   let fontes: Fonte[] | undefined;
   try {
@@ -130,7 +133,7 @@ export async function enviarMensagemStream(
     if (done) break;
     onDelta(decoder.decode(value, { stream: true }));
   }
-  return { modelo, fontes };
+  return { modelo, fontes, fallback };
 }
 
 // ===== Estado estruturado do caso =====

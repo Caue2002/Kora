@@ -860,6 +860,37 @@ body {
   border-color: var(--acento);
 }
 
+/* ===== alerta amarelo de erro da API (some em 3s) ===== */
+.alerta-api {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: #fef08a;
+  border: 1px solid #facc15;
+  color: #713f12;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 6px 12px;
+  max-width: min(90vw, 420px);
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  animation: alerta-entrada 0.2s ease-out;
+}
+
+@keyframes alerta-entrada {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 /* ===== retentativa de erro ===== */
 .btn-retry {
   margin-top: 8px;

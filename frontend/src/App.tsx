@@ -18,6 +18,7 @@ import {
   type Mensagem,
 } from './api';
 import { formatarHoraMensagem } from './utils';
+import { ALERTA_SATURACAO, mapearErroApi, type AlertaErro } from './alertas';
 import { Markdown } from './markdown';
 import Sidebar from './Sidebar';
 
@@ -344,6 +345,8 @@ export default function App() {
   const [entrada, setEntrada] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<{ mensagem: string; retryTexto: string } | null>(null);
+  // Banner amarelo pequeno exibido por 3s quando a API retorna qualquer erro
+  const [alertaApi, setAlertaApi] = useState<AlertaErro | null>(null);
   const [exportando, setExportando] = useState(false);
   const [escuro, setEscuro] = useState<boolean>(() => localStorage.getItem(CHAVE_TEMA) === 'escuro');
   const [ouvindo, setOuvindo] = useState(false);
@@ -391,6 +394,13 @@ export default function App() {
     document.documentElement.dataset.theme = escuro ? 'escuro' : 'claro';
     localStorage.setItem(CHAVE_TEMA, escuro ? 'escuro' : 'claro');
   }, [escuro]);
+
+  // O alerta amarelo de erro da API fica 3s na tela e some sozinho
+  useEffect(() => {
+    if (!alertaApi) return;
+    const timer = setTimeout(() => setAlertaApi(null), 3000);
+    return () => clearTimeout(timer);
+  }, [alertaApi]);
 
   // Persiste a conversa atual na lista de conversas a cada mudanca de mensagens
   // Preserva o titulo existente (permite renomear sem ser sobrescrito)
@@ -650,7 +660,10 @@ export default function App() {
       if (r.erro) {
         setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
         setErro({ mensagem: r.erro, retryTexto: textoMsg });
+        setAlertaApi(mapearErroApi(r.status ?? 0, r.erro));
       } else {
+        // Resposta 200 mas com fallback: todos os modelos falharam (saturacao)
+        if (r.fallback) setAlertaApi(ALERTA_SATURACAO);
         setMensagens((atual) =>
           atual.map((m) =>
             m.id === assistId
@@ -683,6 +696,8 @@ export default function App() {
     } catch {
       setMensagens((atual) => atual.filter((m) => m.id !== assistId && m.id !== doUsuario.id));
       setErro({ mensagem: 'Falha de conexao com o servidor. Tente novamente.', retryTexto: textoMsg });
+      // Falha de rede/stream: sem resposta HTTP, codigo 0
+      setAlertaApi(mapearErroApi(0));
     } finally {
       setEnviando(false);
       setEtapaStream(null);
@@ -826,6 +841,12 @@ export default function App() {
 
   return (
     <div className="layout">
+      {/* Banner amarelo de erro da API: pequeno, some sozinho em 3s */}
+      {alertaApi && (
+        <div className="alerta-api" role="alert">
+          Erro {alertaApi.codigo} — {alertaApi.texto}
+        </div>
+      )}
       <Sidebar
         conversas={conversas}
         atualId={conversaId}
