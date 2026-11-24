@@ -20,19 +20,28 @@ if (!apiKey) {
 
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-// Candidatos: gerar resposta curta mede latencia de ponta a ponta
+// Candidatos: mesma ordem do catalogo (shared/env.ts) + modelos probe
+// que podem ganhar cota no futuro. Gerar resposta curta mede latencia real.
 const CANDIDATOS = [
   'gemini-4-hydrogen',
   'gemini-3.8-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-3-flash-preview',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
-  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  // probes: sem cota free hoje (429) ou instaveis — revalidar periodicamente
+  'gemini-3.7-flash',
+  'gemini-4-argon',
+  'gemini-4-carbon',
+  'gemini-4-neon',
+  'gemini-flash-latest',
+  'gemini-pro-latest',
+  'gemini-3.1-pro-preview',
   'gemini-2.5-pro',
   'gemini-2.5-flash',
   'gemini-2.5-flash-lite',
-  'gemini-3.1-pro-preview',
 ];
 
 const PROMPT = 'Responda apenas: ok';

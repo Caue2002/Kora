@@ -226,19 +226,25 @@ de entrega.
   (Cliente/Parceiro/Entregador) ficam SEMPRE em fileira
   (repeat(3,1fr)); em telas <=560px eles compactam (icone menor, sem
   descricao, rotulo em ate 2 linhas) para nao estourar a coluna
-- Catalogo de modelos ampliado para 6: dois Gemini extras de fallback
-  (GEMINI_MODEL_3=gemini-3.8-flash, GEMINI_MODEL_4=gemini-3.5-flash-lite
-  por default) reusando os ids de cota 1 e 3 por compartilharem a mesma
-  API key/quota; Pollinations virou prioridade 6. Ordem padrao:
-  gemini-3.1-flash-lite > groq > gemini-3.5-flash > gemini-3.8-flash >
-  gemini-3.5-flash-lite > pollinations
+- Catalogo de modelos ampliado para 10, ORDENADO DO MAIS FORTE AO MAIS
+  FRACO (a pedido do usuario — prioriza qualidade mesmo com latencia
+  maior no modelo principal): gemini-4-hydrogen > gemini-3.8-flash >
+  gemini-3.6-flash > gemini-3.5-flash > gemini-3-flash-preview > groq
+  (gpt-oss-120b) > gemini-3.5-flash-lite > gemini-3.1-flash-lite >
+  gemini-3.1-flash-lite-preview > pollinations. Slots Gemini usam as envs
+  GEMINI_MODEL..GEMINI_MODEL_8 e ids de cota 1/3 (mesma API key);
+  groq id 2 e pollinations id 4. ATENCAO Vercel: se GEMINI_MODEL_4
+  estiver setada como gemini-4-hydrogen (valor antigo do .env local),
+  ela duplica o modelo principal na posicao 4 — atualizar ou remover as
+  envs GEMINI_MODEL_* para seguir a nova ordem
 - Chave Gemini renovada (formato AQ. do AI Studio, projeto 391015418834):
-  .env local usa GEMINI_MODEL_4=gemini-4-hydrogen como fallback mais forte
-  (free tier, saturado por demanda em picos — failover cobre); gemini-2.5-*
-  retornam 404 para chaves novas e gemini-3.1-pro-preview nao tem free
-  tier. Script scripts/testar_modelos_gemini.mjs mede latencia real por
-  modelo. ATENCAO: replicar GEMINI_API_KEY e GEMINI_MODEL_4 nas env vars
-  da Vercel
+  .env local alinhado a nova ordem (GEMINI_MODEL=gemini-4-hydrogen,
+  _2=gemini-3.8-flash, _4=gemini-3.5-flash). Verificado via
+  scripts/testar_modelos_gemini.mjs (lista de candidatos ampliada com os
+  probes): funcionam hydrogen, 3.8/3.6/3.5/3.1-flash e variantes;
+  gemini-4-argon/carbon/neon e gemini-pro-latest dao 429 (sem free tier),
+  gemini-3.7-flash e gemini-flash-latest instaveis, gemini-2.5-* dao 404
+  e gemini-3.1-pro-preview nao tem free tier — failover cobre os casos
 - Respostas longas da Nori colapsadas por padrao (>1100 chars) com botao
   "Ver mais/Ver menos" (componente TextoAssistente em App.tsx); ao fim do
   streaming a tela alinha o TOPO da ultima mensagem da Nori para leitura
@@ -281,8 +287,9 @@ de entrega.
   token sem latencia extra). Catalogo de modelos saneado: gemini-2.5-flash
   e gemini-2.0-flash retornavam 404 (descontinuados) — defaults agora sao
   gemini-3.8-flash e gemini-3.5-flash-lite (unico que respondeu 200 na
-  verificacao); ATENCAO: se GEMINI_MODEL_3/4 estiverem definidos na Vercel
-  com nomes antigos, atualizar para os novos. Quando TODOS os provedores
+  verificacao); ATENCAO: o catalogo foi reordenado depois (ver secao
+  "Catalogo de modelos ampliado para 10") — na Vercel, alinhar ou remover
+  as envs GEMINI_MODEL_* para nao duplicar modelos. Quando TODOS os provedores
   falham, /api/chat devolve RESPOSTA_FALLBACK com 200 (stream e normal)
   em vez de 502 — a falha segue registrada em metricas_chat
 - Timeout de 10s em todas as chamadas PostgREST (shared/supabase.ts):
