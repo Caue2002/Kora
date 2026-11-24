@@ -31,7 +31,7 @@ interface EstadoCaso {
 }
 
 const ETAPAS = ['triagem', 'coleta_evidencias', 'analise', 'parecer', 'encerrado'] as const;
-const CATEGORIAS = ['quantidade', 'troca_item', 'qualidade', 'prazo_roteamento', 'outro'] as const;
+const CATEGORIAS = ['quantidade', 'troca_item', 'qualidade', 'prazo_roteamento', 'pagamento', 'outro'] as const;
 const STATUS = ['em_andamento', 'resolvido', 'encerrado'] as const;
 
 const MAX_MENSAGENS = 16;
@@ -71,7 +71,7 @@ Responda APENAS com JSON valido, sem markdown e sem comentarios, no formato:
 
 Regras:
 - etapa: um de [triagem, coleta_evidencias, analise, parecer, encerrado]
-- categoria: um de [quantidade, troca_item, qualidade, prazo_roteamento, outro] ou null
+- categoria: um de [quantidade, troca_item, qualidade, prazo_roteamento, pagamento, outro] ou null
 - status: um de [em_andamento, resolvido, encerrado]
 - resumo: 1 frase curta descrevendo o estado do caso (string vazia se nao houver caso)
 - fatos: SOMENTE informacoes confirmadas pelo usuario (nunca hipoteses ou suposicoes da NORI)

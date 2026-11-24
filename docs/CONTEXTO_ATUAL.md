@@ -316,6 +316,16 @@ de entrega.
   selecionarModelo cacheia o consumo de cotas por 10s (marcas de esgotado
   locais continuam valendo); registrarConsumo grava as 3 janelas em
   paralelo em vez de sequencial
+- Base de conhecimento ampliada: politicas_disputa.json foi de 12 para 20
+  regras (novas: cobranca duplicada/valor divergente, taxa indevida, itens
+  de acompanhamento, avaria no transporte, alergia declarada, cancelamento
+  pela plataforma, pedido de outro cliente, verticais mercado/farmacia/pet)
+  — ja ingeridas no Supabase com embeddings. Nova categoria "pagamento"
+  alinhada em prompt.ts, api/caso.ts (enum + extracao) e labels do
+  frontend; migration 0010_categoria_pagamento.sql PENDENTE de aplicar no
+  Supabase (tabela legada categorias_divergencia). Prompt ganhou regra de
+  economia de tokens de saida (respostas casuais/meta em ate 2 frases,
+  triagem em 1-3 frases + 1 pergunta)
 - Regras de saudacao e auto-conhecimento: a Nori so cumprimenta na
   PRIMEIRA mensagem da conversa ou quando o usuario mesmo sauda
   (coherence/intencao.ts ehSaudacao detecta saudo no inicio da mensagem);
@@ -347,6 +357,9 @@ de entrega.
   ATENCAO: tabelas criadas via SQL Editor nao herdam grants — foi preciso
   rodar grants manuais para service_role (select/insert/update/delete nas
   tabelas + execute nas funcoes); os grants ja estao no fim da migration
+- Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
+  "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
+  api/caso.ts). Sem urgencia — nada quebra sem ela
 
 ## Decisoes tecnicas tomadas
 

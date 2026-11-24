@@ -59,6 +59,46 @@
       "titulo": "Politica de compensacao por tipo de disputa",
       "categoria": "troca_item",
       "conteudo": "Compensacao padrao: item faltante ou errado gera reembolso do valor do item ou reposicao; problema de qualidade por seguranca alimentar gera reembolso parcial ou integral do pedido; pedido inteiro nao recebido ou cancelado indevidamente gera reembolso integral; atraso gera cupom de desconto ou credito parcial. O cliente pode escolher receber como saldo iFood (imediato) ou estorno na forma de pagamento original. A compensacao final depende da categoria confirmada e pode ser ajustada pelo time de suporte em casos de reincidencia ou excecao."
+    },
+    {
+      "titulo": "Cobranca duplicada ou valor divergente no pedido",
+      "categoria": "pagamento",
+      "conteudo": "Se o cliente foi cobrado duas vezes pelo mesmo pedido ou o valor cobrado diverge do valor exibido no fechamento, solicite o comprovante ou print da cobranca e o codigo do pedido. Cobranca duplicada confirmada gera estorno integral da cobranca excedente no mesmo dia, independentemente do metodo de pagamento. Valor divergente por promocao ou cupom nao aplicado segue fluxo de ajuste manual com o time financeiro."
+    },
+    {
+      "titulo": "Taxa de entrega ou taxa de servico cobrada indevidamente",
+      "categoria": "pagamento",
+      "conteudo": "Compare a taxa de entrega e a taxa de servico cobradas com as exibidas no carrinho antes da confirmacao do pedido. Taxa alterada apos a confirmacao ou taxa de servico cobrada em pedido isento gera reembolso da diferenca. Se o cliente nao conseguir provar o valor original exibido, o caso segue para analise com base no historico do pedido no sistema."
+    },
+    {
+      "titulo": "Itens de acompanhamento e materiais ausentes",
+      "categoria": "quantidade",
+      "conteudo": "Itens de acompanhamento (sachê, talher descartavel, copo, guardanapo, molhos e temperos) fazem parte do pedido quando constam no fechamento ou na descricao da loja. Ausencia deles segue o mesmo fluxo de item faltante: colete foto do que chegou e do fechamento, e a compensacao e proporcional ao valor do item — em geral cortesia (cupom), salvo quando o item tem custo relevante."
+    },
+    {
+      "titulo": "Avaria ou vazamento do pedido durante o transporte",
+      "categoria": "status_avaria",
+      "conteudo": "Vazamento, tombamento ou avaria causada pelo transporte (saco furado, bebida derramada, embalagem violada) e responsabilidade do entregador quando a retirada foi conferida com foto. Solicite foto do estado da embalagem e do item na chegada. Avaria confirmada gera reposicao ou reembolso do item afetado; se comprometeru o pedido inteiro, avalie reembolso integral."
+    },
+    {
+      "titulo": "Restricao ou alergia alimentar declarada no pedido",
+      "categoria": "status_avaria",
+      "conteudo": "Se o cliente declarou alergia ou restricao no pedido e o restaurante incluiu ingrediente proibido, o caso e tratado como problema de seguranca alimentar: prioridade maxima, reembolso integral do pedido e registro do ocorrido contra o estabelecimento. Sem declaracao previa no pedido, avalie como questao de qualidade comum conforme a politica de reembolso."
+    },
+    {
+      "titulo": "Pedido cancelado pela plataforma ou por falha de sistema",
+      "categoria": "prazo_roteamento",
+      "conteudo": "Cancelamento iniciado pela plataforma (falha de pagamento, erro de sistema, pedido duplicado indevido) gera reembolso integral imediato e nao pode gerar taxa de cancelamento para o cliente. Verifique no historico quem iniciou o cancelamento e o motivo registrado antes de comunicar a decisao. Falhas recorrentes de sistema devem ser sinalizadas para o time tecnico."
+    },
+    {
+      "titulo": "Pedido de outro cliente entregue por engano",
+      "categoria": "troca_item",
+      "conteudo": "Quando o cliente recebe o pedido de outra pessoa (sacola trocada, endereco errado), oriente a NAO consumir os itens e a manter a embalagem como evidencia. O pedido correto deve ser rastreado e reenviado ou reembolsado; o pedido entregue por engano e recolhido pelo entregador ou descartado com registro. Nao confirme recebimento do pedido errado como se fosse o seu."
+    },
+    {
+      "titulo": "Disputas em verticais de mercado, farmacia e pet shop",
+      "categoria": "quantidade",
+      "conteudo": "Em verticais de produtos (mercado, farmacia, pet shop, bebidas), itens podem ser fracionados ou ter validade. Item faltante segue a regra de quantidade; produto vencido ou com lote inadequado segue a regra de seguranca alimentar/produto; medicamento exige verificacao de receita quando aplicavel. O prazo de contestacao para essas verticais e de 7 dias corridos apos a entrega."
     }
   ]
 }

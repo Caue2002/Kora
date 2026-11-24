@@ -56,6 +56,7 @@ const CATEGORIAS: Record<string, string> = {
   troca_item: 'Item errado',
   status_avaria: 'Qualidade',
   prazo_roteamento: 'Entrega',
+  pagamento: 'Pagamento',
 };
 
 // Rotulos do estado estruturado do caso (api/caso)
@@ -72,6 +73,7 @@ const CATEGORIAS_CASO: Record<string, string> = {
   troca_item: 'Item errado',
   qualidade: 'Qualidade',
   prazo_roteamento: 'Entrega',
+  pagamento: 'Pagamento',
   outro: 'Outro',
 };
 
