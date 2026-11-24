@@ -320,7 +320,7 @@ de entrega.
   breve variada — sem formula fixa. /api/chat injeta "Contexto do turno"
   (primeiro turno ou nao) no prompt. Auto-conhecimento ampliado: a Nori
   responde quais modelos de IA usa (Gemini Flash + failover Groq/
-  Pollinations), quem a criou (Caue) e o que sabe fazer; ehPerguntaMeta
+  Pollinations), quem a criou (Cauê Ribeiro Ferreira) e o que sabe fazer; ehPerguntaMeta
   detecta essas perguntas e elas pulam RAG E embedding (resposta sai do
   proprio prompt) — round-trips a menos no caminho critico. Cache
   semantico: chave agora e perfil+periodo do dia (resposta de "bom dia"
