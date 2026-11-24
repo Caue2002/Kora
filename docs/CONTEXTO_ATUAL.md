@@ -222,7 +222,10 @@ de entrega.
 - Layout centralizado em todos os tamanhos: o override de desktop
   full-width (>=720px sem max-width e padding de 5%) foi removido a pedido
   do usuario — bolhas, cards de perfil e formulario seguem o mesmo
-  layout centralizado de 720px do mobile
+  layout centralizado de 720px do mobile. Os 3 cards de perfil
+  (Cliente/Parceiro/Entregador) ficam SEMPRE em fileira
+  (repeat(3,1fr)); em telas <=560px eles compactam (icone menor, sem
+  descricao, rotulo em ate 2 linhas) para nao estourar a coluna
 - Catalogo de modelos ampliado para 6: dois Gemini extras de fallback
   (GEMINI_MODEL_3=gemini-3.8-flash, GEMINI_MODEL_4=gemini-3.5-flash-lite
   por default) reusando os ids de cota 1 e 3 por compartilharem a mesma

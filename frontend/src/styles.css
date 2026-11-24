@@ -1528,7 +1528,8 @@ body {
 
 .perfis-grade {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  /* os 3 perfis ficam sempre em fileira, em qualquer largura de tela */
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-top: 14px;
 }
@@ -1601,6 +1602,34 @@ body {
 @media (max-width: 640px) {
   .chat-sugestoes {
     max-width: 100%;
+  }
+}
+
+/* telas estreitas: os 3 cards de perfil seguem em fileira, so que
+   compactos — a descricao sai para o rotulo nao estourar a coluna */
+@media (max-width: 560px) {
+  .perfis-grade {
+    gap: 6px;
+  }
+  .perfil-card {
+    padding: 8px 6px;
+    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .perfil-icone {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+  }
+  .perfil-desc {
+    display: none;
+  }
+  .perfil-label {
+    white-space: normal;
+    font-size: 11px;
+    line-height: 1.15;
   }
 }
 
