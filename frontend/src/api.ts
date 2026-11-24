@@ -197,6 +197,24 @@ export async function buscarCaso(conversaId: string): Promise<EstadoCaso | null>
   }
 }
 
+// Gera o resumo de handoff da disputa para um atendente humano (POST /api/handoff)
+export async function gerarHandoff(mensagens: Mensagem[]): Promise<string | null> {
+  try {
+    const res = await fetch('/api/handoff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mensagens: mensagens.map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+    if (!res.ok) return null;
+    const dados = (await res.json()) as { handoff?: string };
+    return dados.handoff ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Registra a avaliacao do usuario sobre uma resposta do agente
 export async function enviarFeedback(
   avaliacao: 'util' | 'confuso' | 'incompleto' | 'prolixo',

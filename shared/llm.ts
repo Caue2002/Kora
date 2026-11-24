@@ -4,6 +4,7 @@
 
 import type { ModeloConfig } from './env.js';
 import { maxTokensSaida, timeoutLlmMs } from './env.js';
+import { TOOLS_GEMINI, executarTool, type ChamadaTool } from './tools.js';
 
 export interface ImagemAnexo {
   base64: string;
@@ -58,49 +59,114 @@ function mensagensOpenAI(mensagens: MensagemChat[]): Array<Record<string, unknow
   }));
 }
 
-async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number): Promise<RespostaLLM> {
-  // Gemini usa systemInstruction + contents; o system vai separado das mensagens
-  const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
-  const contents = mensagens
+// Contents do Gemini a partir das mensagens internas (system vai separado)
+function conteudosGemini(mensagens: MensagemChat[]): Array<Record<string, unknown>> {
+  return mensagens
     .filter((m) => m.role !== 'system')
     .map((m) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: partesGemini(m),
     }));
-  const url = `${modelo.endpoint}/${modelo.nomeModelo}:generateContent?key=${modelo.apiKey}`;
-  // AbortSignal.timeout limita a chamada inteira: provedor pendurado falha
-  // rapido e o failover tenta o proximo modelo em vez de travar a requisicao
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(timeoutLlmMs()),
-    body: JSON.stringify({
-      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-      contents,
-      generationConfig: {
-        temperature: temperatura,
-        maxOutputTokens: maxTokens,
-        // Sem isso os modelos Gemini 3.x/4 gastam o maxOutputTokens em
-        // "thoughts" invisiveis e a resposta visivel sai truncada/vazia.
-        // As respostas do Nori sao curtas por design: thinking desligado.
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-    }),
-  });
-  const corpo = await res.text();
-  if (!res.ok) {
-    if (ehErroLimite(res.status, corpo)) throw new ErroLimiteModelo(`Gemini limite: ${corpo.slice(0, 200)}`);
-    throw new Error(`Gemini ${res.status}: ${corpo.slice(0, 300)}`);
-  }
-  const json = JSON.parse(corpo) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-    usageMetadata?: { totalTokenCount?: number };
-  };
-  const texto = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-  return { texto, tokensUso: json.usageMetadata?.totalTokenCount };
 }
 
-async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number): Promise<RespostaLLM> {
+// Extrai texto e function calls das parts de uma resposta Gemini
+function partesRespostaGemini(json: {
+  candidates?: Array<{ content?: { parts?: Array<Record<string, unknown>> } }>;
+}): { texto: string; chamadas: ChamadaTool[] } {
+  const partes = json.candidates?.[0]?.content?.parts ?? [];
+  const texto = partes
+    .map((p) => (typeof p.text === 'string' ? p.text : ''))
+    .join('');
+  const chamadas: ChamadaTool[] = partes
+    .map((p) => p.functionCall as { name?: string; args?: Record<string, unknown> } | undefined)
+    .filter((fc): fc is { name: string; args: Record<string, unknown> } => typeof fc?.name === 'string')
+    .map((fc) => ({ name: fc.name, args: fc.args ?? {} }));
+  return { texto, chamadas };
+}
+
+// Maximo de rodadas de function calling por resposta: evita loop infinito
+// se o modelo insistir em chamar tools sem produzir texto final
+const MAX_TOOL_ROUNDS = 2;
+
+// Anexa o resultado de uma tool como functionResponse nas contents do Gemini
+function anexarFunctionResponse(
+  contents: Array<Record<string, unknown>>,
+  chamada: ChamadaTool,
+  resultado: unknown,
+): void {
+  contents.push({
+    role: 'user',
+    parts: [
+      {
+        functionResponse: {
+          name: chamada.name,
+          response: { result: resultado },
+        },
+      },
+    ],
+  });
+}
+
+async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number, jsonMode = false, comTools = false): Promise<RespostaLLM> {
+  // Gemini usa systemInstruction + contents; o system vai separado das mensagens
+  const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
+  const contents = conteudosGemini(mensagens);
+  const url = `${modelo.endpoint}/${modelo.nomeModelo}:generateContent?key=${modelo.apiKey}`;
+
+  // Loop de function calling: o modelo pode pedir tools ate MAX_TOOL_ROUNDS
+  // vezes; na ultima iteracao as tools sao removidas para forcar texto final
+  for (let rodada = 0; rodada <= MAX_TOOL_ROUNDS; rodada++) {
+    const usarTools = comTools && rodada < MAX_TOOL_ROUNDS;
+    // AbortSignal.timeout limita a chamada inteira: provedor pendurado falha
+    // rapido e o failover tenta o proximo modelo em vez de travar a requisicao
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(timeoutLlmMs()),
+      body: JSON.stringify({
+        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+        contents,
+        generationConfig: {
+          temperature: temperatura,
+          maxOutputTokens: maxTokens,
+          // Sem isso os modelos Gemini 3.x/4 gastam o maxOutputTokens em
+          // "thoughts" invisiveis e a resposta visivel sai truncada/vazia.
+          // As respostas do Nori sao curtas por design: thinking desligado.
+          thinkingConfig: { thinkingBudget: 0 },
+          // JSON mode: saida garantida como JSON valido (extracao estruturada)
+          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+        },
+        ...(usarTools
+          ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
+          : {}),
+      }),
+    });
+    const corpo = await res.text();
+    if (!res.ok) {
+      if (ehErroLimite(res.status, corpo)) throw new ErroLimiteModelo(`Gemini limite: ${corpo.slice(0, 200)}`);
+      throw new Error(`Gemini ${res.status}: ${corpo.slice(0, 300)}`);
+    }
+    const json = JSON.parse(corpo) as Parameters<typeof partesRespostaGemini>[0] & {
+      usageMetadata?: { totalTokenCount?: number };
+    };
+    const { texto, chamadas } = partesRespostaGemini(json);
+    const tokensUso = json.usageMetadata?.totalTokenCount;
+
+    // Sem function call (ou texto junto): resposta final
+    if (chamadas.length === 0 || texto.trim().length > 0) {
+      return { texto, tokensUso };
+    }
+
+    // Modelo pediu tools: executa localmente e devolve como functionResponse
+    for (const chamada of chamadas) {
+      const resultado = await executarTool(chamada);
+      anexarFunctionResponse(contents, chamada, resultado);
+    }
+  }
+  return { texto: '' };
+}
+
+async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number, jsonMode = false): Promise<RespostaLLM> {
   // Groq e Pollinations usam o formato chat/completions compativel com OpenAI
   const res = await fetch(modelo.endpoint, {
     method: 'POST',
@@ -114,6 +180,7 @@ async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[
       messages: mensagensOpenAI(mensagens),
       temperature: temperatura,
       max_tokens: maxTokens,
+      ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
     }),
   });
   const corpo = await res.text();
@@ -135,25 +202,30 @@ async function chamarOpenAICompat(modelo: ModeloConfig, mensagens: MensagemChat[
 export async function chamarLLM(
   modelo: ModeloConfig,
   mensagens: MensagemChat[],
-  opcoes?: { temperatura?: number; maxTokens?: number },
+  opcoes?: { temperatura?: number; maxTokens?: number; jsonMode?: boolean; comTools?: boolean },
 ): Promise<RespostaLLM> {
   const temperatura = opcoes?.temperatura ?? 0.1;
   const maxTokens = opcoes?.maxTokens ?? maxTokensSaida();
+  const jsonMode = opcoes?.jsonMode ?? false;
+  const comTools = opcoes?.comTools ?? false;
   if (modelo.provedor === 'gemini') {
-    return chamarGemini(modelo, mensagens, temperatura, maxTokens);
+    return chamarGemini(modelo, mensagens, temperatura, maxTokens, jsonMode, comTools);
   }
-  return chamarOpenAICompat(modelo, mensagens, temperatura, maxTokens);
+  return chamarOpenAICompat(modelo, mensagens, temperatura, maxTokens, jsonMode);
 }
 
 // ===== Streaming de resposta token a token =====
 // Bomba os deltas SSE do provedor para um ReadableStream de texto puro,
 // permitindo que o frontend exiba a resposta conforme ela e gerada
 
-// Processa um corpo SSE e chama onDelta para cada trecho de texto recebido
+// Processa um corpo SSE e chama onDelta para cada trecho de texto recebido.
+// No Gemini, parts podem trazer functionCall (function calling): repassa ao
+// callback opcional sem emitir texto — o chamador decide o que fazer
 async function bombearSSE(
   corpo: ReadableStream<Uint8Array>,
   ehGemini: boolean,
   onDelta: (texto: string) => void,
+  onFunctionCall?: (chamada: ChamadaTool) => void,
 ): Promise<void> {
   const reader = corpo.getReader();
   const decoder = new TextDecoder();
@@ -164,12 +236,22 @@ async function bombearSSE(
     if (!json || json === '[DONE]') return;
     try {
       const ev = JSON.parse(json) as {
-        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        candidates?: Array<{
+          content?: { parts?: Array<Record<string, unknown>> };
+        }>;
         choices?: Array<{ delta?: { content?: string } }>;
       };
-      const t = ehGemini
-        ? (ev.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '')
-        : (ev.choices?.[0]?.delta?.content ?? '');
+      if (ehGemini) {
+        for (const parte of ev.candidates?.[0]?.content?.parts ?? []) {
+          if (typeof parte.text === 'string' && parte.text) onDelta(parte.text);
+          const fc = parte.functionCall as { name?: string; args?: Record<string, unknown> } | undefined;
+          if (typeof fc?.name === 'string' && onFunctionCall) {
+            onFunctionCall({ name: fc.name, args: fc.args ?? {} });
+          }
+        }
+        return;
+      }
+      const t = ev.choices?.[0]?.delta?.content ?? '';
       if (t) onDelta(t);
     } catch {
       // ignora linhas malformadas do stream
@@ -197,6 +279,46 @@ function sinalHandshake(ms: number): { signal: AbortSignal; cancelar: () => void
   return { signal: ctrl.signal, cancelar: () => clearTimeout(t) };
 }
 
+// Abre o stream SSE do Gemini com contents ja montadas (permite reinjetar
+// functionResponse entre rodadas de tool calling)
+async function abrirStreamGeminiConteudo(
+  modelo: ModeloConfig,
+  system: string,
+  contents: Array<Record<string, unknown>>,
+  temperatura: number,
+  comTools: boolean,
+): Promise<Response> {
+  const handshake = sinalHandshake(timeoutLlmMs());
+  try {
+    const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: handshake.signal,
+      body: JSON.stringify({
+        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+        contents,
+        generationConfig: {
+          temperature: temperatura,
+          maxOutputTokens: maxTokensSaida(),
+          // Mesmo motivo do generateContent: evita que o raciocinio interno
+          // consuma o orcamento de tokens e trunque a resposta visivel
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+        ...(comTools
+          ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
+          : {}),
+      }),
+    });
+    // Headers recebidos: o corpo SSE pode fluir sem limite de tempo
+    handshake.cancelar();
+    return res;
+  } catch (erro) {
+    handshake.cancelar();
+    throw erro;
+  }
+}
+
 // Abre a conexao de streaming com o provedor
 async function abrirStream(
   modelo: ModeloConfig,
@@ -208,29 +330,8 @@ async function abrirStream(
     let res: Response;
     if (modelo.provedor === 'gemini') {
       const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
-      const contents = mensagens
-        .filter((m) => m.role !== 'system')
-        .map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: partesGemini(m),
-        }));
-      const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
-      res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: handshake.signal,
-        body: JSON.stringify({
-          systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-          contents,
-          generationConfig: {
-            temperature: temperatura,
-            maxOutputTokens: maxTokensSaida(),
-            // Mesmo motivo do generateContent: evita que o raciocinio interno
-            // consuma o orcamento de tokens e trunque a resposta visivel
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      });
+      const contents = conteudosGemini(mensagens);
+      res = await abrirStreamGeminiConteudo(modelo, system, contents, temperatura, false);
     } else {
       res = await fetch(modelo.endpoint, {
         method: 'POST',
@@ -257,12 +358,91 @@ async function abrirStream(
   }
 }
 
+// Streaming com function calling (somente Gemini): bombeia o SSE e, se o
+// modelo responder com functionCall em vez de texto, executa as tools
+// localmente e reabre o stream com os functionResponse — ate MAX_TOOL_ROUNDS.
+// Na pratica o usuario nao percebe: function calls nao emitem texto, entao
+// nada chega ao cliente ate a resposta final comecar a fluir
+async function streamGeminiComTools(
+  modelo: ModeloConfig,
+  mensagens: MensagemChat[],
+  temperatura: number,
+): Promise<ReadableStream<Uint8Array>> {
+  const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
+  const contents = conteudosGemini(mensagens);
+  const encoder = new TextEncoder();
+
+  // O primeiro stream abre FORA do ReadableStream para propagar erros de
+  // handshake/cota ao failover, mesmo contrato do streamLLM
+  const primeiro = await abrirStreamGeminiConteudo(modelo, system, contents, temperatura, true);
+  if (!primeiro.ok || !primeiro.body) {
+    const corpo = await primeiro.text().catch(() => '');
+    if (ehErroLimite(primeiro.status, corpo)) throw new ErroLimiteModelo(`stream ${modelo.provedor} limite`);
+    throw new Error(`stream ${modelo.provedor} ${primeiro.status}: ${corpo.slice(0, 300)}`);
+  }
+
+  let corpoAtual = primeiro.body;
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for (let rodada = 0; rodada <= MAX_TOOL_ROUNDS; rodada++) {
+          const chamadas: ChamadaTool[] = [];
+          let emitiuTexto = false;
+          // Na ultima rodada as tools ja nao foram oferecidas: o modelo e
+          // obrigado a responder em texto (evita loop de tool calls)
+          await bombearSSE(
+            corpoAtual,
+            true,
+            (texto) => {
+              emitiuTexto = true;
+              controller.enqueue(encoder.encode(texto));
+            },
+            (chamada) => chamadas.push(chamada),
+          );
+
+          // Resposta final: texto fluiu ou nenhuma tool foi chamada
+          if (chamadas.length === 0 || emitiuTexto) return;
+
+          // Tool calls puras: executa e devolve functionResponse ao modelo
+          for (const chamada of chamadas) {
+            const resultado = await executarTool(chamada);
+            anexarFunctionResponse(contents, chamada, resultado);
+          }
+          if (rodada === MAX_TOOL_ROUNDS) return;
+
+          const prox = await abrirStreamGeminiConteudo(
+            modelo,
+            system,
+            contents,
+            temperatura,
+            rodada + 1 < MAX_TOOL_ROUNDS,
+          );
+          if (!prox.ok || !prox.body) return;
+          corpoAtual = prox.body;
+        }
+      } catch {
+        // stream interrompido ou rodada de tool falhou: encerra o que ja saiu
+      } finally {
+        controller.close();
+      }
+    },
+    cancel() {
+      void corpoAtual.cancel().catch(() => undefined);
+    },
+  });
+}
+
 // Gera a resposta em streaming real; lanca ErroLimiteModelo em falha de cota
 export async function streamLLM(
   modelo: ModeloConfig,
   mensagens: MensagemChat[],
-  opcoes?: { temperatura?: number },
+  opcoes?: { temperatura?: number; comTools?: boolean },
 ): Promise<ReadableStream<Uint8Array>> {
+  // Function calling so existe no Gemini; demais provedores seguem o fluxo
+  // simples (o modelo simplesmente nunca chama tools)
+  if (modelo.provedor === 'gemini' && opcoes?.comTools) {
+    return streamGeminiComTools(modelo, mensagens, opcoes?.temperatura ?? 0.1);
+  }
   const res = await abrirStream(modelo, mensagens, opcoes?.temperatura ?? 0.1);
   if (!res.ok || !res.body) {
     const corpo = await res.text().catch(() => '');

@@ -1,4 +1,4 @@
-// Catalogo e controle de cotas dos 4 modelos gratuitos
+// Catalogo e controle de cotas dos modelos gratuitos (10, do mais forte ao mais fraco)
 // Le o estado das cotas no PostgreSQL e seleciona o proximo modelo disponivel
 // Em caso de falha do banco, cai para selecao em memoria sem persistencia
 

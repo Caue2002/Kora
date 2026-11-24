@@ -1241,6 +1241,12 @@ body {
   color: var(--acento);
 }
 
+/* Item de menu que e link externo (ex.: painel de metricas) */
+.menu-item-link {
+  text-decoration: none;
+  color: var(--texto);
+}
+
 .menu-item-perigo {
   color: #dc2626;
   border-top: 1px solid var(--agente-borda);
@@ -1715,4 +1721,71 @@ body {
   font-weight: 700;
   color: var(--acento);
   font-variant-numeric: tabular-nums;
+}
+
+/* ===== modal de handoff (resumo para atendente humano) ===== */
+.handoff-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.handoff-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  background: var(--cartao);
+  border: 1px solid var(--agente-borda);
+  border-radius: 18px;
+  box-shadow: 0 12px 40px rgba(15, 30, 60, 0.25);
+  overflow: hidden;
+}
+
+.handoff-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--agente-borda);
+}
+
+.handoff-titulo {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.handoff-sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted, #64748b);
+}
+
+.handoff-acoes {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.handoff-corpo {
+  padding: 16px 18px 20px;
+  overflow-y: auto;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--texto);
+}
+
+.handoff-carregando {
+  color: var(--muted, #64748b);
+  font-style: italic;
 }

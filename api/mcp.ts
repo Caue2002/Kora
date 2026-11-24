@@ -5,13 +5,12 @@
 // "Authorization: Bearer <chave>" ou "x-api-key: <chave>".
 // V1 somente leitura: nenhuma tool grava ou altera dados.
 
-import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createMcpHandler } from 'mcp-handler';
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { tratarRequisicaoNode } from '../shared/http.js';
-import { mcpApiKey } from '../shared/env.js';
+import { verificarChaveApi } from '../shared/auth.js';
 import { verificarLimite } from '../shared/ratelimit.js';
 import { detalhesPedido, pedidoFicticio } from '../shared/pedidos.js';
 import { buscaHibrida } from '../rag/search.js';
@@ -19,21 +18,6 @@ import { consultar, rpc } from '../shared/supabase.js';
 
 const TAMANHO_MAX_PERGUNTA = 500;
 const TAMANHO_MAX_CONCILIACOES = 50;
-
-// Comparacao em tempo constante para nao vazar a chave por timing
-function chaveConfere(recebida: string, esperada: string): boolean {
-  const a = Buffer.from(recebida);
-  const b = Buffer.from(esperada);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
-// Extrai a chave dos headers aceitos pelo protocolo MCP e clientes comuns
-function extrairChave(req: Request): string | undefined {
-  const auth = req.headers.get('authorization');
-  const bearer = auth?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-  if (bearer) return bearer;
-  return req.headers.get('x-api-key')?.trim() || undefined;
-}
 
 interface Conciliacao {
   id: number;
@@ -171,12 +155,11 @@ function json(status: number, corpo: unknown): Response {
 
 async function webHandler(req: Request): Promise<Response> {
   // Autenticacao obrigatoria antes de qualquer metodo MCP (initialize incluso)
-  const esperada = mcpApiKey();
-  if (!esperada) {
+  const falhaAuth = verificarChaveApi(req);
+  if (falhaAuth === 503) {
     return json(503, { erro: 'Servidor MCP desabilitado: MCP_API_KEY nao configurada' });
   }
-  const recebida = extrairChave(req);
-  if (!recebida || !chaveConfere(recebida, esperada)) {
+  if (falhaAuth === 401) {
     return json(401, { erro: 'Chave de acesso invalida ou ausente' });
   }
 

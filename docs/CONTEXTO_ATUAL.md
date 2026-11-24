@@ -373,6 +373,34 @@ de entrega.
   em generateContent e streamGenerateContent: todo o orcamento vai para o
   texto visivel, respostas mais rapidas (~4.5s vs ~28s no cenario de
   teste) e sem pensamento interno — adequado ao formato curto do Nori
+- Function calling na Nori (spec em spec/SPEC-function-calling.md):
+  shared/tools.ts define consultar_pedido e buscar_politica (schemas zod
+  compartilhados com o servidor MCP); shared/llm.ts converte para o formato
+  Gemini (functionDeclarations/functionCall/functionResponse), executa as
+  tools localmente e reabre o stream ate MAX_TOOL_ROUNDS, sem tools na
+  ultima rodada para forcar resposta em texto. /api/chat passa comTools=true
+  apenas em mensagens de triagem (casuais/meta pulam, mesmo criterio do RAG).
+  O usuario nao percebe: function calls nao emitem texto, o stream so comeca
+  quando a resposta final flui. Provedores nao-Gemini seguem fluxo simples
+- Protocolo A2A (spec em spec/SPEC-a2a-e-handoff.md): agent card publico em
+  frontend/public/.well-known/agent-card.json e endpoint /api/a2a falando
+  JSON-RPC 2.0 (message/send) — pipeline enxuto de um turno com RAG+failover.
+  Auth: mesma MCP_API_KEY
+- Handoff para atendente humano: POST /api/handoff recebe o historico da
+  conversa e devolve resumo estruturado do caso (fatos, evidencias,
+  pendencias, proximo passo) via LLM em jsonMode; botao "Encaminhar p/
+  atendente" no menu do chat (App.tsx) chama o endpoint com a mesma chave
+- Painel de observabilidade: frontend/public/metricas.html (link "Painel de
+  metricas" no menu do chat) — KPIs (total, cache hit rate, latencia media,
+  custo equivalente), grafico de mensagens/dia e tabela por modelo com
+  latencia/tokens/custo estimado a preco de tabela (PRECOS_1M no proprio html)
+- LLM-as-judge nos evals (spec em spec/SPEC-llm-judge-evals.md):
+  tests/evals-juiz.test.ts roda um modelo Gemini lite como juiz rigoroso
+  (rubrica em linguagem natural -> nota 1-5 + justificativa, aprova >= 4)
+  sobre subconjunto do golden dataset + guardrails; logs visiveis no vitest.
+  tests/evals.test.ts ganhou 3 cenarios de guardrail (prompt injection,
+  acao fora do poder do agente, off-topic hostil) com campo `evita` para
+  checagem negativa por regex
 
 ## Em andamento
 
@@ -391,9 +419,9 @@ de entrega.
 - Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
   "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
   api/caso.ts). Sem urgencia — nada quebra sem ela
-- Servidor MCP em producao: cadastrar MCP_API_KEY nas env vars da Vercel
-  (mesmo valor do .env local) e redeploy; sem ela /api/mcp responde 503.
-  Conexao de cliente externo documentada em api/README.md
+- Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
+  da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
+  /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md
 
 ## Decisoes tecnicas tomadas
 

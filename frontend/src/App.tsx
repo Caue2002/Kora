@@ -9,6 +9,7 @@ import {
   encerrarCaso,
   enviarFeedback,
   enviarMensagemStream,
+  gerarHandoff,
   listarConversas,
   salvarConversas,
   tituloDe,
@@ -309,6 +310,18 @@ const iconeEncerrar = (
     <line x1="21" y1="12" x2="9" y2="12" />
   </Icone>
 );
+const iconeAtendente = (
+  <Icone size={13}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </Icone>
+);
+const iconeGrafico = (
+  <Icone size={13}>
+    <path d="M3 3v18h18" />
+    <path d="M7 15l4-4 3 3 5-6" />
+  </Icone>
+);
 const iconeMais = (
   <Icone size={18}>
     <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
@@ -360,6 +373,9 @@ export default function App() {
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
   const [menuAcoes, setMenuAcoes] = useState(false);
+  // Resumo de handoff para atendente humano: null = modal fechado;
+  // 'carregando' = gerando; string = markdown pronto para exibir
+  const [handoff, setHandoff] = useState<string | 'carregando' | null>(null);
   // Id da mensagem da Nori que perguntou se pode encerrar; enquanto existir, o timer de 3min corre
   const [perguntaEncerramentoId, setPerguntaEncerramentoId] = useState<string | null>(null);
   // Segundos restantes da contagem regressiva de encerramento (null = fora do fluxo)
@@ -809,6 +825,15 @@ export default function App() {
     setExportando(false);
   }
 
+  // Gera o resumo de handoff da disputa atual para um atendente humano
+  // (POST /api/handoff) e abre o modal com o briefing em markdown
+  async function abrirHandoff() {
+    if (handoff === 'carregando' || mensagens.length === 0) return;
+    setHandoff('carregando');
+    const texto = await gerarHandoff(mensagens);
+    setHandoff(texto ?? 'Não foi possível gerar o resumo de handoff no momento. Tente novamente.');
+  }
+
   // Envia a avaliacao escolhida; comentario e opcional
   function confirmarAvaliacao(comComentario: boolean) {
     if (!avaliacaoPendente) return;
@@ -1158,6 +1183,27 @@ export default function App() {
                     {iconeDownload}
                     Exportar resumo
                   </button>
+                  <button
+                    className="menu-item"
+                    disabled={handoff === 'carregando' || enviando}
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      void abrirHandoff();
+                    }}
+                  >
+                    {iconeAtendente}
+                    Encaminhar p/ atendente
+                  </button>
+                  <a
+                    className="menu-item menu-item-link"
+                    href="/metricas.html"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setMenuAcoes(false)}
+                  >
+                    {iconeGrafico}
+                    Painel de métricas
+                  </a>
                 </div>
               </>
             )}
@@ -1252,6 +1298,42 @@ export default function App() {
           </button>
         </form>
       </div>
+
+      {/* Modal de handoff: briefing estruturado da disputa para o atendente humano */}
+      {handoff !== null && (
+        <div className="handoff-overlay" role="dialog" aria-modal="true" aria-label="Resumo para atendente">
+          <div className="handoff-card">
+            <div className="handoff-topo">
+              <div>
+                <h2 className="handoff-titulo">Resumo para atendente</h2>
+                <p className="handoff-sub">Briefing da disputa gerado pela Nori — o caso não foi alterado.</p>
+              </div>
+              <div className="handoff-acoes">
+                {handoff !== 'carregando' && (
+                  <button
+                    className="btn-icon"
+                    title="Copiar resumo"
+                    aria-label="Copiar resumo"
+                    onClick={() => void navigator.clipboard?.writeText(handoff)}
+                  >
+                    {iconeCopiar}
+                  </button>
+                )}
+                <button className="btn-icon" title="Fechar" aria-label="Fechar" onClick={() => setHandoff(null)}>
+                  {iconeFechar}
+                </button>
+              </div>
+            </div>
+            <div className="handoff-corpo">
+              {handoff === 'carregando' ? (
+                <p className="handoff-carregando">Gerando resumo do caso...</p>
+              ) : (
+                <Markdown texto={handoff} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tela de encerramento: cobre o app durante a contagem regressiva de 3s */}
       {encerrandoEm !== null && (

@@ -1,0 +1,51 @@
+// Endpoint /.well-known/agent-card.json — Agent Card do protocolo A2A
+// (Agent2Agent): metadados publicos que agentes externos usam para
+// descobrir capacidades, skills e endpoint do agente Nori.
+// Arquivo estatico servido pelo build do frontend (public/).
+{
+  "protocolVersion": "0.3.0",
+  "name": "Nori — Kora Delivery",
+  "description": "Agente de IA do Kora (app de delivery ficticio) que tria e concilia disputas de pedidos: item faltante, item errado, qualidade, atraso/nao recebido e cobranca. Responde disputas, confirma pedidos por codigo, orienta sobre evidencias e gera parecer de conciliacao.",
+  "url": "https://kora-frontend-jade.vercel.app/api/a2a",
+  "version": "1.0.0",
+  "preferredTransport": "JSONRPC",
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "securitySchemes": {
+    "apiKey": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Authorization",
+      "description": "Bearer token com a MCP_API_KEY do projeto"
+    }
+  },
+  "security": [{ "apiKey": [] }],
+  "skills": [
+    {
+      "id": "triagem-disputa",
+      "name": "Triagem de disputa de pedido",
+      "description": "Conduz a coleta de informacoes de uma disputa (pedido, item afetado, evidencias) e aplica as politicas do Kora.",
+      "tags": ["disputa", "delivery", "triagem"],
+      "examples": ["Meu pedido chegou faltando um item", "O pedido nunca chegou"]
+    },
+    {
+      "id": "confirmacao-pedido",
+      "name": "Confirmacao de pedido por codigo",
+      "description": "Localiza e confirma um pedido ficticio da simulacao a partir do codigo informado.",
+      "tags": ["pedido", "confirmacao"],
+      "examples": ["Qual e o status do pedido 156489?"]
+    },
+    {
+      "id": "politica-disputa",
+      "name": "Consulta de politicas de disputa",
+      "description": "Responde duvidas sobre regras de reembolso, prazos e criterios de disputa do Kora.",
+      "tags": ["politica", "reembolso", "prazos"],
+      "examples": ["Qual o prazo para contestar uma entrega errada?"]
+    }
+  ]
+}

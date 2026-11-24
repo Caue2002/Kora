@@ -97,7 +97,9 @@ async function extrairEstado(mensagens: MensagemChat[]): Promise<Record<string, 
           { role: 'system', content: PROMPT_EXTRACAO },
           { role: 'user', content: transcricao },
         ],
-        { temperatura: 0, maxTokens: 900 },
+        // jsonMode: o provedor garante saida em JSON (responseMimeType /
+        // response_format); parseEstado continua como fallback tolerante
+        { temperatura: 0, maxTokens: 900, jsonMode: true },
       );
       return parseEstado(r.texto);
     } catch (erro) {

@@ -251,6 +251,7 @@ function persistirConversa(
 async function gerarComFailover(
   modeloInicial: ModeloConfig,
   mensagens: MensagemChat[],
+  comTools = false,
 ): Promise<{ texto: string; modelo: ModeloConfig; tokensUso?: number } | null> {
   const catalogo = catalogoModelos()
     .filter((m) => m.apiKey)
@@ -259,7 +260,7 @@ async function gerarComFailover(
 
   for (const modelo of fila) {
     try {
-      const r = await chamarLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
+      const r = await chamarLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT, comTools });
       return { texto: r.texto, modelo, tokensUso: r.tokensUso };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
@@ -307,6 +308,7 @@ function respostaFallbackStream(): Response {
 async function streamComFailover(
   modeloInicial: ModeloConfig,
   mensagens: MensagemChat[],
+  comTools = false,
 ): Promise<{ stream: ReadableStream<Uint8Array>; modelo: ModeloConfig } | null> {
   const catalogo = catalogoModelos()
     .filter((m) => m.apiKey)
@@ -316,7 +318,7 @@ async function streamComFailover(
   for (const modelo of fila) {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
-      const bruto = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT });
+      const bruto = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT, comTools });
       reader = bruto.getReader();
       // O handshake so cobre os headers HTTP: um stream que abre e nunca
       // emite o primeiro byte ficaria pendurado para sempre. Limitamos a
@@ -448,6 +450,9 @@ async function webHandler(req: Request): Promise<Response> {
   // resposta sai do prompt, sem base de conhecimento — tambem pula o RAG
   const perguntaMeta = !imagem && ehPerguntaMeta(mensagem);
   const semContextoRAG = mensagemCasual || perguntaMeta;
+  // Function calling so em mensagens de triagem: casuais/meta nao precisam
+  // de tools (mesmo criterio do RAG). O modelo decide quando chamar
+  const comTools = !semContextoRAG;
 
   // O embedding so e necessario para a busca RAG ou para o cache semantico.
   // Mensagem casual/meta no meio da conversa (sem historico vazio e sem
@@ -586,7 +591,7 @@ async function webHandler(req: Request): Promise<Response> {
   // e substituida por regeneracao antes de chegar ao usuario. O restante do
   // fluxo segue token a token; no fechamento alimenta cache, historico e metricas
   if (corpo.stream === true) {
-    const gerado = await streamComFailover(modelo, mensagens);
+    const gerado = await streamComFailover(modelo, mensagens, comTools);
     if (!gerado) {
       registrarMetrica({ stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
       persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
@@ -658,7 +663,7 @@ async function webHandler(req: Request): Promise<Response> {
             try {
               // Failover na regeneracao tambem: o modelo original pode ter
               // sido o que falhou; a fila tenta os demais antes do fallback
-              const r2 = await gerarComFailover(gerado.modelo, correcao);
+              const r2 = await gerarComFailover(gerado.modelo, correcao, comTools);
               novo = (r2?.texto ?? '').trim();
             } catch (erroRegen) {
               console.warn('[chat] regeneracao de stream falhou:', erroRegen);
@@ -709,7 +714,7 @@ async function webHandler(req: Request): Promise<Response> {
     });
   }
 
-  const gerado = await gerarComFailover(modelo, mensagens);
+  const gerado = await gerarComFailover(modelo, mensagens, comTools);
   if (!gerado) {
     registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
     persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
@@ -752,7 +757,7 @@ async function webHandler(req: Request): Promise<Response> {
       { role: 'user', content: motivo },
     ];
     try {
-      const r2 = await gerarComFailover(gerado.modelo, correcao);
+      const r2 = await gerarComFailover(gerado.modelo, correcao, comTools);
       const texto2 = (r2?.texto ?? '').trim();
       const h2 = validarHeuristico(texto2);
       if (r2 && h2.ok && !ehRespostaDeRecusa(texto2)) {
