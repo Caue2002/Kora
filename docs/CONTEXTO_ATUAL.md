@@ -219,9 +219,10 @@ de entrega.
   removido — o modelo sempre confirma o pedido via LLM com dados injetados;
   prompt reescrito para tom caloroso, respostas adaptativas ao contexto e
   secao de mensagem final estruturada (decisao, motivo, proxima acao, pendencias)
-- Layout desktop full-width: em telas >=720px o chat nao tem mais max-width
-  de 720px e o padding lateral das mensagens caiu de 20% para 5%; mobile
-  (<720px) permanece identico
+- Layout centralizado em todos os tamanhos: o override de desktop
+  full-width (>=720px sem max-width e padding de 5%) foi removido a pedido
+  do usuario — bolhas, cards de perfil e formulario seguem o mesmo
+  layout centralizado de 720px do mobile
 - Catalogo de modelos ampliado para 6: dois Gemini extras de fallback
   (GEMINI_MODEL_3=gemini-3.8-flash, GEMINI_MODEL_4=gemini-3.5-flash-lite
   por default) reusando os ids de cota 1 e 3 por compartilharem a mesma

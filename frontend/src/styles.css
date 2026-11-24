@@ -482,16 +482,8 @@ body {
   height: 6px;
 }
 
-/* telas grandes (desktop/tablet): o chat ocupa a largura total da janela;
-   as mensagens mantem uma margem lateral proporcional para nao esticar demais */
-@media (min-width: 720px) {
-  .chat {
-    max-width: none;
-  }
-  .chat-mensagens {
-    padding: 24px 5%;
-  }
-}
+/* Desktop segue o mesmo layout do mobile: o .chat permanece centralizado
+   com max-width de 720px — sem esticar bolhas e cards pela janela toda */
 
 /* ===== tema escuro ===== */
 [data-theme='escuro'] {
