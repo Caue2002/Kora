@@ -890,7 +890,7 @@ export default function App() {
                   <div className="msg-balao">
                     <Markdown
                       texto={
-                        'Oi! Eu sou a **Nori**, agente de IA do **Kora Delivery**. Me conta o que houve com o seu pedido que eu ajudo a resolver.'
+                        'Eu sou a **Nori**, agente de IA do **Kora Delivery**, especializada em conciliação de disputas de pedidos. Me conta o que houve com o seu pedido que eu ajudo a resolver.'
                       }
                     />
                   </div>

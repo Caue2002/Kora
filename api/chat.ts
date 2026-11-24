@@ -23,6 +23,7 @@ import {
   validarHeuristico,
   ehRespostaDeRecusa,
   ehMensagemCasual,
+  ehPerguntaMeta,
 } from '../coherence/index.js';
 
 interface CorpoRequisicao {
@@ -68,6 +69,22 @@ const MAX_MENSAGENS_CONVERSA = 60;
 // perguntas temporais excluidas — respostas dependentes de data/hora nunca
 // podem ser servidas dias depois
 const CACHE_SCORE_MIN = 0.95;
+
+// Periodo do dia em America/Sao_Paulo: a saudacao da Nori depende do horario,
+// entao a chave do cache semantico inclui o periodo — nunca se serve um
+// "bom dia" gerado de manha para quem pergunta a noite
+function periodoDoDia(): 'manha' | 'tarde' | 'noite' {
+  const hora = Number(
+    new Date().toLocaleString('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      hour12: false,
+    }),
+  ) % 24;
+  if (hora < 12) return 'manha';
+  if (hora < 18) return 'tarde';
+  return 'noite';
+}
 const PERGUNTA_TEMPORAL = /que dia|dia é hoje|dia e hoje|que horas|hora agora|horas agora|data de hoje|clima|previsão do tempo|previsao do tempo|temperatura fora/i;
 
 // Valida o anexo de imagem opcional (evidencia fotografica da disputa)
@@ -390,6 +407,10 @@ async function webHandler(req: Request): Promise<Response> {
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
   const perfilChave = perfil ?? '';
+  // O cache so atende primeira mensagem, que sempre pode abrir com saudacao
+  // dependente do horario: o periodo entra na chave para nao servir uma
+  // resposta de manha a noite
+  const chaveCache = `${perfilChave}|${periodoDoDia()}`;
 
   // Codigo de pedido informado: os dados deterministicos sao injetados no
   // prompt abaixo e o proprio modelo confirma o pedido com variacao natural
@@ -423,15 +444,20 @@ async function webHandler(req: Request): Promise<Response> {
   const mensagemCasual =
     !imagem && !codigoPedido && !codigoTravado && ehMensagemCasual(mensagem);
 
+  // Pergunta sobre a propria agente (modelos, criador, capacidades): a
+  // resposta sai do prompt, sem base de conhecimento — tambem pula o RAG
+  const perguntaMeta = !imagem && ehPerguntaMeta(mensagem);
+  const semContextoRAG = mensagemCasual || perguntaMeta;
+
   // O embedding so e necessario para a busca RAG ou para o cache semantico.
-  // Mensagem casual no meio da conversa (sem historico vazio e sem cache
-  // elegivel) nao usa nenhum dos dois: pula a chamada ao Gemini e corta
-  // uma round-trip inteira do caminho critico
-  const precisaEmbedding = !mensagemCasual || cacheElegivel;
+  // Mensagem casual/meta no meio da conversa (sem historico vazio e sem
+  // cache elegivel) nao usa nenhum dos dois: pula a chamada ao Gemini e
+  // corta uma round-trip inteira do caminho critico
+  const precisaEmbedding = !semContextoRAG || cacheElegivel;
   const pVetores = precisaEmbedding ? embedTexts([mensagem]) : Promise.resolve(null);
   // A busca RAG depende so do embedding: dispara em paralelo com a selecao
   // de modelo, diretrizes e cache — corta uma round-trip inteira do caminho
-  const pBusca = mensagemCasual
+  const pBusca = semContextoRAG
     ? Promise.resolve({ trechos: [] as Awaited<ReturnType<typeof buscaHibrida>>['trechos'], modo: 'lexical' as const })
     : pVetores.then((v) => buscaHibrida(mensagem, undefined, v?.[0]));
   const [vetores, diretrizes, modelo, cache] = await Promise.all([
@@ -439,7 +465,7 @@ async function webHandler(req: Request): Promise<Response> {
     carregarDiretrizes(),
     selecionarModelo(tokensEntradaPrev),
     cacheElegivel
-      ? pVetores.then((v) => (v?.[0] ? buscarCache(v[0], perfilChave) : null))
+      ? pVetores.then((v) => (v?.[0] ? buscarCache(v[0], chaveCache) : null))
       : Promise.resolve(null),
   ]);
   const embedding = vetores?.[0];
@@ -526,14 +552,21 @@ async function webHandler(req: Request): Promise<Response> {
     montarPromptSistema(diretrizes),
     '',
     `Data e hora atuais: ${agora}.`,
+    // O turno define se a saudacao e obrigatoria (primeira mensagem) ou
+    // proibida (demais turnos, salvo se o usuario tiver saudado)
+    historicoJanela.length === 0
+      ? 'Contexto do turno: esta e a PRIMEIRA mensagem desta conversa.'
+      : 'Contexto do turno: ja existem mensagens anteriores nesta conversa.',
     perfil ? `Perfil do usuario: ${CONTEXTO_PERFIL[perfil]}` : '',
     dadosPedido,
     '',
-    // Mensagem casual nao passa pelo RAG: instrui resposta leve direto,
-    // em vez do texto de "nenhuma politica recuperada" (que empurra triagem)
-    mensagemCasual
-      ? 'A mensagem do usuario e apenas um cumprimento, agradecimento ou reacao leve. Responda de forma breve, calorosa e natural, sem triagem, sem citar regras e sem forcar pergunta de coleta; uma pergunta curta e opcional.'
-      : montarContextoRAG(busca.trechos),
+    // Mensagens casuais e meta nao passam pelo RAG: instrui resposta leve
+    // direto, em vez do texto de "nenhuma politica recuperada" (que empurra triagem)
+    perguntaMeta
+      ? 'A mensagem pergunta sobre voce mesma (capacidades, modelos de IA, criador ou limites). Responda de forma natural, curta e clara usando a secao "Sobre voce" do seu papel — sem triagem, sem citar regras e sem inventar detalhes tecnicos.'
+      : semContextoRAG
+        ? 'A mensagem do usuario e apenas um cumprimento, agradecimento ou reacao leve. Responda de forma breve, calorosa e natural, sem triagem, sem citar regras e sem forcar pergunta de coleta; uma pergunta curta e opcional.'
+        : montarContextoRAG(busca.trechos),
   ].join('\n');
 
   const mensagens: MensagemChat[] = [
@@ -644,7 +677,7 @@ async function webHandler(req: Request): Promise<Response> {
           controller.close();
           const texto = textoFinal || acumulado.trim() || '[resposta interrompida]';
           if (cacheElegivel && texto && !ehRespostaDeRecusa(texto) && texto !== RESPOSTA_FALLBACK) {
-            guardarCache(embedding, mensagem, perfilChave, texto, fontes, gerado.modelo.nomeModelo, undefined);
+            guardarCache(embedding, mensagem, chaveCache, texto, fontes, gerado.modelo.nomeModelo, undefined);
           }
           persistirConversa(
             conversaId,
@@ -741,7 +774,7 @@ async function webHandler(req: Request): Promise<Response> {
   // Recusas e o fallback nunca entram no cache semantico: evita perpetuar a falha
   const cacheavel = !ehRespostaDeRecusa(resposta) && resposta !== RESPOSTA_FALLBACK;
   if (cacheElegivel && cacheavel) {
-    guardarCache(embedding, mensagem, perfilChave, resposta, fontes, gerado.modelo.nomeModelo, tokensUso);
+    guardarCache(embedding, mensagem, chaveCache, resposta, fontes, gerado.modelo.nomeModelo, tokensUso);
   }
   persistirConversa(
     conversaId,

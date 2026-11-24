@@ -312,6 +312,22 @@ de entrega.
   selecionarModelo cacheia o consumo de cotas por 10s (marcas de esgotado
   locais continuam valendo); registrarConsumo grava as 3 janelas em
   paralelo em vez de sequencial
+- Regras de saudacao e auto-conhecimento: a Nori so cumprimenta na
+  PRIMEIRA mensagem da conversa ou quando o usuario mesmo sauda
+  (coherence/intencao.ts ehSaudacao detecta saudo no inicio da mensagem);
+  fora disso nunca abre resposta com saudacao. A saudacao segue o
+  periodo do dia (manha/tarde/noite via data/hora injetada) + apresentacao
+  breve variada — sem formula fixa. /api/chat injeta "Contexto do turno"
+  (primeiro turno ou nao) no prompt. Auto-conhecimento ampliado: a Nori
+  responde quais modelos de IA usa (Gemini Flash + failover Groq/
+  Pollinations), quem a criou (Caue) e o que sabe fazer; ehPerguntaMeta
+  detecta essas perguntas e elas pulam RAG E embedding (resposta sai do
+  proprio prompt) — round-trips a menos no caminho critico. Cache
+  semantico: chave agora e perfil+periodo do dia (resposta de "bom dia"
+  nunca e servida a noite; entradas antigas sem periodo expiram em 72h).
+  Estado vazio do chat nao tem mais texto fixo de saudacao — a mensagem
+  de boas-vindas virou apresentacao neutra e a saudacao real e sempre
+  gerada pelo modelo
 
 ## Em andamento
 
