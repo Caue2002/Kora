@@ -476,10 +476,12 @@ de entrega.
 
 ## Em andamento
 
-- Deploy em producao na Vercel: projeto renomeado para `nori-agente-ai`.
-  ATENCAO: renomear o projeto NAO troca o dominio `.vercel.app` — o dominio
-  de producao precisa ser removido/adicionado em Settings > Domains do
-  projeto (kora-frontend-jade.vercel.app seguia ativo apos o rename)
+- Deploy em producao na Vercel: projeto `nori-agente-ai`, dominio de
+  producao `koradelivery.vercel.app`. O dominio antigo
+  `kora-frontend-jade.vercel.app` foi substituido e hoje responde 307
+  redirecionando para o novo (opcao "Redirecionar o dominio antigo").
+  ATENCAO: renomear o projeto NAO troca o dominio `.vercel.app` — mudancas
+  de dominio sao feitas em Settings > Domains do projeto
 - Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
   `_rodar_uma_vez_0005_0008.sql`
 - ~~Migration 0009_melhorias_observabilidade.sql PENDENTE~~ FEITO: tabelas

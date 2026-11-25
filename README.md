@@ -1,6 +1,6 @@
 # Kora — Agente Nori
 
-> **Experimente:** https://kora-frontend-jade.vercel.app · **Observabilidade:** `/metricas.html`
+> **Experimente:** https://koradelivery.vercel.app · **Observabilidade:** `/metricas.html`
 
 Agente de IA conversacional que tria, investiga e concilia **disputas de
 pedidos** em um app de delivery fictício (cliente × vendedor × entregador) —

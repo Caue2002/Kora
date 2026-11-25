@@ -6,7 +6,7 @@
   "protocolVersion": "0.3.0",
   "name": "Nori — Kora Delivery",
   "description": "Agente de IA do Kora (app de delivery ficticio) que tria e concilia disputas de pedidos: item faltante, item errado, qualidade, atraso/nao recebido e cobranca. Responde disputas, confirma pedidos por codigo, orienta sobre evidencias e gera parecer de conciliacao.",
-  "url": "https://kora-frontend-jade.vercel.app/api/a2a",
+  "url": "https://koradelivery.vercel.app/api/a2a",
   "version": "1.0.0",
   "preferredTransport": "JSONRPC",
   "defaultInputModes": ["text"],
