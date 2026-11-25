@@ -1056,6 +1056,9 @@ body {
 
 .msg-orbita-palco {
   position: relative;
+  /* z-index 0 cria stacking context: contem os filhos com z-index -1
+     (anel/ondas/feixes) para nao sumirem atras do fundo da mensagem */
+  z-index: 0;
   width: 22px;
   height: 22px;
 }
@@ -1196,6 +1199,61 @@ body {
   100% {
     transform: translate(var(--orbita-r), 0) scale(0.78) rotate(90deg);
     opacity: 0.68;
+  }
+}
+
+/* ===== movimento extra circular =====
+   Anel tracejado que gira devagar envolvendo a orbita e ondas (ecos)
+   que nascem no centro e expandem ate alem das esferas — tudo em
+   circulo, sem sair da orbita eliptica. Ficam atras das bolinhas via
+   z-index negativo (mesmo truque do feixe ::after) */
+.msg-orbita-anel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--orbita-r) * 2 + var(--orbita-tam));
+  height: calc(var(--orbita-r) * 2 + var(--orbita-tam));
+  margin: calc((var(--orbita-r) * -2 - var(--orbita-tam)) / 2) 0 0 calc((var(--orbita-r) * -2 - var(--orbita-tam)) / 2);
+  border-radius: 50%;
+  border: 1px dashed rgba(37, 99, 235, 0.4);
+  animation: anel-orbita 8s linear infinite;
+  z-index: -1;
+}
+
+/* rotacao continua do anel tracejado (circulo, entao rotate nao deforma) */
+@keyframes anel-orbita {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.msg-orbita-onda {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--orbita-r) * 2 + var(--orbita-tam));
+  height: calc(var(--orbita-r) * 2 + var(--orbita-tam));
+  margin: calc((var(--orbita-r) * -2 - var(--orbita-tam)) / 2) 0 0 calc((var(--orbita-r) * -2 - var(--orbita-tam)) / 2);
+  border-radius: 50%;
+  border: 1px solid rgba(37, 99, 235, 0.55);
+  animation: onda-orbita 2.6s ease-out infinite;
+  z-index: -1;
+}
+
+/* segunda onda defasada pela metade do ciclo para pulsos alternados */
+.msg-orbita-onda-2 {
+  animation-delay: -1.3s;
+}
+
+/* onda expansiva: nasce menor que a orbita, cresce alem dela e some */
+@keyframes onda-orbita {
+  0% {
+    transform: scale(0.55);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
   }
 }
 

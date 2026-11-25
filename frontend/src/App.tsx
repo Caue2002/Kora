@@ -234,6 +234,12 @@ function IndicadorCarregando({ grande = false }: { grande?: boolean }) {
         {[0, 1, 2].map((i) => (
           <span className="msg-orbita-ponto" key={i} />
         ))}
+        {/* anel tracejado girando devagar + ondas que expandem do centro:
+            movimento extra circular em volta da orbita (vem depois dos
+            pontos para nao deslocar os nth-child dos delays) */}
+        <span className="msg-orbita-anel" />
+        <span className="msg-orbita-onda" />
+        <span className="msg-orbita-onda msg-orbita-onda-2" />
       </span>
     </span>
   );

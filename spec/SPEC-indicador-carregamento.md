@@ -32,6 +32,12 @@ soltos de "carregando".
 - `animation-delay` negativo escalonado nos pontos (1/3 e 2/3 do ciclo =
   120/240 graus de defasagem entre as 3 esferas). A luz ocupa o primeiro
   filho do palco; os pontos sao os filhos 2, 3 e 4.
+- Movimento extra circular (acrescimo pos-V2): `.msg-orbita-anel`, anel
+  tracejado que gira continuamente em `linear` atras das esferas, e duas
+  `.msg-orbita-onda`, ondas que nascem no centro e expandem alem da orbita
+  com `ease-out` (delays defasados pela metade do ciclo). Ambos ficam
+  atras das bolinhas via `z-index: -1`, contidos pelo stacking context do
+  `.msg-orbita-palco` (`z-index: 0`).
 - No chat, o indicador aparece SOLTO no corpo da mensagem do assistente
   (`.msg-status-solto`), sem `.msg-balao` ao redor — a bolha so aparece
   quando ha conteudo.
@@ -69,3 +75,5 @@ soltos de "carregando".
   `contrast(20)`, movimento linear esquerda-direita. V2: orbita eliptica
   em pilula. Estado atual: circulo de esferas com luz de acompanhamento,
   sem pilula e sem bolha de chat ao redor do indicador.
+- Acrescimo: anel tracejado girando (`anel-orbita`) + ondas expansivas
+  (`onda-orbita`) em volta da orbita, mantendo tudo em circulo.

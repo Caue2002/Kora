@@ -34,9 +34,15 @@ Marcacao gerada (nao reescrever na mao):
   <span className="msg-orbita-palco" aria-hidden="true">
     <span className="msg-orbita-luz" />
     <span className="msg-orbita-ponto" /> x3
+    <span className="msg-orbita-anel" />
+    <span className="msg-orbita-onda" />
+    <span className="msg-orbita-onda msg-orbita-onda-2" />
   </span>
 </span>
 ```
+
+ATENCAO a ordem: anel e ondas vem DEPOIS dos pontos para nao deslocar os
+`nth-child` dos delays/`::after`. Tudo permanece em circulo.
 
 No chat, o indicador fica SOLTO no corpo da mensagem do assistente
 (`.msg-status-solto`), sem `.msg-balao` — a bolha so existe com conteudo.
@@ -47,7 +53,8 @@ No chat, o indicador fica SOLTO no corpo da mensagem do assistente
   as bolinhas + a luz). Define variaveis de tamanho: `--orbita-tam`,
   `--orbita-r`.
 - `.msg-orbita-palco` — container quadrado da orbita (22x22 padrao,
-  28x28 na variante `grande`). Nao tem fundo nem borda.
+  28x28 na variante `grande`). Nao tem fundo nem borda; `z-index: 0`
+  cria stacking context para conter os filhos com `z-index: -1`.
 - `.msg-orbita-luz` — luz azul de acompanhamento: radial-gradient azul
   desfocado que percorre a mesma orbita com `animation-delay: -0.666s`
   ("entre" as bolinhas). Ocupa o PRIMEIRO filho do palco.
@@ -62,13 +69,21 @@ No chat, o indicador fica SOLTO no corpo da mensagem do assistente
   sai de cada bolinha na direcao do movimento; pulsa com
   `@keyframes feixe-onda` (scaleX/opacity, delays -0.6s/-1.2s nos
   filhos 3 e 4). Os feixes se cruzam perto do centro.
+- `.msg-orbita-anel` — anel tracejado (`border: 1px dashed` azul) que
+  gira continuamente em `linear` (8s) envolvendo a orbita
+  (`@keyframes anel-orbita`, so `rotate`).
+- `.msg-orbita-onda` (+ `.msg-orbita-onda-2`) — duas ondas circulares que
+  nascem no centro e expandem alem da orbita (`@keyframes onda-orbita`,
+  `scale` 0.55→1.7 + fade, 2.6s `ease-out`, segunda defasada -1.3s).
+  Anel e ondas ficam atras das esferas via `z-index: -1`.
 - `.msg-orbita-grande` — variante para telas de transicao
   (ex.: "Encerrando..."): so muda as variaveis de tamanho e o palco.
 
 ## Ajustes
 
 - Velocidade: `animation-duration` em `.msg-orbita-ponto`,
-  `.msg-orbita-luz` e `.msg-orbita-ponto::after`.
+  `.msg-orbita-luz`, `.msg-orbita-ponto::after`, `.msg-orbita-anel` e
+  `.msg-orbita-onda`.
 - Tamanho/forma: variaveis `--orbita-tam`/`--orbita-r` na classe
   `.msg-orbita` (ou nova variante) + width/height de `.msg-orbita-palco`.
   Manter so as bolinhas + luz + feixes, sem container visivel.
