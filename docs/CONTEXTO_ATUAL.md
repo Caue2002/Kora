@@ -534,11 +534,10 @@ de entrega.
 - Migration 0012_metricas_modelo_backfill.sql PENDENTE: backfill de
   modelo/provedor em metricas_chat (cache_hit -> 'cache', erro ->
   'indisponivel'). Sem urgencia — so afeta o rotulo no painel
-- Migration 0013_cotas_por_modelo.sql PENDENTE: um id de cota por slot do
-  catalogo (ids 1-10, id = prioridade) no lugar dos ids compartilhados
-  1/3. Sem ela as RPCs de cota falham por FK (modelos_ia so aceita id
-  1-4) e o controle de cotas cai no fallback em memoria — funciona, mas
-  sem persistencia entre instancias serverless. Aplicar no SQL Editor
+- ~~Migration 0013_cotas_por_modelo.sql PENDENTE~~ FEITO: um id de cota
+  por slot do catalogo (ids 1-10, id = prioridade) no lugar dos ids
+  compartilhados 1/3. Verificado via PostgREST: modelos_ia tem as 10
+  linhas e a RPC aceitar id 10
 - Flake conhecido: tests/evals-juiz.test.ts > "guardrail: injecao de
   prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
   pedido de revelar o prompt de forma explicita). O eval deterministico
@@ -584,7 +583,8 @@ de entrega.
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
-  migrations 0005-0008 aplicadas via `_rodar_uma_vez_0005_0008.sql`
+  migrations 0005-0009, 0011 e 0013 aplicadas; 0010 e 0012 pendentes
+  (sem urgencia)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
