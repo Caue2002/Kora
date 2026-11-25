@@ -230,6 +230,7 @@ function IndicadorCarregando({ grande = false }: { grande?: boolean }) {
       aria-label="Carregando"
     >
       <span className="msg-orbita-palco" aria-hidden="true">
+        <span className="msg-orbita-luz" />
         {[0, 1, 2].map((i) => (
           <span className="msg-orbita-ponto" key={i} />
         ))}
@@ -1127,21 +1128,20 @@ function pararAudio() {
               <div key={m.id} className="msg msg-assistant msg-entra">
                 <img src="/logo.png" alt="" className={`msg-avatar${m.content === '' ? ' ativo' : ''}`} />
                 <div className="msg-assistant-corpo">
-                  <div className="msg-balao">
-                    {m.content === '' ? (
-                      <span className="msg-status-stream">
-                        <IndicadorCarregando />
-                        {(etapaStream === 'gerando' || etapaStream?.startsWith('tool:')) && (
-                          <span className="msg-status-texto">
-                            {etapaStream === 'gerando'
-                              ? 'Gerando resposta...'
-                              : rotuloTool(etapaStream.slice(5))}
-                          </span>
-                        )}
-                      </span>
-                    ) : (
-                      <>
-                        <TextoAssistente texto={m.content} />
+                  {m.content === '' ? (
+                    <span className="msg-status-stream msg-status-solto">
+                      <IndicadorCarregando />
+                      {(etapaStream === 'gerando' || etapaStream?.startsWith('tool:')) && (
+                        <span className="msg-status-texto">
+                          {etapaStream === 'gerando'
+                            ? 'Gerando resposta...'
+                            : rotuloTool(etapaStream.slice(5))}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    <div className="msg-balao">
+                      <TextoAssistente texto={m.content} />
                         {!(enviando && m === ultimaResposta) && (
                           <div className="msg-acoes">
                             <button
@@ -1167,9 +1167,8 @@ function pararAudio() {
                             </button>
                           </div>
                         )}
-                      </>
-                    )}
-                  </div>
+                    </div>
+                  )}
                   <div className="msg-meta">
                     {m.modelo}
                     {' · '}

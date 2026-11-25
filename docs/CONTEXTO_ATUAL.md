@@ -521,10 +521,11 @@ de entrega.
   o layout (sem isso o input ficava escondido atras do teclado no app).
   sw.js bumpado para kora-v3 para os apps instalados pegarem os novos
   assets
-- Indicador de espera do agente: 3 esferas em orbita eliptica, SEM pilula
-  ao redor — apenas as bolinhas (frente maior/mais nitida, tras
-  menor/translucida); substituiu as 4 bolinhas orbitais antigas e depois
-  o metaball; componente IndicadorCarregando no App.tsx
+- Indicador de espera do agente: 3 esferas girando entre si em circulo,
+  SEM pilula e SEM bolha de chat ao redor — apenas as bolinhas, mais uma
+  luz suave que percorre a mesma orbita (frente maior/mais nitida, tras
+  menor/translucida); substituiu as 4 bolinhas orbitais antigas, o
+  metaball e a orbita eliptica; componente IndicadorCarregando no App.tsx
 - Pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/index.html, fora do
   git via .gitignore): material visual para entrevistas com a dor do
   projeto, jornada de disputa em 6 passos (diagrama + chat animado),
@@ -536,8 +537,10 @@ de entrega.
   spec/SPEC-indicador-carregamento.md (V2) e skill
   .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
   com loading/espera DEVE usar o padrao, sem spinners/dots/textos soltos).
-  Indicador e so as bolinhas em orbita (sem pilula/borda): esferas de 6px,
-  orbita 26x16; variante grande 7px/32x20 para telas de transicao.
+  Indicador e so as bolinhas em circulo + luz de acompanhamento (sem
+  pilula/borda/bolha): esferas de 6px, orbita 22x22 raio 8; variante
+  grande 7px/28x28 raio 10 para telas de transicao. No chat aparece
+  solto (.msg-status-solto), sem .msg-balao.
   Aplicado tambem no modal de handoff ("Gerando resumo do caso..."), na
   tela "Encerrando..." (variante grande via custom properties de tamanho)
   e no painel /metricas.html (versao escura, esferas claras). CSS morto de
