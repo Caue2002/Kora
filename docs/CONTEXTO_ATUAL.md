@@ -525,6 +525,12 @@ de entrega.
   uma pilula com 3 gotas em efeito metaball (blur na camada das gotas +
   contrast no palco), com movimento continuo esquerda-centro-direita e
   delays negativos escalonados; componente IndicadorCarregando no App.tsx
+- Pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/index.html, fora do
+  git via .gitignore): material visual para entrevistas com a dor do
+  projeto, jornada de disputa em 6 passos (diagrama + chat animado),
+  arquitetura em camadas, fluxograma do /api/chat, estado do caso, failover
+  dos 10 modelos, qualidade/evals, capacidades, stack e protocolo de
+  atualizacao (Fluxo Kora/README.md). Spec em spec/SPEC-fluxo-kora-pagina.md
 - Indicador metaball padronizado em TODO o app: spec em
   spec/SPEC-indicador-carregamento.md e skill
   .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
