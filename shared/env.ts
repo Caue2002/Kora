@@ -29,13 +29,16 @@ export function supabaseServiceKey(): string {
 
 // Catalogo de modelos gratuitos ordenado do MAIS FORTE ao MAIS FRACO.
 // O primeiro da fila que tiver cota assume a request; os demais sao
-// failover em cascata. Cada slot tem id de cota PROPRIO (id = prioridade):
-// as cotas free-tier do Gemini sao por modelo, entao um 429 em um slot
+// failover em cascata. Cada slot tem id de cota PROPRIO: as cotas
+// free-tier do Gemini sao por modelo, entao um 429 em um slot
 // nao pode bloquear os irmaos — antes os slots compartilhavam ids 1 e 3
 // e um unico 429 derrubava varios modelos ao mesmo tempo.
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo.
 // Ordem (verificada com scripts/testar_modelos_gemini.mjs):
-// hydrogen/3.8/3.6/3.5/3-preview > groq > 3.5-lite > 3.1-lite(-preview) > pollinations
+// hydrogen/3.8/3.6/3.5/3-preview > groq > 3.5-lite > 3.1-lite(-preview)
+// > 3.7-flash/4-argon (candidatos, free tier a confirmar) > pollinations
+// O pollinations e o unico slot com id != prioridade (id 10 travado por
+// FK no banco; prioridade 12 para ficar por ultimo na fila).
 export function catalogoModelos(): ModeloConfig[] {
   return [
     {
@@ -111,12 +114,28 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 9,
     },
     {
+      id: 11,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_9', 'gemini-3.7-flash')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 10,
+    },
+    {
+      id: 12,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_10', 'gemini-4-argon')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 11,
+    },
+    {
       id: 10,
       provedor: 'pollinations',
       nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
       apiKey: env('POLLINATIONS_KEY', 'pollinations'),
       endpoint: 'https://text.pollinations.ai/openai',
-      prioridade: 10,
+      prioridade: 12,
     },
   ];
 }

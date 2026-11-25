@@ -44,11 +44,11 @@ Supabase: conversas, casos, conciliações, métricas, cotas, feedback
 **Inteligência**
 - RAG híbrido sobre 20 políticas de disputa (pgvector + busca textual)
 - Cache semântico de respostas (primeira mensagem) com chave por perfil +
-  período do dia
+  período do dia + código do pedido
 - Function calling: o próprio LLM decide consultar pedido ou buscar
   política no meio do raciocínio — tools executadas localmente e devolvidas
   como `functionResponse`, com streaming preservado
-- Failover em cascata de **10 modelos gratuitos** com cotas medidas no
+- Failover em cascata de **12 modelos gratuitos** com cotas medidas no
   Postgres por janela de tokens; failover imediato em stream morto
 - Coerência validada por heurística + regeneração corretiva; guardrails de
   saída contra vazamento de prompt e PII; anti-injection no prompt

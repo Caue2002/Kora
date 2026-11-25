@@ -35,7 +35,7 @@ Ao final de qualquer tarefa que mude algo que um entrevistador perguntaria:
    - `PASSOS` — jornada de 6 passos (titulo, descricao, passos internos,
      mensagens do chat demo)
    - `CASO` — ciclo de vida do caso (colunas `.diag-flow` horizontais)
-   - `MODELOS_FAILOVER` — cascata dos 10 modelos
+   - `MODELOS_FAILOVER` — cascata dos 12 modelos
 4. **Verifique**: abra `Fluxo Kora/index.html` no navegador — console sem
    erros, todos os diagramas renderizados, SEM scroll horizontal
    (`window-size` pequeno ou DevTools), chat demo animando ao clicar nos
