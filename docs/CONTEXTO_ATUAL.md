@@ -606,8 +606,10 @@ de entrega.
   toque, tecla e scroll; movimento do mouse NAO conta, a pedido do
   usuario) e por qualquer processo visivel da
   Nori (mensagens/etapaStream/enviando/tocandoId/handoff). Efeito
-  visual: overlay .aurora FIXO na tela inteira (z-index 2, acima do
-  conteudo do chat, abaixo de sidebar/modais) com 3 camadas de
+  visual: overlay .aurora FIXO na tela inteira ATRAS de todos os
+  componentes (z-index -1 dentro do stacking context do .layout via
+  isolation:isolate; .chat ficou com background transparente para a
+  luz aparecer — o body ja pinta a mesma cor) com 3 camadas de
   gradiente radial que derivam (keyframes transform) E mudam de lugar
   aleatoriamente — a cada ~10s cada luz ganha left/top aleatorio e
   desliza por transicao CSS de 10s (prefers-reduced-motion desliga

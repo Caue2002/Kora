@@ -45,13 +45,16 @@ body {
 .chat {
   display: flex;
   flex-direction: column;
-  /* A altura vem do .layout (100% do pai): NAO usar vh/dvh aqui — webviews
+  /* altura vem do .layout (100% do pai): NAO usar vh/dvh aqui — webviews
      do app instalado calculam essas unidades maiores que a tela visivel
      e o formulario de envio era cortado na base, forcando rolar a pagina */
   height: 100%;
   max-width: 720px;
   margin: 0 auto;
-  background: var(--fundo);
+  /* transparente de proposito: o body ja pinta var(--fundo), entao nada
+     muda visualmente — mas deixa a aurora de inatividade (z-index -1)
+     aparecer atras das mensagens quando ela esta acesa */
+  background: transparent;
 }
 
 /* topo discreto com acoes utilitarias: barra flutuante arredondada
@@ -611,6 +614,10 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  /* isolation cria stacking context: contem a aurora (z-index -1) para
+     ela ficar atras de todo o conteudo do app sem vazar para tras do
+     fundo da pagina */
+  isolation: isolate;
 }
 
 /* Webviews sem suporte a dvh: fixed inset:0 trava o app na area visivel
@@ -2061,11 +2068,13 @@ body {
 
 /* ===== aurora de inatividade (fundo de luz animado) =====
    Tres camadas de gradiente radial que derivam e MUDAM DE LUGAR
-   aleatoriamente pela tela inteira — overlay fixo acima do conteudo
-   (z-index 2: abaixo da sidebar 40 e dos modais 55/60, acima das
-   mensagens e do formulario). Luz ambiente sutil: opacidades baixas
-   para nao reduzir a legibilidade. Acende ao abrir o app e volta apos
-   60s sem atividade; qualquer interacao em qualquer lugar apaga.
+   aleatoriamente pela tela inteira — overlay fixo ATRAS de todos os
+   componentes (z-index -1 dentro do stacking context do .layout:
+   acima do fundo da pagina, abaixo de mensagens, formulario, sidebar
+   e modais). Luz ambiente visivel nas areas vazias do chat e atras
+   dos cards translucidos; os baloes seguem opacos acima dela.
+   Acende ao abrir o app e volta apos 60s sem atividade; qualquer
+   interacao em qualquer lugar apaga.
    A posicao/tamanho vem de inline style no App.tsx (alvos aleatorios
    a cada ~10s) com transicao de 10s — o keyframe aurora-deriva soma
    um vaivem continuo de transform por cima. pointer-events:none — os
@@ -2074,7 +2083,7 @@ body {
 .aurora {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: -1;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
