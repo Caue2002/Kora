@@ -30,10 +30,11 @@ Ao final de qualquer tarefa que mude algo que um entrevistador perguntaria:
    categorias, limites, numeros). Ajuste textos, numeros e dados dos
    diagramas.
 3. **Diagramas** — edite os arrays de dados no JS, nunca o HTML gerado:
-   - `FLUXO_MSG` — pipeline do `/api/chat` (6 estagios × nos)
+   - `FNOS` + `FARESTAS` + `ORDEM_FLUXO` — fluxograma real do `/api/chat`
+     (canvas absoluto + arestas SVG; nos tem x,y,w,h,k=io/p/d/s)
    - `PASSOS` — jornada de 6 passos (titulo, descricao, passos internos,
      mensagens do chat demo)
-   - `CASO` — ciclo de vida do caso (triagem→encerrado + handoff)
+   - `CASO` — ciclo de vida do caso (colunas `.diag-flow` horizontais)
    - `MODELOS_FAILOVER` — cascata dos 10 modelos
 4. **Verifique**: abra `Fluxo Kora/index.html` no navegador — console sem
    erros, todos os diagramas renderizados, SEM scroll horizontal
@@ -51,7 +52,8 @@ Ao final de qualquer tarefa que mude algo que um entrevistador perguntaria:
 - Zero dependencias externas — nao adicionar CDN, fontes ou imagens
   remotas. Logo local: `../frontend/public/logo.png`.
 - Tema CLARO (sidebar fixa + `main`); manter o layout `.layout`/`.side`.
-- Diagramas SEM scroll horizontal: usar `.fluxo-h` (flex-wrap) e
-  `.pipeline`/`.estagio` empilhados — nunca tabela larga sem wrap.
+- Diagramas SEM scroll horizontal na pagina: a barra de rolagem e INTERNA
+  (`.diag-scroll` overflow-x). Fluxograma usa canvas de 2280px — ao mover um
+  no, confira que nao sobrepoe outro (mesma faixa y) nem aresta.
 - Ao editar, preserve o comentario de protocolo no topo do `<style>`.
 - Impressoes: a pagina tem CSS `@media print` — `Ctrl+P` gera PDF limpo.
