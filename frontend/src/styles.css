@@ -45,11 +45,10 @@ body {
 .chat {
   display: flex;
   flex-direction: column;
-  /* 100vh e o fallback para webviews antigas (app instalado/PWA) que nao
-     conhecem dvh: sem ele a altura ficava automatica e o layout quebrava.
-     dvh acompanha a barra do navegador sumindo/aparecendo e o teclado */
-  height: 100vh;
-  height: 100dvh;
+  /* A altura vem do .layout (100% do pai): NAO usar vh/dvh aqui — webviews
+     do app instalado calculam essas unidades maiores que a tela visivel
+     e o formulario de envio era cortado na base, forcando rolar a pagina */
+  height: 100%;
   max-width: 720px;
   margin: 0 auto;
   background: var(--fundo);
@@ -634,6 +633,29 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+}
+
+/* Webviews sem suporte a dvh: fixed inset:0 trava o app na area visivel
+   (sem isso a altura ficava automatica e o layout quebrava por completo) */
+@supports not (height: 100dvh) {
+  .layout {
+    position: fixed;
+    inset: 0;
+    height: auto;
+  }
+}
+
+/* App instalado (PWA standalone, sem barra do navegador): algumas webviews
+   calculam 100vh/100dvh MAIOR que a tela visivel — a pagina inteira passava
+   a rolar e o input de envio ficava escondido embaixo. fixed inset:0 mede
+   o viewport real e elimina a rolagem da pagina; height:auto e necessario
+   para o bottom do inset vencer a altura declarada acima */
+@media (display-mode: standalone) {
+  .layout {
+    position: fixed;
+    inset: 0;
+    height: auto;
+  }
 }
 
 .chat {

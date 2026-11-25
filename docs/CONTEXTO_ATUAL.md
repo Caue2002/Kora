@@ -506,11 +506,19 @@ de entrega.
   terminando no RESPOSTA_FALLBACK se tudo falhar
 - Responsividade no app instalado/PWA: .chat e .layout usavam so 100dvh
   sem fallback — webviews que nao conhecem dvh (app instalado em Android
-  antigo) faziam a altura virar automatica e o layout quebrava. Agora ha
-  fallback height:100vh antes de 100dvh (.chat, .layout e max-height do
-  modal de handoff). Viewport meta ganhou
+  antigo) faziam a altura virar automatica e o layout quebrava. Correcao
+  em 2 camadas: (1) fallback height:100vh antes de 100dvh no .layout e
+  max-height do modal de handoff; (2) nos cenarios problematicos —
+  @media (display-mode: standalone) e @supports not (height:100dvh) — o
+  .layout vira position:fixed; inset:0;height:auto, que mede o viewport
+  real sem depender de unidades vh (webviews do PWA calculavam 100dvh
+  MAIOR que a tela: a pagina inteira rolava e o input de envio ficava
+  escondido embaixo). .chat passou a usar height:100% do layout em vez de
+  vh proprio. Viewport meta ganhou
   interactive-widget=resizes-content para o teclado virtual redimensionar
-  o layout (sem isso o input ficava escondido atras do teclado no app)
+  o layout (sem isso o input ficava escondido atras do teclado no app).
+  sw.js bumpado para kora-v3 para os apps instalados pegarem os novos
+  assets
 - Indicador de espera do agente reformulado: as 4 bolinhas que quicavam
   em sequencia viraram 4 pontos orbitando em um unico circulo — cada ponto
   tem rotor proprio com velocidade/direcao diferentes (2.6s/1.9s reverso/
