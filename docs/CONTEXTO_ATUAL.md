@@ -567,17 +567,19 @@ de entrega.
   duas ondas que nascem no centro e expandem alem da orbita
   (.msg-orbita-onda, scale+fade 2.6s defasadas). Tudo em circulo, atras
   das esferas (z-index -1 contido pelo stacking context do palco)
-- Novo slot de failover: Mistral La Plateforme (tier Experiment
-  gratuito, sem cartao) entrou como prioridade 7 — depois do Groq e antes
-  dos flash-lites do Gemini; Pollinations virou prioridade 11 (ultimo).
-  Catalogo agora tem 11 slots; o id de cota NAO e mais igual a
-  prioridade (Mistral usa id 11 para nao renumerar cotas existentes) —
-  envs MISTRAL_API_KEY e MISTRAL_MODEL (default mistral-small-latest).
-  Migration 0014_slot_mistral.sql PENDENTE de aplicar no Supabase
-  (amplia o check de modelos_ia.id para 11 e insere a linha; sem ela o
-  slot funciona so com cotas em memoria). Provedor OpenAI-compat usa o
-  fluxo comum de chamarOpenAICompat/stream — function calling segue so
-  no Gemini. Na Vercel: cadastrar MISTRAL_API_KEY e MISTRAL_MODEL
+- Slot de failover: Mistral La Plateforme entrou como prioridade 7 —
+  depois do Groq e antes dos flash-lites do Gemini; Pollinations virou
+  prioridade 11 (ultimo). Catalogo agora tem 11 slots; o id de cota NAO
+  e mais igual a prioridade (Mistral usa id 11 para nao renumerar cotas
+  existentes). ATENCAO: a Mistral NAO tem mais API gratuita — desde
+  ~nov/2026 o plano Free so cobre Vibe/Studio e a API exige billing
+  pago (pre-pago ou Pro); sem MISTRAL_API_KEY o slot fica inerte e o
+  codigo segue pronto caso se ative billing no futuro. Envs:
+  MISTRAL_API_KEY e MISTRAL_MODEL. Migration
+  0014_slot_mistral.sql PENDENTE de aplicar no Supabase (sem ela o slot
+  funciona so com cotas em memoria). Provedor OpenAI-compat usa o fluxo
+  comum de chamarOpenAICompat/stream — function calling segue so no
+  Gemini
 
 ## Em andamento
 
