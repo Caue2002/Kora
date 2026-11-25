@@ -5,9 +5,11 @@ description: Manter a pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/inde
 
 # Skill: fluxo-kora — pagina de apresentacao do Projeto Kora
 
-A pasta `Fluxo Kora/` contem `index.html` (pagina unica, sem dependencias,
-HTML+CSS+JS+SVG inline) e `README.md` (protocolo completo). A pasta esta no
-`.gitignore`: e material LOCAL de entrevista, nunca commitada.
+A pasta `Fluxo Kora/` contem `index.html` (pagina unica, tema claro,
+HTML+CSS+JS inline, SEM dependencias e SEM SVG — diagramas sao componentes
+HTML: `.pipeline/.estagio`, `.fluxo-h/.fno`, `.fail-lista`) e `README.md`
+(protocolo completo). A pasta esta no `.gitignore`: e material LOCAL de
+entrevista, nunca commitada.
 
 ## Quando usar
 
@@ -27,29 +29,29 @@ Ao final de qualquer tarefa que mude algo que um entrevistador perguntaria:
 2. **Ctrl+F no `index.html`** pelos termos afetados (modelos, endpoints,
    categorias, limites, numeros). Ajuste textos, numeros e dados dos
    diagramas.
-3. **Diagramas** — edite os arrays de dados no JS, nunca o HTML dos nos:
-   - `DIAGRAMA_PIPELINE` — fluxo do `/api/chat` (~30 nos)
-   - `DIAGRAMA_JORNADA` + `PASSOS` — jornada de 6 passos da disputa
-   - `DIAGRAMA_CASO` — extracao de estado e conciliacoes
-   - `DIAGRAMA_FAILOVER` + `MODELOS_FAILOVER` — cascata de modelos
-   - `CENARIOS` — mensagens do chat de demonstracao
-4. **Novos nos/arestas**: posicione em px dentro do `larguraNatural` do
-   diagrama (pipeline/caso/failover = 1060–1200, jornada = 1600), sem
-   sobrepor outros nos (espaco vertical ~80px por no).
-5. **Verifique**: abra `Fluxo Kora/index.html` no navegador — console sem
-   erros, 4 diagramas desenhados, sem nos sobrepostos, mobile ok
-   (`window-size` pequeno ou DevTools).
-6. **Docs**: se a feature mudou o projeto, `docs/CONTEXTO_ATUAL.md` ja deve
+3. **Diagramas** — edite os arrays de dados no JS, nunca o HTML gerado:
+   - `FLUXO_MSG` — pipeline do `/api/chat` (6 estagios × nos)
+   - `PASSOS` — jornada de 6 passos (titulo, descricao, passos internos,
+     mensagens do chat demo)
+   - `CASO` — ciclo de vida do caso (triagem→encerrado + handoff)
+   - `MODELOS_FAILOVER` — cascata dos 10 modelos
+4. **Verifique**: abra `Fluxo Kora/index.html` no navegador — console sem
+   erros, todos os diagramas renderizados, SEM scroll horizontal
+   (`window-size` pequeno ou DevTools), chat demo animando ao clicar nos
+   passos da trilha.
+5. **Docs**: se a feature mudou o projeto, `docs/CONTEXTO_ATUAL.md` ja deve
    ter sido atualizado pela skill `atualizar-documentacao` — mantenha os
    dois coerentes.
-7. **NAO commitar** `Fluxo Kora/` (ja esta no `.gitignore`). Commitar apenas
+6. **NAO commitar** `Fluxo Kora/` (ja esta no `.gitignore`). Commitar apenas
    `.gitignore`, `spec/` e `docs/` se mudaram.
 
 ## Regras de ouro do arquivo
 
-- Portugues SEM acentos nos textos (padrao do projeto); acentos so em
-  comentarios se necessario.
+- Portugues SEM acentos nos textos (padrao do projeto).
 - Zero dependencias externas — nao adicionar CDN, fontes ou imagens
   remotas. Logo local: `../frontend/public/logo.png`.
+- Tema CLARO (sidebar fixa + `main`); manter o layout `.layout`/`.side`.
+- Diagramas SEM scroll horizontal: usar `.fluxo-h` (flex-wrap) e
+  `.pipeline`/`.estagio` empilhados — nunca tabela larga sem wrap.
 - Ao editar, preserve o comentario de protocolo no topo do `<style>`.
 - Impressoes: a pagina tem CSS `@media print` — `Ctrl+P` gera PDF limpo.

@@ -1,6 +1,9 @@
-# Spec Delta: Pagina "Fluxo Kora" (apresentacao visual do projeto) — V1
+# Spec Delta: Pagina "Fluxo Kora" (apresentacao visual do projeto) — V2
 
-Status: implementado (uso local, fora do git)
+Status: implementado (uso local, fora do git). V2 (2025-11): reescrita com
+tema claro, sidebar de navegacao, diagramas em componentes HTML (sem SVG,
+sem scroll horizontal) e interacoes (trilha clicavel + chat demo animado,
+replay do pipeline, scroll-spy, reveal).
 
 ## Objective
 
@@ -9,7 +12,7 @@ Projeto Kora (agente Nori) para entrevistadores: a dor que resolve, o
 funcionamento ponta a ponta (com fluxogramas), a arquitetura, a resiliencia, a
 qualidade e a stack. Arquivo em `Fluxo Kora/` dentro do repositorio, **ignorado
 pelo git** (`.gitignore`: `Fluxo Kora/`), sem dependencias externas (HTML + CSS +
-JS + SVG inline), em portugues, aberto direto no navegador (`file://`).
+JS inline), em portugues, aberto direto no navegador (`file://`).
 
 Origem do pedido: o usuario quer um material visual para entrevistas, facil de
 explicar, e quer que a pagina seja mantida em sincronia com o projeto.
