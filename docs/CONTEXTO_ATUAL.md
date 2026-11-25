@@ -522,10 +522,12 @@ de entrega.
   sw.js bumpado para kora-v3 para os apps instalados pegarem os novos
   assets
 - Indicador de espera do agente: 3 esferas girando entre si em circulo,
-  SEM pilula e SEM bolha de chat ao redor — apenas as bolinhas, mais uma
-  luz suave que percorre a mesma orbita (frente maior/mais nitida, tras
-  menor/translucida); substituiu as 4 bolinhas orbitais antigas, o
-  metaball e a orbita eliptica; componente IndicadorCarregando no App.tsx
+  SEM pilula e SEM bolha de chat ao redor — apenas as bolinhas com luz
+  azul: glow ambiente na orbita (.msg-orbita-luz), brilho azul por
+  esfera (box-shadow) e feixe de luz azul tangente ao movimento em cada
+  uma (::after + feixe-onda, expandem e voltam). Substituiu as 4
+  bolinhas orbitais antigas, o metaball e a orbita eliptica; componente
+  IndicadorCarregando no App.tsx
 - Pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/index.html, fora do
   git via .gitignore): material visual para entrevistas com a dor do
   projeto, jornada de disputa em 6 passos (diagrama + chat animado),

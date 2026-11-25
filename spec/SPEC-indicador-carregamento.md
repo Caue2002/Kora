@@ -6,8 +6,11 @@ Status: aprovado (substitui o metaball da V1)
 
 Padronizar TODOS os indicadores de espera/processamento do app em um unico
 efeito visual: 3 esferas girando entre si em circulo, SEM pilula/borda e
-SEM bolha de mensagem ao redor — apenas as bolinhas — acompanhadas por
-uma luz suave que percorre a mesma orbita. Qualquer UI nova que mostre
+SEM bolha de mensagem ao redor — apenas as bolinhas — com luz azul:
+uma luz suave que percorre a orbita (`.msg-orbita-luz`), um brilho
+azul em cada esfera (box-shadow) e um feixe de luz azul em cada uma
+(`::after` tangente ao movimento, pulsando via `feixe-onda`). Qualquer
+UI nova que mostre
 loading DEVE reutilizar o padrao — sem spinners, pontinhos ou textos
 soltos de "carregando".
 
@@ -17,10 +20,15 @@ soltos de "carregando".
   `@keyframes orbita-agente` amostra a circunferencia a cada 45 graus com
   `translate` (raio via custom property `--orbita-r`, entao variantes nao
   duplicam keyframes) + `scale`/`opacity` para profundidade — esferas
-  "na frente" maiores e mais nitidas, "atras" menores e translucidas.
-- Luz de acompanhamento: `.msg-orbita-luz`, radial-gradient quente
-  desfocado que percorre a mesma orbita com delay proprio (-0.666s),
-  parecendo perseguir as bolinhas.
+  "na frente" maiores e mais nitidas, "atras" menores e translucidas
+  — + `rotate` final alinhando o feixe `::after` a tangente.
+- Luz azul de acompanhamento: `.msg-orbita-luz`, radial-gradient azul
+  desfocado que percorre a mesma orbita com delay proprio (-0.666s).
+- Brilho e feixes azuis por esfera: `box-shadow` azul em
+  `.msg-orbita-ponto` e `::after` — linha em gradiente alinhada a
+  tangente do movimento (o `rotate` do keyframes gira 45 graus por
+  passo), pulsando com `@keyframes feixe-onda` (scaleX + opacity,
+  delays defasados). Os feixes se cruzam perto do centro da orbita.
 - `animation-delay` negativo escalonado nos pontos (1/3 e 2/3 do ciclo =
   120/240 graus de defasagem entre as 3 esferas). A luz ocupa o primeiro
   filho do palco; os pontos sao os filhos 2, 3 e 4.

@@ -1065,7 +1065,7 @@ body {
   height: 28px;
 }
 
-/* luz que acompanha as bolinhas: radial-gradient quente desfocado,
+/* luz que acompanha as bolinhas: radial-gradient azul desfocado,
    percorre a mesma orbita com delay proprio para ficar "entre" elas */
 .msg-orbita-luz {
   position: absolute;
@@ -1075,7 +1075,7 @@ body {
   height: calc(var(--orbita-tam) * 2.4);
   margin: calc(var(--orbita-tam) * -1.2) 0 0 calc(var(--orbita-tam) * -1.2);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(194, 65, 12, 0.5), rgba(194, 65, 12, 0) 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.5), rgba(37, 99, 235, 0) 70%);
   filter: blur(2px);
   animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
   animation-delay: -0.666s;
@@ -1090,7 +1090,57 @@ body {
   margin: calc(var(--orbita-tam) / -2) 0 0 calc(var(--orbita-tam) / -2);
   border-radius: 50%;
   background: var(--usuario);
+  /* brilho azul envolvendo cada bolinha */
+  box-shadow:
+    0 0 4px rgba(37, 99, 235, 0.9),
+    0 0 10px rgba(37, 99, 235, 0.4);
   animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* feixe de luz azul: linha desfocada atraves de cada bolinha. A rotacao
+   vem do keyframes orbita-agente (tangente do movimento em cada angulo),
+   entao o feixe sempre aponta na direcao da orbita e os tres se cruzam
+   perto do centro. feixe-onda faz o feixe expandir e voltar */
+.msg-orbita-ponto::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--orbita-r) * 1.6);
+  height: 3px;
+  margin: -1.5px 0 0 calc(var(--orbita-r) * -0.8);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(37, 99, 235, 0),
+    rgba(37, 99, 235, 0.9),
+    rgba(37, 99, 235, 0)
+  );
+  filter: blur(1px);
+  z-index: -1;
+  animation: feixe-onda 1.8s ease-in-out infinite;
+}
+
+/* defasa os pulsos dos feixes para nao ficarem sincronizados */
+.msg-orbita-ponto:nth-child(3)::after {
+  animation-delay: -0.6s;
+}
+
+.msg-orbita-ponto:nth-child(4)::after {
+  animation-delay: -1.2s;
+}
+
+/* pulsacao do feixe: expande e volta suavemente */
+@keyframes feixe-onda {
+  0%,
+  100% {
+    transform: scaleX(0.5);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleX(1.35);
+    opacity: 1;
+  }
 }
 
 /* delays negativos ja distribuem as 3 esferas na orbita sem espera inicial
@@ -1107,42 +1157,44 @@ body {
 
 /* circulo amostrado a cada 45 graus: translate posiciona na circunferencia
    (raio via --orbita-r), scale+opacity simulam a profundidade — frente
-   (embaixo) maior/mais opaca, tras (cima) menor/mais translucida */
+   (embaixo) maior/mais opaca, tras (cima) menor/mais translucida.
+   O rotate final alinha o feixe ::after com a tangente do movimento:
+   a cada passo de 45 graus a tangente gira 45 graus tambem */
 @keyframes orbita-agente {
   0% {
-    transform: translate(var(--orbita-r), 0) scale(0.78);
+    transform: translate(var(--orbita-r), 0) scale(0.78) rotate(90deg);
     opacity: 0.68;
   }
   12.5% {
-    transform: translate(calc(var(--orbita-r) * 0.71), calc(var(--orbita-r) * 0.71)) scale(0.93);
+    transform: translate(calc(var(--orbita-r) * 0.71), calc(var(--orbita-r) * 0.71)) scale(0.93) rotate(135deg);
     opacity: 0.9;
   }
   25% {
-    transform: translate(0, var(--orbita-r)) scale(1);
+    transform: translate(0, var(--orbita-r)) scale(1) rotate(180deg);
     opacity: 1;
   }
   37.5% {
-    transform: translate(calc(var(--orbita-r) * -0.71), calc(var(--orbita-r) * 0.71)) scale(0.93);
+    transform: translate(calc(var(--orbita-r) * -0.71), calc(var(--orbita-r) * 0.71)) scale(0.93) rotate(225deg);
     opacity: 0.9;
   }
   50% {
-    transform: translate(calc(var(--orbita-r) * -1), 0) scale(0.78);
+    transform: translate(calc(var(--orbita-r) * -1), 0) scale(0.78) rotate(270deg);
     opacity: 0.68;
   }
   62.5% {
-    transform: translate(calc(var(--orbita-r) * -0.71), calc(var(--orbita-r) * -0.71)) scale(0.62);
+    transform: translate(calc(var(--orbita-r) * -0.71), calc(var(--orbita-r) * -0.71)) scale(0.62) rotate(315deg);
     opacity: 0.45;
   }
   75% {
-    transform: translate(0, calc(var(--orbita-r) * -1)) scale(0.55);
+    transform: translate(0, calc(var(--orbita-r) * -1)) scale(0.55) rotate(0deg);
     opacity: 0.35;
   }
   87.5% {
-    transform: translate(calc(var(--orbita-r) * 0.71), calc(var(--orbita-r) * -0.71)) scale(0.62);
+    transform: translate(calc(var(--orbita-r) * 0.71), calc(var(--orbita-r) * -0.71)) scale(0.62) rotate(45deg);
     opacity: 0.45;
   }
   100% {
-    transform: translate(var(--orbita-r), 0) scale(0.78);
+    transform: translate(var(--orbita-r), 0) scale(0.78) rotate(90deg);
     opacity: 0.68;
   }
 }
