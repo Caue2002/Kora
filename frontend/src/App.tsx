@@ -133,12 +133,13 @@ function novoId(): string {
 }
 
 // Alvo aleatorio de posicao para uma camada da aurora de inatividade:
-// left/top em % do container, variando o suficiente para a luz cruzar
-// a tela inteira sem ficar colada nas bordas
+// left/top em % do container com faixa ampla o bastante para a luz
+// alcancar as QUATRO bordas da tela (cima, baixo, esquerda e direita),
+// inclusive ficando parcialmente fora da viewport
 function posicaoAleatoriaAurora(): { left: number; top: number } {
   return {
-    left: -30 + Math.random() * 75,
-    top: -30 + Math.random() * 85,
+    left: -45 + Math.random() * 95,
+    top: -45 + Math.random() * 105,
   };
 }
 
@@ -474,8 +475,8 @@ export default function App() {
   // estatico nem previsivel
   const [alvosAurora, setAlvosAurora] = useState(() => [
     { left: -15, top: -20, size: 75 },
-    { left: 40, top: 45, size: 80 },
-    { left: 25, top: 30, size: 60 },
+    { left: 55, top: 40, size: 80 },
+    { left: 30, top: 35, size: 60 },
   ]);
   // Enquanto ha processamento visivel (stream, handoff, TTS, tela de
   // encerramento) o relogio congela: guarda o inicio para somar a pausa
@@ -487,7 +488,7 @@ export default function App() {
   // Aurora: ref do overlay para escrever as CSS vars do mouse, e refs da
   // posicao atual/alvo para a interpolacao suave (lerp via rAF)
   const auroraRef = useRef<HTMLDivElement>(null);
-  const mouseAuroraRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
+  const mouseAuroraRef = useRef({ x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 });
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -711,10 +712,19 @@ export default function App() {
     let raf = 0;
     const passo = () => {
       const m = mouseAuroraRef.current;
-      m.x += (m.tx - m.x) * 0.06;
-      m.y += (m.ty - m.y) * 0.06;
+      const nx = m.x + (m.tx - m.x) * 0.06;
+      const ny = m.y + (m.ty - m.y) * 0.06;
+      // velocidade suavizada do cursor: alimenta o leve tilt das camadas
+      // (a luz "deita" um pouco na direcao do movimento, como se fosse
+      // peso/molho reagindo ao ponteiro)
+      m.vx += ((nx - m.x) * 10 - m.vx) * 0.12;
+      m.vy += ((ny - m.y) * 10 - m.vy) * 0.12;
+      m.x = nx;
+      m.y = ny;
       auroraRef.current?.style.setProperty('--aurora-mx', m.x.toFixed(3));
       auroraRef.current?.style.setProperty('--aurora-my', m.y.toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-vx', m.vx.toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-vy', m.vy.toFixed(3));
       raf = requestAnimationFrame(passo);
     };
     raf = requestAnimationFrame(passo);
