@@ -1,13 +1,13 @@
 ---
 name: indicador-carregamento-metaball
-description: Padrao obrigatorio de indicador de carregamento do Projeto Kora. Use SEMPRE que for criar ou alterar qualquer UI que mostre espera/processamento (spinners, "carregando...", dots animados, estados de botao com loading). Define o componente IndicadorCarregando, as classes CSS metaball, variantes e onde o padrao ja esta aplicado.
+description: Padrao obrigatorio de indicador de carregamento do Projeto Kora. Use SEMPRE que for criar ou alterar qualquer UI que mostre espera/processamento (spinners, "carregando...", dots animados, estados de botao com loading). Define o componente IndicadorCarregando, as classes CSS de orbita, variantes e onde o padrao ja esta aplicado. (Nome da skill mantido por compatibilidade; o efeito atual e a orbita eliptica, ex-metaball.)
 ---
 
-# Indicador de Carregamento Metaball (Kora)
+# Indicador de Carregamento Orbita (Kora)
 
 ## Regra principal
 
-Todo indicador de carregamento/espera do app DEVE usar o efeito metaball
+Todo indicador de carregamento/espera do app DEVE usar o efeito de orbita
 padrao. NUNCA criar spinners CSS (`border` + `rotate`), pontinhos
 pulsando (`pulsa`), barras ou textos "carregando..." sem o indicador.
 
@@ -18,51 +18,52 @@ Spec de referencia: `spec/SPEC-indicador-carregamento.md`.
 Componente: `IndicadorCarregando` em `frontend/src/App.tsx`.
 
 ```tsx
-<IndicadorCarregando />        {/* pilula padrao (56x26) */}
-<IndicadorCarregando grande /> {/* variante grande p/ telas de transicao */}
+<IndicadorCarregando />        {/* pilula padrao (40x18) */}
+<IndicadorCarregando grande /> {/* variante p/ telas de transicao (48x22) */}
 ```
 
-Marcação gerada (nao reescrever na mao):
+Marcacao gerada (nao reescrever na mao):
 
 ```tsx
-<span className="msg-metaball" role="status" aria-label="Carregando">
-  <span className="msg-metaball-palco" aria-hidden="true">
-    <span className="msg-metaball-gotas">
-      <span className="gota" /> x3
-    </span>
+<span className="msg-orbita" role="status" aria-label="Carregando">
+  <span className="msg-orbita-palco" aria-hidden="true">
+    <span className="msg-orbita-ponto" /> x3
   </span>
 </span>
 ```
 
 ## Como funciona (CSS em frontend/src/styles.css)
 
-- `.msg-metaball` — pilula externa (fundo `--acento-claro`, borda sutil).
-  Define variaveis de tamanho: `--gota-tam`, `--curso`, `--palco-w`, `--palco-h`.
-- `.msg-metaball-palco` — container com `filter: contrast(20)` (contraste).
-- `.msg-metaball-gotas` — camada das gotas com `filter: blur(5px)` (blur).
-  Blur na camada + contrast no container = efeito metaball (gotas que se
-  fundem como liquido sem serrilhar bordas).
-- `.gota` — 3 pontos `var(--usuario)` animados por `@keyframes gota-metaball`
-  (esquerda -> centro -> direita -> centro -> esquerda, `ease-in-out`,
-  delays negativos escalonados e duracoes levemente diferentes).
-- `.msg-metaball-grande` — variante para telas de transicao
-  (ex.: "Encerrando..."): so muda as variaveis de tamanho.
+- `.msg-orbita` — pilula externa (fundo `--acento-claro`, borda sutil).
+  Sempre PEQUENA. Define variaveis de tamanho: `--orbita-tam`,
+  `--orbita-rx`, `--orbita-ry`.
+- `.msg-orbita-palco` — container da orbita (22x12 no padrao).
+- `.msg-orbita-ponto` — 3 esferas `var(--usuario)` animadas por
+  `@keyframes orbita-agente`: elipse amostrada a cada 45 graus via
+  `translate` (raios vem das custom properties, entao variantes nao
+  duplicam keyframes) + `scale`/`opacity` para profundidade — frente
+  maior/mais nitida, tras menor/translucida. `cubic-bezier(0.45,0,0.55,1)`,
+  duracao 4s, delays negativos -1.333s/-2.667s (defasagem de 120/240
+  graus).
+- `.msg-orbita-grande` — variante para telas de transicao
+  (ex.: "Encerrando..."): so muda as variaveis de tamanho e o palco.
 
 ## Ajustes
 
-- Velocidade: `animation-duration` em `.gota:nth-child(n)`.
-- Tamanho: variaveis `--gota-tam`/`--curso`/`--palco-w`/`--palco-h` na classe
-  `.msg-metaball` (ou nova variante).
-- Fusao: `blur(5px)` em `.msg-metaball-gotas` e `contrast(20)` em
-  `.msg-metaball-palco`.
+- Velocidade: `animation-duration` em `.msg-orbita-ponto`.
+- Tamanho/forma: variaveis `--orbita-tam`/`--orbita-rx`/`--orbita-ry` na
+  classe `.msg-orbita` (ou nova variante) + width/height da pilula e do
+  `.msg-orbita-palco`. Manter a pilula pequena.
+- Intensidade da profundidade: `scale`/`opacity` dentro de
+  `@keyframes orbita-agente`.
 
 ## Fora do React (HTML estatico)
 
 Paginas estaticas (ex.: `frontend/public/metricas.html`, tema escuro)
-replicam o mesmo principio com classes proprias (`metaball`, `metaball-palco`,
-`metaball-gotas`) e cores invertidas: gotas CLARAS sobre palco ESCURO.
-Manter `filter: blur + contrast`, 3 gotas, `ease-in-out` e delays
-escalonados — so mudam cores e medidas.
+replicam o mesmo principio com classes proprias (`orbita`, `orbita-palco`,
+`orbita-ponto`) e cores invertidas: esferas CLARAS sobre pilula ESCURA.
+Manter 3 esferas, orbita eliptica, `cubic-bezier` e delays escalonados —
+so mudam cores e medidas.
 
 ## Acessibilidade
 

@@ -123,10 +123,10 @@ function render(m) {
 async function carregar() {
   const kpis = document.getElementById('kpis');
   const btn = document.getElementById('btn-atualizar');
-  const metaball = document.getElementById('metaball-status');
+  const orbita = document.getElementById('orbita-status');
   try {
     btn.disabled = true;
-    if (metaball) metaball.style.display = 'inline-flex';
+    if (orbita) orbita.style.display = 'inline-flex';
     const res = await fetch('/api/metricas', { cache: 'no-store' });
     if (!res.ok) throw new Error(`API respondeu HTTP ${res.status}`);
     const dados = await res.json().catch(() => null);
@@ -141,7 +141,7 @@ async function carregar() {
     document.getElementById('atualizado').textContent = '';
   } finally {
     btn.disabled = false;
-    if (metaball) metaball.style.display = 'none';
+    if (orbita) orbita.style.display = 'none';
   }
 }
 

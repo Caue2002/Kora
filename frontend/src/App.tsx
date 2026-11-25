@@ -218,22 +218,21 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
-// Indicador de carregamento padrao do app: 3 gotas em efeito metaball dentro
-// de uma pilula sutil. Usar SEMPRE que houver espera/processing visivel —
-// ver .devin/skills/indicador-carregamento-metaball e spec/SPEC-indicador-carregamento.md
+// Indicador de carregamento padrao do app: 3 esferas em orbita eliptica
+// dentro de uma pilula sutil. Usar SEMPRE que houver espera/processing
+// visivel — ver .devin/skills/indicador-carregamento-metaball e
+// spec/SPEC-indicador-carregamento.md
 function IndicadorCarregando({ grande = false }: { grande?: boolean }) {
   return (
     <span
-      className={`msg-metaball${grande ? ' msg-metaball-grande' : ''}`}
+      className={`msg-orbita${grande ? ' msg-orbita-grande' : ''}`}
       role="status"
       aria-label="Carregando"
     >
-      <span className="msg-metaball-palco" aria-hidden="true">
-        <span className="msg-metaball-gotas">
-          {[0, 1, 2].map((i) => (
-            <span className="gota" key={i} />
-          ))}
-        </span>
+      <span className="msg-orbita-palco" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <span className="msg-orbita-ponto" key={i} />
+        ))}
       </span>
     </span>
   );

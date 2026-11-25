@@ -1024,26 +1024,28 @@ body {
   gap: 10px;
 }
 
-/* ===== indicador de carregamento: metaball =====
-   Tres gotas escuras percorrem a mesma linha dentro de uma pilula clara.
-   O blur fica na camada das gotas e o contrast no palco: juntos eles
-   suavizam as bordas e fundem as gotas quando se aproximam.
+/* ===== indicador de carregamento: orbita =====
+   Tres esferas pequenas percorrem uma orbita eliptica continua dentro de
+   uma pilula sutil. As que passam "na frente" ficam maiores e mais
+   opacas; as de tras ficam menores e mais sutis — sensacao de
+   profundidade leve sem libs nem filtros.
+   O keyframes usa as custom properties --orbita-rx/--orbita-ry, entao as
+   variantes mudam so as variaveis, sem duplicar animacao.
    Ajustes rapidos:
-   - velocidade: altere animation-duration em .gota (menor = mais rapido)
-   - tamanho: altere width/height de .msg-metaball, .msg-metaball-palco e .gota
-   - intensidade da fusao: altere blur(5px) e contrast(20) */
-.msg-metaball {
-  /* variaveis de tamanho: herdam para palco/gotas e keyframes */
-  --gota-tam: 9px;
-  --curso: 14px;
-  --palco-w: 42px;
-  --palco-h: 16px;
+   - velocidade: animation-duration em .msg-orbita-ponto
+   - tamanho/forma: --orbita-tam, --orbita-rx, --orbita-ry e
+     width/height de .msg-orbita */
+.msg-orbita {
+  /* variaveis de tamanho: herdam para palco/pontos e keyframes */
+  --orbita-tam: 5px;
+  --orbita-rx: 7px;
+  --orbita-ry: 3.5px;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 26px;
+  width: 40px;
+  height: 18px;
   border-radius: 999px;
   background: var(--acento-claro);
   border: 1px solid var(--agente-borda);
@@ -1052,75 +1054,89 @@ body {
   overflow: hidden;
 }
 
-/* variante grande para telas de transicao (ex.: "Encerrando...") */
-.msg-metaball-grande {
-  --gota-tam: 12px;
-  --curso: 19px;
-  --palco-w: 56px;
-  --palco-h: 22px;
-  width: 72px;
-  height: 34px;
+/* variante um pouco maior para telas de transicao (ex.: "Encerrando..."),
+   ainda assim bem menor que a pilula antiga */
+.msg-orbita-grande {
+  --orbita-tam: 6px;
+  --orbita-rx: 9px;
+  --orbita-ry: 4px;
+  width: 48px;
+  height: 22px;
 }
 
-.msg-metaball-palco {
+.msg-orbita-palco {
   position: relative;
-  width: var(--palco-w);
-  height: var(--palco-h);
-  border-radius: 999px;
-  background: var(--cartao);
-  filter: contrast(20);
+  width: 22px;
+  height: 12px;
 }
 
-.msg-metaball-gotas {
-  position: absolute;
-  inset: 0;
-  filter: blur(5px);
+.msg-orbita-grande .msg-orbita-palco {
+  width: 26px;
+  height: 15px;
 }
 
-.msg-metaball-gotas .gota {
+.msg-orbita-ponto {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: var(--gota-tam);
-  height: var(--gota-tam);
-  margin: calc(var(--gota-tam) / -2) 0 0 calc(var(--gota-tam) / -2);
+  width: var(--orbita-tam);
+  height: var(--orbita-tam);
+  margin: calc(var(--orbita-tam) / -2) 0 0 calc(var(--orbita-tam) / -2);
   border-radius: 50%;
   background: var(--usuario);
-  animation: gota-metaball 3.2s ease-in-out infinite;
+  animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
-/* delays negativos ja distribuem as gotas na animacao sem espera inicial */
-.msg-metaball-gotas .gota:nth-child(1) {
-  animation-duration: 3.2s;
-  animation-delay: 0s;
+/* delays negativos ja distribuem as 3 esferas na orbita sem espera inicial
+   (1/3 e 2/3 do ciclo = 120 e 240 graus de defasagem) */
+.msg-orbita-ponto:nth-child(2) {
+  animation-delay: -1.333s;
 }
 
-.msg-metaball-gotas .gota:nth-child(2) {
-  animation-duration: 2.8s;
-  animation-delay: -1.05s;
+.msg-orbita-ponto:nth-child(3) {
+  animation-delay: -2.667s;
 }
 
-.msg-metaball-gotas .gota:nth-child(3) {
-  animation-duration: 3.5s;
-  animation-delay: -2.1s;
-}
-
-/* percurso continuo: esquerda -> centro -> direita -> centro -> esquerda.
-   O scale maior no centro ajuda as gotas a se fundirem como liquido */
-@keyframes gota-metaball {
-  0%,
-  100% {
-    transform: translateX(calc(var(--curso) * -1)) scale(0.72);
-    opacity: 0.55;
+/* orbita eliptica amostrada a cada 45 graus: translate posiciona na
+   elipse (rx/ry via custom properties), scale+opacity simulam a
+   profundidade — frente (embaixo, ry positivo) maior/mais opaca,
+   tras (cima) menor/mais translucida */
+@keyframes orbita-agente {
+  0% {
+    transform: translate(var(--orbita-rx), 0) scale(0.78);
+    opacity: 0.68;
   }
-  25%,
-  75% {
-    transform: translateX(0) scale(1.28);
+  12.5% {
+    transform: translate(calc(var(--orbita-rx) * 0.71), calc(var(--orbita-ry) * 0.71)) scale(0.93);
+    opacity: 0.9;
+  }
+  25% {
+    transform: translate(0, var(--orbita-ry)) scale(1);
     opacity: 1;
   }
+  37.5% {
+    transform: translate(calc(var(--orbita-rx) * -0.71), calc(var(--orbita-ry) * 0.71)) scale(0.93);
+    opacity: 0.9;
+  }
   50% {
-    transform: translateX(var(--curso)) scale(0.72);
-    opacity: 0.55;
+    transform: translate(calc(var(--orbita-rx) * -1), 0) scale(0.78);
+    opacity: 0.68;
+  }
+  62.5% {
+    transform: translate(calc(var(--orbita-rx) * -0.71), calc(var(--orbita-ry) * -0.71)) scale(0.62);
+    opacity: 0.45;
+  }
+  75% {
+    transform: translate(0, calc(var(--orbita-ry) * -1)) scale(0.55);
+    opacity: 0.35;
+  }
+  87.5% {
+    transform: translate(calc(var(--orbita-rx) * 0.71), calc(var(--orbita-ry) * -0.71)) scale(0.62);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(var(--orbita-rx), 0) scale(0.78);
+    opacity: 0.68;
   }
 }
 

@@ -45,17 +45,22 @@
   }
   .btn-atualizar:hover { border-color: var(--ciano); }
   .erro-caixa { background: #2a1418; border: 1px solid #7f1d1d; color: #fca5a5; }
-  /* indicador metaball padrao do Kora — versao escura: gotas claras sobre palco escuro */
-  .metaball { display: none; align-items: center; width: 44px; height: 20px; border-radius: 999px; background: var(--card); border: 1px solid var(--borda); overflow: hidden; flex-shrink: 0; }
-  .metaball-palco { position: relative; width: 32px; height: 12px; margin: 0 auto; border-radius: 999px; background: var(--bg); filter: contrast(18); }
-  .metaball-gotas { position: absolute; inset: 0; filter: blur(4px); }
-  .metaball-gotas i { position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--texto); animation: gota-metaball 3s ease-in-out infinite; }
-  .metaball-gotas i:nth-child(2) { animation-duration: 2.6s; animation-delay: -0.9s; }
-  .metaball-gotas i:nth-child(3) { animation-duration: 3.3s; animation-delay: -1.8s; }
-  @keyframes gota-metaball {
-    0%, 100% { transform: translateX(-10px) scale(0.72); opacity: 0.55; }
-    25%, 75% { transform: translateX(0) scale(1.28); opacity: 1; }
-    50% { transform: translateX(10px) scale(0.72); opacity: 0.55; }
+  /* indicador de orbita padrao do Kora — versao escura: esferas claras em orbita eliptica */
+  .orbita { display: none; align-items: center; justify-content: center; width: 40px; height: 18px; border-radius: 999px; background: var(--card); border: 1px solid var(--borda); overflow: hidden; flex-shrink: 0; }
+  .orbita-palco { position: relative; width: 22px; height: 12px; }
+  .orbita-ponto { position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--texto); animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+  .orbita-ponto:nth-child(2) { animation-delay: -1.333s; }
+  .orbita-ponto:nth-child(3) { animation-delay: -2.667s; }
+  @keyframes orbita-agente {
+    0%    { transform: translate(7px, 0) scale(0.78); opacity: 0.68; }
+    12.5% { transform: translate(5px, 2.5px) scale(0.93); opacity: 0.9; }
+    25%   { transform: translate(0, 3.5px) scale(1); opacity: 1; }
+    37.5% { transform: translate(-5px, 2.5px) scale(0.93); opacity: 0.9; }
+    50%   { transform: translate(-7px, 0) scale(0.78); opacity: 0.68; }
+    62.5% { transform: translate(-5px, -2.5px) scale(0.62); opacity: 0.45; }
+    75%   { transform: translate(0, -3.5px) scale(0.55); opacity: 0.35; }
+    87.5% { transform: translate(5px, -2.5px) scale(0.62); opacity: 0.45; }
+    100%  { transform: translate(7px, 0) scale(0.78); opacity: 0.68; }
   }
   @media (max-width: 560px) {
     body { padding: 12px; }
@@ -72,7 +77,7 @@
       <div class="sub">Projeto Kora — métricas agregadas de produção (metricas_chat)</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span class="metaball" id="metaball-status" hidden aria-hidden="true"><span class="metaball-palco"><span class="metaball-gotas"><i></i><i></i><i></i></span></span></span>
+      <span class="orbita" id="orbita-status" hidden aria-hidden="true"><span class="orbita-palco"><span class="orbita-ponto"></span><span class="orbita-ponto"></span><span class="orbita-ponto"></span></span></span>
       <span class="atualizado" id="atualizado">carregando…</span>
       <button class="btn-atualizar" id="btn-atualizar" type="button">Atualizar</button>
     </div>

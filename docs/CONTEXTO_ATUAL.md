@@ -521,10 +521,10 @@ de entrega.
   o layout (sem isso o input ficava escondido atras do teclado no app).
   sw.js bumpado para kora-v3 para os apps instalados pegarem os novos
   assets
-- Indicador de espera do agente reformulado: as 4 bolinhas orbitais viraram
-  uma pilula com 3 gotas em efeito metaball (blur na camada das gotas +
-  contrast no palco), com movimento continuo esquerda-centro-direita e
-  delays negativos escalonados; componente IndicadorCarregando no App.tsx
+- Indicador de espera do agente: 3 esferas em orbita eliptica dentro de
+  uma pilula sutil (frente maior/mais nitida, tras menor/translucida),
+  substituindo as 4 bolinhas orbitais antigas; componente
+  IndicadorCarregando no App.tsx
 - Pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/index.html, fora do
   git via .gitignore): material visual para entrevistas com a dor do
   projeto, jornada de disputa em 6 passos (diagrama + chat animado),
@@ -532,15 +532,17 @@ de entrega.
   dos 10 modelos, qualidade/evals, capacidades, stack e protocolo de
   atualizacao (Fluxo Kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md
-- Indicador metaball padronizado em TODO o app: spec em
-  spec/SPEC-indicador-carregamento.md e skill
+- Indicador de orbita padronizado em TODO o app: spec em
+  spec/SPEC-indicador-carregamento.md (V2) e skill
   .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
   com loading/espera DEVE usar o padrao, sem spinners/dots/textos soltos).
-  Aplicado tambem no modal de handoff ("Gerando resumo do caso..."), na
-  tela "Encerrando..." (variante grande via custom properties de tamanho)
-  e no painel /metricas.html (versao escura, gotas claras). CSS morto de
+  Pilula sempre pequena: 40x18 padrao, 48x22 na variante grande. Aplicado
+  tambem no modal de handoff ("Gerando resumo do caso..."), na tela
+  "Encerrando..." (variante grande via custom properties de tamanho) e no
+  painel /metricas.html (versao escura, esferas claras). CSS morto de
   indicadores antigos (.msg-digitando, .dot, pulsa, .encerrando-spinner)
-  removido
+  removido. Historico: V1 era metaball (blur+contrast, gotas fundidas)
+  com movimento linear; substituida pela orbita por decisao de design
 
 ## Em andamento
 
