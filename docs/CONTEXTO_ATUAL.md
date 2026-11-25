@@ -617,10 +617,10 @@ de entrega.
   por slot do catalogo (ids 1-10, id = prioridade) no lugar dos ids
   compartilhados 1/3. Verificado via PostgREST: modelos_ia tem as 10
   linhas e a RPC aceitar id 10
-- Migration 0014_candidatos_gemini.sql PENDENTE: amplia o check de
-  modelos_ia.id para 1-12, insere gemini-3.7-flash (id 11, prio 10) e
-  gemini-4-argon (id 12, prio 11) e move pollinations para prioridade
-  12. Sem urgencia — sem ela os slots novos caem no controle em memoria
+- ~~Migration 0014_candidatos_gemini.sql PENDENTE~~ FEITO: check de
+  modelos_ia.id ampliado para 1-12, gemini-3.7-flash (id 11, prio 10) e
+  gemini-4-argon (id 12, prio 11) inseridos e pollinations movido para
+  prioridade 12. Verificado via PostgREST: as 12 linhas estao corretas
 - Re-teste pendente: quando a cota diaria do Gemini renovar, rodar
   scripts/testar_modelos_gemini.mjs para confirmar se gemini-3.7-flash
   e gemini-4-argon tem free tier de verdade (os dois responderam 429,
