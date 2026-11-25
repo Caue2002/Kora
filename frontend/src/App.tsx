@@ -451,6 +451,37 @@ export default function App() {
   conversasRef.current = conversas;
   const encerrarRef = useRef<() => void>(() => {});
 
+  // Relogio de inatividade (SPEC-fundo-inatividade + SPEC-inatividade-chat):
+  // ultimaAtividadeRef guarda o timestamp do ultimo sinal de vida — clique,
+  // toque, tecla, scroll, roda do mouse ou qualquer processo visivel da
+  // Nori. segundosInativo alimenta a aurora e o aviso de encerramento.
+  const ultimaAtividadeRef = useRef(Date.now());
+  const [segundosInativo, setSegundosInativo] = useState(0);
+  // Enquanto ha processamento visivel (stream, handoff, TTS, tela de
+  // encerramento) o relogio congela: guarda o inicio para somar a pausa
+  // de volta na ultima atividade quando o processo terminar
+  const processamentoInicioRef = useRef<number | null>(null);
+  // Ref para o tick de inatividade chamar o encerramento sem fechar sobre
+  // estado velho (conversaId/mensagens do render em que o efeito rodou)
+  const encerrarAtendimentoRef = useRef<() => void>(() => {});
+
+  // Tela inicial = conversa sem mensagens (escolha de perfil ou chat
+  // vazio): a aurora fica sempre acesa nela, sem depender de timer
+  const telaInicial = mensagens.length === 0;
+  // Processamento visivel na interface: stream da Nori, geracao de
+  // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
+  const processando =
+    enviando || handoff === 'carregando' || encerrandoEm !== null || tocandoId !== null;
+  // Timer de encerramento so roda com chat em andamento (ha caso aberto)
+  const temChat = mensagens.length > 0 || enviando;
+  // Aurora: imediata na tela inicial; dentro do chat so apos 60s sem
+  // nenhuma atividade (clique, tecla, scroll ou processo da Nori)
+  const mostrarAurora = telaInicial || (!processando && segundosInativo >= 60);
+  // Aviso de encerramento por inatividade: aparece no ultimo minuto antes
+  // do encerramento automatico (5min sem atividade com chat em andamento)
+  const mostrarAvisoInatividade = temChat && !processando && segundosInativo >= 240;
+  const segundosParaEncerrar = Math.max(1, 300 - segundosInativo);
+
   // Na primeira carga, abre a conversa mais recente que NAO foi encerrada:
   // conversa encerrada pelo usuario nunca volta sozinha ao atualizar a pagina
   useEffect(() => {
@@ -584,6 +615,81 @@ export default function App() {
     const t = setTimeout(() => setEncerrandoEm((v) => (v === null ? null : v - 1)), 1000);
     return () => clearTimeout(t);
   }, [encerrandoEm]);
+
+  // Listeners globais de atividade do usuario: clique/toque (pointerdown
+  // cobre mouse, touch e caneta), movimento do mouse, tecla, roda e scroll
+  // (capture pega scroll de qualquer container) zeram os timers de
+  // inatividade. No mobile todo input e touch — pointerdown cobre tudo.
+  useEffect(() => {
+    const marcarAtividade = () => {
+      ultimaAtividadeRef.current = Date.now();
+    };
+    const opcoes = { passive: true };
+    window.addEventListener('pointerdown', marcarAtividade, opcoes);
+    window.addEventListener('pointermove', marcarAtividade, opcoes);
+    window.addEventListener('keydown', marcarAtividade, opcoes);
+    window.addEventListener('wheel', marcarAtividade, opcoes);
+    window.addEventListener('touchmove', marcarAtividade, opcoes);
+    window.addEventListener('scroll', marcarAtividade, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener('pointerdown', marcarAtividade);
+      window.removeEventListener('pointermove', marcarAtividade);
+      window.removeEventListener('keydown', marcarAtividade);
+      window.removeEventListener('wheel', marcarAtividade);
+      window.removeEventListener('touchmove', marcarAtividade);
+      window.removeEventListener('scroll', marcarAtividade, true);
+    };
+  }, []);
+
+  // Atividade da agente tambem conta: stream de tokens, troca de etapa de
+  // tool, envio, TTS e handoff atualizam a ultima atividade — o timer so
+  // corre quando a tela esta completamente parada
+  useEffect(() => {
+    ultimaAtividadeRef.current = Date.now();
+  }, [mensagens, etapaStream, enviando, tocandoId, handoff]);
+
+  // Congela o relogio durante qualquer processamento: o tempo ocioso nao
+  // corre nem zera — ao terminar, a contagem retoma de onde parou
+  useEffect(() => {
+    if (processando) {
+      if (processamentoInicioRef.current === null) {
+        processamentoInicioRef.current = Date.now();
+      }
+      return;
+    }
+    const inicio = processamentoInicioRef.current;
+    if (inicio !== null) {
+      processamentoInicioRef.current = null;
+      // Empurra a ultima atividade pelo tempo processado, sem deixar o
+      // relogio ficar "no futuro" quando a atividade da agente ja renovou
+      // o timestamp durante o processo (ex.: tokens do stream)
+      ultimaAtividadeRef.current = Math.min(
+        Date.now(),
+        ultimaAtividadeRef.current + (Date.now() - inicio),
+      );
+    }
+  }, [processando]);
+
+  // Relogio de 1s: mede a inatividade efetiva (congelada durante o
+  // processamento) e dispara o encerramento automatico aos 5min sem
+  // nenhuma atividade com chat em andamento — imediato, sem a contagem
+  // de 3s do encerramento manual. O proprio tick nao conta como
+  // atividade. O aviso com contagem regressiva aparece a partir de 4min.
+  useEffect(() => {
+    const tick = () => {
+      const agora = processamentoInicioRef.current ?? Date.now();
+      const ms = Math.max(0, agora - ultimaAtividadeRef.current);
+      setSegundosInativo(Math.floor(ms / 1000));
+      if (temChat && !processando && ms >= 5 * 60 * 1000) {
+        // Renova o timestamp antes de encerrar: evita disparo duplo
+        // enquanto o estado novo ainda nao propagou para o proximo tick
+        ultimaAtividadeRef.current = Date.now();
+        encerrarAtendimentoRef.current();
+      }
+    };
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [temChat, processando]);
 
   // Define o perfil do usuario (cliente, parceiro ou entregador) e persiste
   function escolherPerfil(p: PerfilId) {
@@ -873,6 +979,7 @@ export default function App() {
     setEncerrandoEm((v) => v ?? 3);
   }
   encerrarRef.current = iniciarEncerramento;
+  encerrarAtendimentoRef.current = encerrarAtendimento;
 
   // "Baixar app": dispara o prompt nativo de instalacao do PWA quando o
   // navegador oferece (Chrome/Edge); sem suporte mostra instrucoes manuais
@@ -1051,6 +1158,14 @@ function pararAudio() {
       />
 
       <div className="chat">
+        {/* Aurora de inatividade: sempre acesa na tela inicial; dentro do
+            chat so depois de 60s sem nenhuma atividade. Fica atras do
+            conteudo (pointer-events:none) — ver styles.css */}
+        <div className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
+          <i className="aurora-camada aurora-camada-1" />
+          <i className="aurora-camada aurora-camada-2" />
+          <i className="aurora-camada aurora-camada-3" />
+        </div>
         <header className="chat-topo">
           <div className="chat-titulo-bloco">
             <img src="/logo.png" alt="Nori" className="chat-logo" />
@@ -1454,6 +1569,20 @@ function pararAudio() {
               maxLength={4000}
               rows={1}
               enterKeyHint="enter"
+              onKeyDown={(e) => {
+                // Enter envia so no desktop (pointer fino); Shift+Enter e
+                // sempre quebra de linha. No mobile nao ha teclado fisico
+                // confiavel e o botao Enviar segue sendo o unico caminho
+                if (
+                  e.key === 'Enter' &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing &&
+                  podeFocarInput()
+                ) {
+                  e.preventDefault();
+                  enviar();
+                }
+              }}
             />
             {entrada.length > 3200 && (
               <span className="contador-chars">{entrada.length}/4000</span>
@@ -1535,6 +1664,17 @@ function pararAudio() {
               </ul>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Aviso de encerramento por inatividade: conta os segundos restantes
+          ate o encerramento automatico (5min sem atividade no chat).
+          Qualquer interacao zera o timer e some o aviso */}
+      {mostrarAvisoInatividade && (
+        <div className="inatividade-aviso" role="status" aria-live="polite">
+          Sua conversa será encerrada por inatividade em {segundosParaEncerrar}{' '}
+          {segundosParaEncerrar === 1 ? 'segundo' : 'segundos'}. Toque ou clique em
+          qualquer lugar para continuar.
         </div>
       )}
 

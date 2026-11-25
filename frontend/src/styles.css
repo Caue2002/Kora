@@ -45,6 +45,9 @@ body {
 .chat {
   display: flex;
   flex-direction: column;
+  /* relative: ancora a aurora de inatividade (absolute inset:0) atras
+     do conteudo do chat */
+  position: relative;
   /* A altura vem do .layout (100% do pai): NAO usar vh/dvh aqui — webviews
      do app instalado calculam essas unidades maiores que a tela visivel
      e o formulario de envio era cortado na base, forcando rolar a pagina */
@@ -2054,4 +2057,144 @@ body {
   align-items: center;
   gap: 10px;
   color: var(--muted, #64748b);
+}
+
+/* ===== aurora de inatividade (fundo de luz animado) =====
+   Tres camadas de gradiente radial derivam lentamente atras do conteudo
+   do chat — sensacao de "luz ambiente", nunca reduzindo a legibilidade:
+   os baloes e o formulario seguem opacos acima dela. Visivel sempre na
+   tela inicial; no chat, so apos 60s sem atividade (o relogio congela
+   durante qualquer processamento da Nori). pointer-events:none — os
+   cliques atravessam e contam como atividade via listeners do App.
+   A entrada/saida e um fade de ~450ms via opacity+visibility. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.45s ease,
+    visibility 0.45s;
+}
+
+.aurora-on {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* conteudo do chat acima das camadas de luz */
+.chat > *:not(.aurora) {
+  position: relative;
+  z-index: 1;
+}
+
+.aurora-camada {
+  position: absolute;
+  border-radius: 50%;
+  /* deriva lenta com ping-pong (alternate); duracao e fase proprias por
+     camada para as luzes nunca ficarem sincronizadas */
+  animation: aurora-deriva 24s ease-in-out infinite alternate;
+}
+
+/* tema claro: azul muito claro -> azul medio -> branco/brilho azulado */
+.aurora-camada-1 {
+  width: 75%;
+  height: 75%;
+  left: -15%;
+  top: -20%;
+  background: radial-gradient(circle, rgba(147, 197, 253, 0.5), rgba(147, 197, 253, 0) 68%);
+}
+
+.aurora-camada-2 {
+  width: 80%;
+  height: 80%;
+  right: -20%;
+  bottom: -25%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0) 68%);
+  animation-duration: 19s;
+  animation-delay: -6s;
+}
+
+.aurora-camada-3 {
+  width: 60%;
+  height: 60%;
+  left: 25%;
+  top: 30%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
+  animation-duration: 28s;
+  animation-delay: -12s;
+}
+
+/* tema escuro: azul escuro -> azul medio -> branco suave (brilho difuso) */
+[data-theme='escuro'] .aurora-camada-1 {
+  background: radial-gradient(circle, rgba(30, 58, 138, 0.4), rgba(30, 58, 138, 0) 68%);
+}
+
+[data-theme='escuro'] .aurora-camada-2 {
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25), rgba(37, 99, 235, 0) 68%);
+}
+
+[data-theme='escuro'] .aurora-camada-3 {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 70%);
+}
+
+@keyframes aurora-deriva {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(6%, -4%) scale(1.08);
+  }
+  100% {
+    transform: translate(-5%, 5%) scale(0.96);
+  }
+}
+
+/* sem movimento para quem pede reducao de animacao: camadas estaticas */
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    transition: none;
+  }
+
+  .aurora-camada {
+    animation: none;
+  }
+}
+
+/* ===== aviso de encerramento por inatividade =====
+   Banner fixo acima do campo de envio: conta os segundos restantes ate
+   o encerramento automatico (5min sem atividade no chat). Some assim
+   que qualquer interacao zera o timer */
+.inatividade-aviso {
+  position: fixed;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 30;
+  max-width: min(92vw, 620px);
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--destaque-claro);
+  border: 1px solid var(--destaque-borda);
+  color: var(--destaque);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
+  box-shadow: var(--sombra);
+  animation: aviso-entrada 0.25s ease-out;
+}
+
+@keyframes aviso-entrada {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }

@@ -597,6 +597,26 @@ de entrega.
   foram descartados: a documentacao confirma que exigem tier pago;
   gemini-2.5-* retornaram 404 (descontinuados para contas novas)
 
+- Aurora de inatividade + encerramento automatico por inatividade
+  (specs SPEC-fundo-inatividade.md e SPEC-inatividade-chat.md,
+  implementadas em 25/11/2026): relogio unico em App.tsx mede a
+  inatividade por timestamp (ultimaAtividadeRef) alimentado por
+  listeners globais (pointerdown/pointermove/keydown/wheel/scroll
+  capture/touchmove — cobre mouse, toque e caneta) e por qualquer
+  processo visivel da Nori (mensagens/etapaStream/enviando/tocandoId/
+  handoff). Efeito visual: overlay .aurora com 3 camadas de gradiente
+  radial derivando devagar atras do conteudo do chat (fade de 450ms,
+  pointer-events:none, paletas claro/escuro via data-theme,
+  prefers-reduced-motion desliga a deriva) — SEMPRE aceso na tela
+  inicial (mensagens vazias) e, dentro do chat, so apos 60s sem
+  atividade. Processamento congela o relogio (pausa preserva os
+  segundos ociosos acumulados). Encerramento: aos 4min sem atividade
+  com chat em andamento aparece banner .inatividade-aviso com contagem
+  regressiva dos segundos restantes (ate 60); aos 5min o caso e
+  encerrado na hora via encerrarAtendimento (sem a contagem de 3s do
+  encerramento manual — o aviso ja avisou). Qualquer interacao zera
+  tudo. Obs.: a aurora cobre a area do chat (max 720px), nao a sidebar
+
 ## Em andamento
 
 - Deploy em producao na Vercel: projeto `nori-agente-ai`, dominio de
