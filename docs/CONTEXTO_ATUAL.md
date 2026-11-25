@@ -472,7 +472,9 @@ de entrega.
   navegador (Chrome/Edge); sem suporte (iOS Safari etc.) abre modal com
   instrucoes manuais por plataforma. O Kora NAO esta na Play Store nem
   na App Store — e PWA; prompt.ts ganhou regra proibindo a Nori de
-  citar lojas de app ou inventar links/QR codes de download
+  citar lojas de app ou inventar links/QR codes de download.
+  Nome do app instalado: "Kora Delivery" (name) / "Kora" (short_name)
+  no manifest.webmanifest — a pedido do usuario
 - Indicador de espera do agente: "Pensando..." substituido por 4
   bolinhas quicando em sequencia (componente BolinhasCarregando +
   keyframe bolinha-quica no styles.css); textos "Gerando resposta..."

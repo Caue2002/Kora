@@ -1,6 +1,6 @@
 {
-  "name": "Nori - Kora",
-  "short_name": "Nori",
+  "name": "Kora Delivery",
+  "short_name": "Kora",
   "description": "Agente de IA para triagem e conciliacao de disputas de pedidos em app de delivery",
   "start_url": "/",
   "display": "standalone",
