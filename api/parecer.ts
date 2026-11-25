@@ -90,7 +90,13 @@ async function webHandler(req: Request): Promise<Response> {
   ];
 
   const tokensEntrada = estimarMensagens(mensagens);
-  const modelo = await selecionarModelo(tokensEntrada);
+  // Sem folga de cota, ainda tenta a fila inteira: as marcas de esgotado
+  // expiram em ~1min e o failover cobre provedores que ja liberaram quota
+  const modelo =
+    (await selecionarModelo(tokensEntrada)) ??
+    catalogoModelos()
+      .filter((m) => m.apiKey)
+      .sort((a, b) => a.prioridade - b.prioridade)[0];
   if (!modelo) {
     return json(429, { erro: 'Cotas gratuitas temporariamente esgotadas.' });
   }

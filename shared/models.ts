@@ -14,7 +14,16 @@ export interface UsoModelo {
 }
 
 // Consumo em memoria por modelo (fallback quando o banco esta indisponivel)
-const usoMemoria = new Map<number, UsoModelo>();
+// Alem dos contadores, guarda o inicio da janela corrente de cada tipo:
+// quando a janela vira (minuto/hora/dia), os contadores zeram e a marca de
+// esgotado expira — sem isso um unico 429 bloqueava o modelo ate o
+// processo reiniciar e as cotas nunca renovavam
+interface UsoMemoria extends UsoModelo {
+  janelaMinuto: string;
+  janelaHora: string;
+  janelaDia: string;
+}
+const usoMemoria = new Map<number, UsoMemoria>();
 
 // Cache curto do consumo de cotas lido do banco: a consulta entrava no
 // caminho critico de cada mensagem e o estado muda devagar. 10s de
@@ -56,7 +65,10 @@ async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoMo
     );
     for (const l of linhas) {
       const uso = mapa.get(l.modelo_id) ?? { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
-      if (l.esgotado) uso.esgotado = true;
+      // So a janela de minuto marca esgotado: linhas de hora/dia com a flag
+      // sao restos do bug antigo (que marcava as 3 janelas) e bloqueariam o
+      // modelo ate o fim do dia sem motivo
+      if (l.esgotado && l.janela_tipo === 'minuto') uso.esgotado = true;
       if (l.janela_tipo === 'minuto') uso.tokensMinuto += Number(l.tokens_estimados);
       if (l.janela_tipo === 'hora') uso.tokensHora += Number(l.tokens_estimados);
       if (l.janela_tipo === 'dia') uso.tokensDia += Number(l.tokens_estimados);
@@ -68,8 +80,48 @@ async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoMo
   return mapa;
 }
 
+// Retorna o registro interno de memoria ja com as janelas renovadas:
+// contadores de janelas que viraram voltam a zero e o esgotado (que so vale
+// para a janela de minuto) expira junto — mesmo comportamento do banco
+function usoMemoriaInterno(modeloId: number): UsoMemoria {
+  const j = inicioJanelas();
+  let u = usoMemoria.get(modeloId);
+  if (!u) {
+    u = {
+      tokensMinuto: 0,
+      tokensHora: 0,
+      tokensDia: 0,
+      esgotado: false,
+      janelaMinuto: '',
+      janelaHora: '',
+      janelaDia: '',
+    };
+    usoMemoria.set(modeloId, u);
+  }
+  if (u.janelaMinuto !== j.minuto) {
+    u.tokensMinuto = 0;
+    u.janelaMinuto = j.minuto;
+    u.esgotado = false;
+  }
+  if (u.janelaHora !== j.hora) {
+    u.tokensHora = 0;
+    u.janelaHora = j.hora;
+  }
+  if (u.janelaDia !== j.dia) {
+    u.tokensDia = 0;
+    u.janelaDia = j.dia;
+  }
+  return u;
+}
+
 function consumoMemoria(modeloId: number): UsoModelo {
-  return usoMemoria.get(modeloId) ?? { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
+  const u = usoMemoriaInterno(modeloId);
+  return {
+    tokensMinuto: u.tokensMinuto,
+    tokensHora: u.tokensHora,
+    tokensDia: u.tokensDia,
+    esgotado: u.esgotado,
+  };
 }
 
 // Verifica se o modelo tem folga nas 3 janelas de cota
@@ -125,9 +177,7 @@ export async function marcarEsgotado(modeloId: number): Promise<void> {
       // segue para a proxima janela mesmo se uma falhar
     }
   }
-  const u = consumoMemoria(modeloId);
-  u.esgotado = true;
-  usoMemoria.set(modeloId, u);
+  usoMemoriaInterno(modeloId).esgotado = true;
 }
 
 // Registra o consumo de tokens apos a resposta (real quando informado, senao estimativa)
@@ -152,9 +202,8 @@ export async function registrarConsumo(modeloId: number, tokens: number): Promis
       }
     }),
   );
-  const u = consumoMemoria(modeloId);
+  const u = usoMemoriaInterno(modeloId);
   u.tokensMinuto += tokens;
   u.tokensHora += tokens;
   u.tokensDia += tokens;
-  usoMemoria.set(modeloId, u);
 }

@@ -477,7 +477,7 @@ async function webHandler(req: Request): Promise<Response> {
   const pBusca = semContextoRAG
     ? Promise.resolve({ trechos: [] as Awaited<ReturnType<typeof buscaHibrida>>['trechos'], modo: 'lexical' as const })
     : pVetores.then((v) => buscaHibrida(mensagem, undefined, v?.[0]));
-  const [vetores, diretrizes, modelo, cache] = await Promise.all([
+  const [vetores, diretrizes, modeloPreferido, cache] = await Promise.all([
     pVetores,
     carregarDiretrizes(),
     selecionarModelo(tokensEntradaPrev),
@@ -487,6 +487,16 @@ async function webHandler(req: Request): Promise<Response> {
   ]);
   const embedding = vetores?.[0];
   const busca = await pBusca;
+
+  // Quando nenhum modelo tem folga nas cotas internas, ainda assim tenta a
+  // fila inteira a partir do mais forte: as marcas de esgotado expiram em
+  // ~1min e um 429 real custa so uma tentativa — o failover abaixo cai no
+  // RESPOSTA_FALLBACK se tudo falhar, em vez de um erro 429 para o usuario
+  const modelo =
+    modeloPreferido ??
+    catalogoModelos()
+      .filter((m) => m.apiKey)
+      .sort((a, b) => a.prioridade - b.prioridade)[0];
   // Marco do trace: tudo acima (embedding + diretrizes + selecao de modelo +
   // RAG + cache) e a etapa de "contexto"; o resto e geracao pelo LLM
   const tContexto = Date.now();

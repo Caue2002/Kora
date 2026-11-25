@@ -481,6 +481,34 @@ de entrega.
   'indisponivel' — antes iam null e apareciam como "desconhecido" no
   painel /metricas.html. Migration 0012 faz o backfill do historico
 
+- Resiliencia a 429/cotas (causa do "fallback nao funciona"): a marca de
+  esgotado em MEMORIA nunca expirava — um unico 429 bloqueava o modelo ate
+  o processo reiniciar, e os contadores de tokens em memoria nunca zeravam
+  por janela. shared/models.ts agora guarda o inicio de cada janela
+  (minuto/hora/dia) no fallback em memoria: contadores zeram e o esgotado
+  expira na virada do minuto, igual ao banco. consumoBancoTodos so honra
+  esgotado de linhas da janela de minuto — linhas legadas de hora/dia
+  marcadas pelo bug antigo nao bloqueiam mais o modelo. Cada slot do
+  catalogo ganhou id de cota proprio (id = prioridade, 1-10): as cotas
+  free-tier do Gemini sao por modelo e antes os slots compartilhavam ids
+  1/3, entao um 429 derrubava varios modelos juntos (migration 0013
+  cria as linhas em modelos_ia — PENDENTE de aplicar). /api/chat e
+  /api/parecer nao devolvem mais 429 quando a selecao nao acha folga:
+  caem para o modelo mais forte e o failover percorre a fila inteira,
+  terminando no RESPOSTA_FALLBACK se tudo falhar
+- Responsividade no app instalado/PWA: .chat e .layout usavam so 100dvh
+  sem fallback — webviews que nao conhecem dvh (app instalado em Android
+  antigo) faziam a altura virar automatica e o layout quebrava. Agora ha
+  fallback height:100vh antes de 100dvh (.chat, .layout e max-height do
+  modal de handoff). Viewport meta ganhou
+  interactive-widget=resizes-content para o teclado virtual redimensionar
+  o layout (sem isso o input ficava escondido atras do teclado no app)
+- Indicador de espera do agente reformulado: as 4 bolinhas que quicavam
+  em sequencia viraram 4 pontos orbitando em um unico circulo — cada ponto
+  tem rotor proprio com velocidade/direcao diferentes (2.6s/1.9s reverso/
+  2.2s/3.1s reverso) e pulso de escala, entao eles se cruzam
+  continuamente mantendo a impressao de carregamento
+
 ## Em andamento
 
 - Deploy em producao na Vercel: projeto `nori-agente-ai`, dominio de
@@ -506,6 +534,16 @@ de entrega.
 - Migration 0012_metricas_modelo_backfill.sql PENDENTE: backfill de
   modelo/provedor em metricas_chat (cache_hit -> 'cache', erro ->
   'indisponivel'). Sem urgencia — so afeta o rotulo no painel
+- Migration 0013_cotas_por_modelo.sql PENDENTE: um id de cota por slot do
+  catalogo (ids 1-10, id = prioridade) no lugar dos ids compartilhados
+  1/3. Sem ela as RPCs de cota falham por FK (modelos_ia so aceita id
+  1-4) e o controle de cotas cai no fallback em memoria — funciona, mas
+  sem persistencia entre instancias serverless. Aplicar no SQL Editor
+- Flake conhecido: tests/evals-juiz.test.ts > "guardrail: injecao de
+  prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
+  pedido de revelar o prompt de forma explicita). O eval deterministico
+  (evals.test.ts, checagem regex) passa — e variacao de qualidade do
+  modelo, nao regressao de codigo
 - Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
   da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
   /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md

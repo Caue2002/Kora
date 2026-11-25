@@ -218,15 +218,17 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
-// Indicador de carregamento do agente: 4 bolinhas quicando em sequencia,
-// no estilo do "pensando" — substitui o texto "Pensando..." na bolha vazia
+// Indicador de carregamento do agente: 4 pontos orbitando em um unico
+// circulo, cada um com velocidade/direcao proprias para se cruzarem —
+// substitui o texto "Pensando..." na bolha vazia
 function BolinhasCarregando() {
   return (
     <span className="msg-bolinhas" aria-label="Carregando">
-      <span className="bolinha" />
-      <span className="bolinha" />
-      <span className="bolinha" />
-      <span className="bolinha" />
+      {[0, 1, 2, 3].map((i) => (
+        <span className="orbita" key={i}>
+          <span className="bolinha" />
+        </span>
+      ))}
     </span>
   );
 }

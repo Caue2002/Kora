@@ -29,8 +29,10 @@ export function supabaseServiceKey(): string {
 
 // Catalogo de modelos gratuitos ordenado do MAIS FORTE ao MAIS FRACO.
 // O primeiro da fila que tiver cota assume a request; os demais sao
-// failover em cascata. Todos os Gemini compartilham a mesma API key/cota,
-// entao os slots extras reutilizam os ids de cota 1 e 3.
+// failover em cascata. Cada slot tem id de cota PROPRIO (id = prioridade):
+// as cotas free-tier do Gemini sao por modelo, entao um 429 em um slot
+// nao pode bloquear os irmaos — antes os slots compartilhavam ids 1 e 3
+// e um unico 429 derrubava varios modelos ao mesmo tempo.
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo.
 // Ordem (verificada com scripts/testar_modelos_gemini.mjs):
 // hydrogen/3.8/3.6/3.5/3-preview > groq > 3.5-lite > 3.1-lite(-preview) > pollinations
@@ -45,7 +47,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 1,
     },
     {
-      id: 1,
+      id: 2,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_2', 'gemini-3.8-flash')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -53,7 +55,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 2,
     },
     {
-      id: 1,
+      id: 3,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_3', 'gemini-3.6-flash')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -61,7 +63,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 3,
     },
     {
-      id: 3,
+      id: 4,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_4', 'gemini-3.5-flash')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -69,7 +71,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 4,
     },
     {
-      id: 1,
+      id: 5,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_5', 'gemini-3-flash-preview')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -77,7 +79,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 5,
     },
     {
-      id: 2,
+      id: 6,
       provedor: 'groq',
       nomeModelo: env('GROQ_MODEL', 'openai/gpt-oss-120b')!,
       apiKey: env('GROQ_API_KEY'),
@@ -85,7 +87,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 6,
     },
     {
-      id: 3,
+      id: 7,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_6', 'gemini-3.5-flash-lite')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -93,7 +95,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 7,
     },
     {
-      id: 1,
+      id: 8,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_7', 'gemini-3.1-flash-lite')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -101,7 +103,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 8,
     },
     {
-      id: 3,
+      id: 9,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_8', 'gemini-3.1-flash-lite-preview')!,
       apiKey: env('GEMINI_API_KEY'),
@@ -109,7 +111,7 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 9,
     },
     {
-      id: 4,
+      id: 10,
       provedor: 'pollinations',
       nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
       apiKey: env('POLLINATIONS_KEY', 'pollinations'),
