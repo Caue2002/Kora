@@ -14,6 +14,11 @@ const PRECOS_1M = {
   'gemini-3.5-flash-lite': 0.10,
   'gemini-3.1-flash-lite': 0.10,
   'gemini-3.1-flash-lite-preview': 0.10,
+  'gemini-3.7-flash': 0.30,
+  'gemini-4-argon': 2.00,
+  'gemini-flash-latest': 0.50,
+  'gemini-3.1-pro-preview': 1.25,
+  'gemini-pro-latest': 1.50,
   'gpt-oss-120b': 0.15,
   'openai': 0.20,
 };
