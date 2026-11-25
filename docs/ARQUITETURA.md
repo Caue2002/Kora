@@ -21,7 +21,10 @@ e compensacao sugerida.
 | rag/ | Ingestao, segmentacao (chunking), geracao de embeddings e busca hibrida rapida (lexical + vetorial) no PostgreSQL |
 | coherence/ | Camada de conducao conversacional, aprendizado adaptativo controlado por regras/feedback e validacao obrigatoria de coerencia logica antes da entrega |
 | database/ | Scripts SQL, migracoes, indices e estrutura relacional/vetorial (pgvector) no Supabase |
-| docs/ | Documentacao tecnica viva e CONTEXTO_ATUAL.md para continuidade entre sessoes |
+| docs/ | Documentacao tecnica viva e CONTEXTO_ATUAL.md para continuidade entre sessoes; inclui material de entrevista local (fluxo-kora/, fora do git) e contexto.pdf de referencia |
+| scripts/ | Scripts utilitarios locais: dev-server, ingestao de conhecimento, relatorio de feedback e teste de modelos Gemini |
+| spec/ | Specs delta das funcionalidades (spec-driven development) |
+| tests/ | Testes unitarios e de integracao (vitest), incluindo evals e cenarios fixos da Kora |
 | shared/ | Modulos de servidor compartilhados (env, supabase, llm, tokens, models). Fora de api/ porque todo .ts dentro de api/ vira endpoint publico na Vercel |
 
 ### Estado da implementacao (V1)
@@ -35,8 +38,9 @@ e compensacao sugerida.
   selecao de modelo por cota e rate limit em memoria por IP
 - rag/: chunking, embeddings Gemini e busca hibrida (RPC buscar_conhecimento_hibrido)
 - coherence/: prompt do Nori, diretrizes adaptativas por feedback e validacao de coerencia (heuristica + LLM)
-- database/: migracoes 0001 (schema), 0003 (RPCs), 0005 (comentario de feedback),
-  0006 (categorias de disputa) e seed 0004 (modelos)
+- database/: migracoes 0000 a 0015 (schema, RPCs, casos, rate limit,
+  observabilidade, categorias) com o seed SQL 0004 (modelos) em migrations/;
+  seeds de conhecimento em JSON (politicas_disputa.json)
 - Seeds de conhecimento: database/seeds/politicas_disputa.json (9 politicas de
   disputa de pedidos em delivery, ingeridas via scripts/ingerir_conhecimento.mjs)
 - Pendente: aplicar migracoes 0005/0006 no Supabase e deploy na Vercel

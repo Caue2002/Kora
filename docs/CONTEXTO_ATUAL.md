@@ -13,7 +13,15 @@ de entrega.
 
 ## O que esta pronto
 
-- Estrutura de pastas: frontend/, api/, rag/, coherence/, database/, docs/, shared/
+- Estrutura de pastas: frontend/, api/, shared/, rag/, coherence/,
+  database/, scripts/, tests/, spec/, docs/ (reorganizada em 25/11/2026:
+  removido `_rodar_uma_vez_0005_0008.sql` por ser duplicata exata das
+  migrations 0005-0008; seed SQL 0004_seed_modelos.sql movido de
+  database/seeds/ para database/migrations/ fechando a numeracao;
+  contexto.pdf movido para docs/; pagina de entrevista movida de
+  "Fluxo Kora/" para docs/fluxo-kora/ — .gitignore agora usa
+  `fluxo-kora/` e os caminhos internos do index.html/README/SKILL foram
+  ajustados)
 - frontend/: chat mobile-first (Vite+React+TS), sessionStorage, acoes copiar/exportar/feedback
 - api/: POST /api/chat (orquestracao completa) e POST /api/feedback
 - shared/: env, cliente Supabase, cliente LLM (Gemini/Groq/Pollinations),
@@ -541,12 +549,13 @@ de entrega.
   uma (::after + feixe-onda, expandem e voltam). Substituiu as 4
   bolinhas orbitais antigas, o metaball e a orbita eliptica; componente
   IndicadorCarregando no App.tsx
-- Pagina local de apresentacao "Fluxo Kora" (Fluxo Kora/index.html, fora do
-  git via .gitignore): material visual para entrevistas com a dor do
-  projeto, jornada de disputa em 6 passos (diagrama + chat animado),
-  arquitetura em camadas, fluxograma do /api/chat, estado do caso, failover
-  dos 15 modelos, qualidade/evals, capacidades, stack e protocolo de
-  atualizacao (Fluxo Kora/README.md) e skill .devin/skills/fluxo-kora.
+- Pagina local de apresentacao "Fluxo Kora" (docs/fluxo-kora/index.html,
+  fora do git via .gitignore `fluxo-kora/`): material visual para
+  entrevistas com a dor do projeto, jornada de disputa em 6 passos
+  (diagrama + chat animado), arquitetura em camadas, fluxograma do
+  /api/chat, estado do caso, failover dos 15 modelos, qualidade/evals,
+  capacidades, stack e protocolo de atualizacao
+  (docs/fluxo-kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md
 - Indicador de orbita padronizado em TODO o app: spec em
   spec/SPEC-indicador-carregamento.md (V2) e skill
@@ -596,8 +605,9 @@ de entrega.
   redirecionando para o novo (opcao "Redirecionar o dominio antigo").
   ATENCAO: renomear o projeto NAO troca o dominio `.vercel.app` — mudancas
   de dominio sao feitas em Settings > Domains do projeto
-- Migrations 0005-0008 aplicadas no Supabase via arquivo combinado
-  `_rodar_uma_vez_0005_0008.sql`
+- Migrations 0005-0008 aplicadas no Supabase (na epoca via arquivo
+  combinado `_rodar_uma_vez_0005_0008.sql`, removido na reorganizacao de
+  pastas por ser duplicata exata das migrations individuais)
 - ~~Migration 0009_melhorias_observabilidade.sql PENDENTE~~ FEITO: tabelas
   metricas_chat, cache_respostas, conversas, conciliacoes e funcoes
   buscar_cache_resposta, metricas_chat_resumo criadas no SQL Editor.
@@ -648,7 +658,8 @@ de entrega.
 
 ## Pendencias (proximos passos, em ordem)
 
-1. ~~Aplicar migrations 0005-0008~~ FEITO (via `_rodar_uma_vez_0005_0008.sql`)
+1. ~~Aplicar migrations 0005-0008~~ FEITO (arquivo combinado temporario,
+   depois removido — as migrations individuais 0005-0008 sao a fonte)
 2. ~~Deploy na Vercel~~ FEITO: projeto `nori-agente-ai`
    (Root Directory = raiz do repo; env vars SUPABASE_URL,
    SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, GROQ_API_KEY)

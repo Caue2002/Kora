@@ -10,8 +10,8 @@ replay do pipeline, scroll-spy, reveal).
 Criar uma pagina HTML unica, moderna e visual, que explique em ate 5 minutos o
 Projeto Kora (agente Nori) para entrevistadores: a dor que resolve, o
 funcionamento ponta a ponta (com fluxogramas), a arquitetura, a resiliencia, a
-qualidade e a stack. Arquivo em `Fluxo Kora/` dentro do repositorio, **ignorado
-pelo git** (`.gitignore`: `Fluxo Kora/`), sem dependencias externas (HTML + CSS +
+qualidade e a stack. Arquivo em `docs/fluxo-kora/` dentro do repositorio, **ignorado
+pelo git** (`.gitignore`: `fluxo-kora/`), sem dependencias externas (HTML + CSS +
 JS inline), em portugues, aberto direto no navegador (`file://`).
 
 Origem do pedido: o usuario quer um material visual para entrevistas, facil de
@@ -24,7 +24,7 @@ Nao existia material visual; a explicacao dependia do README, do guia em PDF
 
 ## New Behavior
 
-`Fluxo Kora/index.html` com as secoes (todas com fluxograma/diagrama quando
+`docs/fluxo-kora/index.html` com as secoes (todas com fluxograma/diagrama quando
 faz sentido):
 
 1. Hero — o que e o Kora/Nori em uma frase, 4 numeros-chave, link para o app.
@@ -53,7 +53,7 @@ faz sentido):
   `docs/ARQUITETURA.md`, `api/README.md` e o codigo em `api/`, `shared/`,
   `coherence/`, `rag/` (modelos, endpoints, tabelas, limites).
 - Fluxogramas legiveis, com legenda, e animacao de fluxo.
-- Nenhum arquivo de `Fluxo Kora/` aparece em `git status`.
+- Nenhum arquivo de `docs/fluxo-kora/` aparece em `git status`.
 - Validacao: abrir no navegador (sem erros), `npm run typecheck` e `npm test`
   nao afetados (nenhum .ts alterado exceto docs).
 
@@ -62,7 +62,7 @@ faz sentido):
 - Always: textos em portugues sem acentos apenas onde o projeto ja usa; manter
   os comentarios do HTML explicando a estrutura para manutencao futura.
 - Ask first: adicionar dependencias externas (CDN); publicar a pagina.
-- Never: commitar `Fluxo Kora/`; expor chaves ou dados reais de usuarios; copiar
+- Never: commitar `docs/fluxo-kora/`; expor chaves ou dados reais de usuarios; copiar
   o conteudo do `Guia Kora iFood.pdf` (uso pessoal).
 
 ## Out of Scope (Deferred)

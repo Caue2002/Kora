@@ -6,4 +6,4 @@ dist/
 *.log
 coverage/
 .DS_Store
-Fluxo Kora/
+fluxo-kora/
