@@ -132,6 +132,16 @@ function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Alvo aleatorio de posicao para uma camada da aurora de inatividade:
+// left/top em % do container, variando o suficiente para a luz cruzar
+// a tela inteira sem ficar colada nas bordas
+function posicaoAleatoriaAurora(): { left: number; top: number } {
+  return {
+    left: -30 + Math.random() * 75,
+    top: -30 + Math.random() * 85,
+  };
+}
+
 const formatarHora = formatarHoraMensagem;
 
 // Detecta quando a Nori pergunta se pode encerrar a conversa
@@ -454,9 +464,19 @@ export default function App() {
   // Relogio de inatividade (SPEC-fundo-inatividade + SPEC-inatividade-chat):
   // ultimaAtividadeRef guarda o timestamp do ultimo sinal de vida — clique,
   // toque, tecla, scroll, roda do mouse ou qualquer processo visivel da
-  // Nori. segundosInativo alimenta a aurora e o aviso de encerramento.
-  const ultimaAtividadeRef = useRef(Date.now());
-  const [segundosInativo, setSegundosInativo] = useState(0);
+  // Nori. Comeca "expirado" (-61s) para a aurora ja nascer acesa na tela
+  // inicial; qualquer interacao real e que rearma o timer de 60s.
+  // segundosInativo alimenta a aurora e o aviso de encerramento.
+  const ultimaAtividadeRef = useRef(Date.now() - 61_000);
+  const [segundosInativo, setSegundosInativo] = useState(61);
+  // Posicoes das 3 camadas de luz da aurora: mudam para alvos aleatorios
+  // a cada ~10s e deslizam ate la via transicao CSS — o fundo nunca fica
+  // estatico nem previsivel
+  const [alvosAurora, setAlvosAurora] = useState(() => [
+    { left: -15, top: -20, size: 75 },
+    { left: 40, top: 45, size: 80 },
+    { left: 25, top: 30, size: 60 },
+  ]);
   // Enquanto ha processamento visivel (stream, handoff, TTS, tela de
   // encerramento) o relogio congela: guarda o inicio para somar a pausa
   // de volta na ultima atividade quando o processo terminar
@@ -465,18 +485,17 @@ export default function App() {
   // estado velho (conversaId/mensagens do render em que o efeito rodou)
   const encerrarAtendimentoRef = useRef<() => void>(() => {});
 
-  // Tela inicial = conversa sem mensagens (escolha de perfil ou chat
-  // vazio): a aurora fica sempre acesa nela, sem depender de timer
-  const telaInicial = mensagens.length === 0;
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
   const processando =
     enviando || handoff === 'carregando' || encerrandoEm !== null || tocandoId !== null;
   // Timer de encerramento so roda com chat em andamento (ha caso aberto)
   const temChat = mensagens.length > 0 || enviando;
-  // Aurora: imediata na tela inicial; dentro do chat so apos 60s sem
-  // nenhuma atividade (clique, tecla, scroll ou processo da Nori)
-  const mostrarAurora = telaInicial || (!processando && segundosInativo >= 60);
+  // Aurora de inatividade: acesa sempre que a tela passa 60s sem nenhum
+  // sinal de vida (na abertura ela ja nasce acesa; qualquer clique, toque,
+  // tecla ou scroll em qualquer lugar apaga e rearma os 60s). Nao acende
+  // durante processamento da Nori.
+  const mostrarAurora = !processando && segundosInativo >= 60;
   // Aviso de encerramento por inatividade: aparece no ultimo minuto antes
   // do encerramento automatico (5min sem atividade com chat em andamento)
   const mostrarAvisoInatividade = temChat && !processando && segundosInativo >= 240;
@@ -643,10 +662,28 @@ export default function App() {
 
   // Atividade da agente tambem conta: stream de tokens, troca de etapa de
   // tool, envio, TTS e handoff atualizam a ultima atividade — o timer so
-  // corre quando a tela esta completamente parada
+  // corre quando a tela esta completamente parada. A primeira execucao
+  // (montagem) e ignorada: sem isso a aurora nunca nasceria acesa, porque
+  // o timestamp "expirado" inicial seria zerado antes do primeiro tick
+  const montouRef = useRef(false);
   useEffect(() => {
+    if (!montouRef.current) {
+      montouRef.current = true;
+      return;
+    }
     ultimaAtividadeRef.current = Date.now();
   }, [mensagens, etapaStream, enviando, tocandoId, handoff]);
+
+  // As camadas da aurora trocam de lugar aleatoriamente: a cada ~10s cada
+  // luz ganha um novo alvo (left/top) e desliza ate ele pela transicao
+  // CSS — o fundo nunca fica estatico. Desligado com prefers-reduced-motion
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const id = setInterval(() => {
+      setAlvosAurora((atual) => atual.map((a) => ({ ...a, ...posicaoAleatoriaAurora() })));
+    }, 10_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Congela o relogio durante qualquer processamento: o tempo ocioso nao
   // corre nem zera — ao terminar, a contagem retoma de onde parou
@@ -1141,6 +1178,24 @@ function pararAudio() {
 
   return (
     <div className="layout">
+      {/* Aurora de inatividade: overlay de luz na tela inteira — acende
+          ao abrir o app e volta apos 60s sem nenhuma atividade; qualquer
+          clique, toque, tecla ou scroll em qualquer lugar apaga na hora
+          e rearma o timer. pointer-events:none — ver styles.css */}
+      <div className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
+        {alvosAurora.map((a, i) => (
+          <i
+            key={i}
+            className={`aurora-camada aurora-camada-${i + 1}`}
+            style={{
+              left: `${a.left}%`,
+              top: `${a.top}%`,
+              width: `${a.size}%`,
+              height: `${a.size}%`,
+            }}
+          />
+        ))}
+      </div>
       {/* Banner amarelo de erro da API: pequeno, some sozinho em 3s */}
       {alertaApi && (
         <div className="alerta-api" role="alert">
@@ -1158,14 +1213,6 @@ function pararAudio() {
       />
 
       <div className="chat">
-        {/* Aurora de inatividade: sempre acesa na tela inicial; dentro do
-            chat so depois de 60s sem nenhuma atividade. Fica atras do
-            conteudo (pointer-events:none) — ver styles.css */}
-        <div className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
-          <i className="aurora-camada aurora-camada-1" />
-          <i className="aurora-camada aurora-camada-2" />
-          <i className="aurora-camada aurora-camada-3" />
-        </div>
         <header className="chat-topo">
           <div className="chat-titulo-bloco">
             <img src="/logo.png" alt="Nori" className="chat-logo" />

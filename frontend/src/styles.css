@@ -45,9 +45,6 @@ body {
 .chat {
   display: flex;
   flex-direction: column;
-  /* relative: ancora a aurora de inatividade (absolute inset:0) atras
-     do conteudo do chat */
-  position: relative;
   /* A altura vem do .layout (100% do pai): NAO usar vh/dvh aqui — webviews
      do app instalado calculam essas unidades maiores que a tela visivel
      e o formulario de envio era cortado na base, forcando rolar a pagina */
@@ -2060,17 +2057,21 @@ body {
 }
 
 /* ===== aurora de inatividade (fundo de luz animado) =====
-   Tres camadas de gradiente radial derivam lentamente atras do conteudo
-   do chat — sensacao de "luz ambiente", nunca reduzindo a legibilidade:
-   os baloes e o formulario seguem opacos acima dela. Visivel sempre na
-   tela inicial; no chat, so apos 60s sem atividade (o relogio congela
-   durante qualquer processamento da Nori). pointer-events:none — os
+   Tres camadas de gradiente radial que derivam e MUDAM DE LUGAR
+   aleatoriamente pela tela inteira — overlay fixo acima do conteudo
+   (z-index 2: abaixo da sidebar 40 e dos modais 55/60, acima das
+   mensagens e do formulario). Luz ambiente sutil: opacidades baixas
+   para nao reduzir a legibilidade. Acende ao abrir o app e volta apos
+   60s sem atividade; qualquer interacao em qualquer lugar apaga.
+   A posicao/tamanho vem de inline style no App.tsx (alvos aleatorios
+   a cada ~10s) com transicao de 10s — o keyframe aurora-deriva soma
+   um vaivem continuo de transform por cima. pointer-events:none — os
    cliques atravessam e contam como atividade via listeners do App.
    A entrada/saida e um fade de ~450ms via opacity+visibility. */
 .aurora {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
   overflow: hidden;
   pointer-events: none;
   opacity: 0;
@@ -2085,45 +2086,29 @@ body {
   visibility: visible;
 }
 
-/* conteudo do chat acima das camadas de luz */
-.chat > *:not(.aurora) {
-  position: relative;
-  z-index: 1;
-}
-
 .aurora-camada {
   position: absolute;
   border-radius: 50%;
-  /* deriva pela tela inteira: cada camada cruza o fundo em direcao e
-     fase proprias (duracao/delay diferentes), com escala e leve rotacao
-     para o movimento nao parecer repetitivo */
+  /* deslize suave entre os alvos aleatorios de posicao (left/top vem
+     inline do App.tsx); o transform continua animado pelo keyframes */
+  transition:
+    left 10s ease-in-out,
+    top 10s ease-in-out;
   animation: aurora-deriva 16s ease-in-out infinite alternate;
 }
 
 /* tema claro: azul muito claro -> azul medio -> branco/brilho azulado */
 .aurora-camada-1 {
-  width: 75%;
-  height: 75%;
-  left: -15%;
-  top: -20%;
   background: radial-gradient(circle, rgba(147, 197, 253, 0.5), rgba(147, 197, 253, 0) 68%);
 }
 
 .aurora-camada-2 {
-  width: 80%;
-  height: 80%;
-  right: -20%;
-  bottom: -25%;
   background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0) 68%);
   animation-duration: 13s;
   animation-delay: -5s;
 }
 
 .aurora-camada-3 {
-  width: 60%;
-  height: 60%;
-  left: 25%;
-  top: 30%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
   animation-duration: 20s;
   animation-delay: -9s;

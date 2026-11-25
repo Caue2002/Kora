@@ -600,23 +600,26 @@ de entrega.
 - Aurora de inatividade + encerramento automatico por inatividade
   (specs SPEC-fundo-inatividade.md e SPEC-inatividade-chat.md,
   implementadas em 25/11/2026): relogio unico em App.tsx mede a
-  inatividade por timestamp (ultimaAtividadeRef) alimentado por
-  listeners globais (pointerdown/pointermove/keydown/wheel/scroll
-  capture/touchmove — cobre mouse, toque e caneta) e por qualquer
-  processo visivel da Nori (mensagens/etapaStream/enviando/tocandoId/
-  handoff). Efeito visual: overlay .aurora com 3 camadas de gradiente
-  radial derivando pela tela (translate+escala+rotacao, ciclos de
-  13-20s defasados) atras do conteudo do chat (fade de 450ms,
-  pointer-events:none, paletas claro/escuro via data-theme,
-  prefers-reduced-motion desliga a deriva) — SEMPRE aceso na tela
-  inicial (mensagens vazias) e, dentro do chat, so apos 60s sem
-  atividade. Processamento congela o relogio (pausa preserva os
-  segundos ociosos acumulados). Encerramento: aos 4min sem atividade
-  com chat em andamento aparece banner .inatividade-aviso com contagem
+  inatividade por timestamp (ultimaAtividadeRef, inicia "expirado" -61s
+  para a aurora nascer acesa) alimentado por listeners globais
+  (pointerdown/pointermove/keydown/wheel/scroll capture/touchmove —
+  cobre mouse, toque e caneta) e por qualquer processo visivel da
+  Nori (mensagens/etapaStream/enviando/tocandoId/handoff). Efeito
+  visual: overlay .aurora FIXO na tela inteira (z-index 2, acima do
+  conteudo do chat, abaixo de sidebar/modais) com 3 camadas de
+  gradiente radial que derivam (keyframes transform) E mudam de lugar
+  aleatoriamente — a cada ~10s cada luz ganha left/top aleatorio e
+  desliza por transicao CSS de 10s (prefers-reduced-motion desliga
+  tudo). pointer-events:none, fade de 450ms, paletas claro/escuro via
+  data-theme. Regra do usuario: acende ao abrir e volta sempre que a
+  tela passa 60s sem NENHUM sinal de vida — qualquer clique, toque,
+  tecla ou scroll em qualquer lugar apaga na hora e rearma os 60s.
+  Processamento congela o relogio (pausa preserva os segundos
+  ociosos acumulados). Encerramento: aos 4min sem atividade com chat
+  em andamento aparece banner .inatividade-aviso com contagem
   regressiva dos segundos restantes (ate 60); aos 5min o caso e
   encerrado na hora via encerrarAtendimento (sem a contagem de 3s do
-  encerramento manual — o aviso ja avisou). Qualquer interacao zera
-  tudo. Obs.: a aurora cobre a area do chat (max 720px), nao a sidebar
+  encerramento manual — o aviso ja avisou)
 
 ## Em andamento
 
