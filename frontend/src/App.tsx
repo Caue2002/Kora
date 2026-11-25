@@ -218,17 +218,18 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
-// Indicador de carregamento do agente: 4 pontos orbitando em um unico
-// circulo, cada um com velocidade/direcao proprias para se cruzarem —
-// substitui o texto "Pensando..." na bolha vazia
-function BolinhasCarregando() {
+// Indicador de carregamento do agente: 3 gotas em efeito metaball dentro de
+// uma pilula sutil — substitui o texto "Pensando..." na bolha vazia
+function IndicadorCarregando() {
   return (
-    <span className="msg-bolinhas" aria-label="Carregando">
-      {[0, 1, 2, 3].map((i) => (
-        <span className="orbita" key={i}>
-          <span className="bolinha" />
+    <span className="msg-metaball" role="status" aria-label="Carregando">
+      <span className="msg-metaball-palco" aria-hidden="true">
+        <span className="msg-metaball-gotas">
+          {[0, 1, 2].map((i) => (
+            <span className="gota" key={i} />
+          ))}
         </span>
-      ))}
+      </span>
     </span>
   );
 }
@@ -1125,7 +1126,7 @@ function pararAudio() {
                   <div className="msg-balao">
                     {m.content === '' ? (
                       <span className="msg-status-stream">
-                        <BolinhasCarregando />
+                        <IndicadorCarregando />
                         {(etapaStream === 'gerando' || etapaStream?.startsWith('tool:')) && (
                           <span className="msg-status-texto">
                             {etapaStream === 'gerando'

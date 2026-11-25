@@ -1074,79 +1074,88 @@ body {
   gap: 10px;
 }
 
-/* ===== indicador de carregamento: 4 pontos orbitando num circulo =====
-   Cada ponto fica dentro de um rotor proprio (.orbita) que gira em
-   velocidade/direcao diferentes — eles se cruzam uns aos outros
-   continuamente, mantendo a impressao de carregamento */
-.msg-bolinhas {
+/* ===== indicador de carregamento: metaball =====
+   Tres gotas escuras percorrem a mesma linha dentro de uma pilula clara.
+   O blur fica na camada das gotas e o contrast no palco: juntos eles
+   suavizam as bordas e fundem as gotas quando se aproximam.
+   Ajustes rapidos:
+   - velocidade: altere animation-duration em .gota (menor = mais rapido)
+   - tamanho: altere width/height de .msg-metaball, .msg-metaball-palco e .gota
+   - intensidade da fusao: altere blur(5px) e contrast(20) */
+.msg-metaball {
   position: relative;
-  display: inline-block;
-  width: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
   height: 26px;
+  border-radius: 999px;
+  background: var(--acento-claro);
+  border: 1px solid var(--agente-borda);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   vertical-align: middle;
+  overflow: hidden;
 }
 
-.msg-bolinhas .orbita {
+.msg-metaball-palco {
+  position: relative;
+  width: 42px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--cartao);
+  filter: contrast(20);
+}
+
+.msg-metaball-gotas {
   position: absolute;
   inset: 0;
-  animation: orbita-gira 2.6s linear infinite;
+  filter: blur(5px);
 }
 
-/* duracoes e sentidos distintos fazem os pontos se ultrapassarem */
-.msg-bolinhas .orbita:nth-child(2) {
-  animation-duration: 1.9s;
-  animation-direction: reverse;
-}
-
-.msg-bolinhas .orbita:nth-child(3) {
-  animation-duration: 2.2s;
-}
-
-.msg-bolinhas .orbita:nth-child(4) {
-  animation-duration: 3.1s;
-  animation-direction: reverse;
-}
-
-/* o ponto fica no topo do rotor: ao girar, descreve o circulo central */
-.msg-bolinhas .bolinha {
+.msg-metaball-gotas .gota {
   position: absolute;
-  top: 0;
+  top: 50%;
   left: 50%;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
-  background: var(--acento);
-  animation: bolinha-pulso 1.4s ease-in-out infinite;
+  background: var(--usuario);
+  animation: gota-metaball 3.2s ease-in-out infinite;
 }
 
-.msg-bolinhas .orbita:nth-child(2) .bolinha {
-  animation-delay: 0.35s;
+/* delays negativos ja distribuem as gotas na animacao sem espera inicial */
+.msg-metaball-gotas .gota:nth-child(1) {
+  animation-duration: 3.2s;
+  animation-delay: 0s;
 }
 
-.msg-bolinhas .orbita:nth-child(3) .bolinha {
-  animation-delay: 0.7s;
+.msg-metaball-gotas .gota:nth-child(2) {
+  animation-duration: 2.8s;
+  animation-delay: -1.05s;
 }
 
-.msg-bolinhas .orbita:nth-child(4) .bolinha {
-  animation-delay: 1.05s;
+.msg-metaball-gotas .gota:nth-child(3) {
+  animation-duration: 3.5s;
+  animation-delay: -2.1s;
 }
 
-@keyframes orbita-gira {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes bolinha-pulso {
+/* percurso continuo: esquerda -> centro -> direita -> centro -> esquerda.
+   O scale maior no centro ajuda as gotas a se fundirem como liquido */
+@keyframes gota-metaball {
   0%,
   100% {
-    transform: scale(0.7);
+    transform: translateX(-14px) scale(0.72);
     opacity: 0.55;
   }
-  50% {
-    transform: scale(1.15);
+  25%,
+  75% {
+    transform: translateX(0) scale(1.28);
     opacity: 1;
+  }
+  50% {
+    transform: translateX(14px) scale(0.72);
+    opacity: 0.55;
   }
 }
 

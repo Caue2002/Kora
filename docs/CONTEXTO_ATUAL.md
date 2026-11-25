@@ -521,11 +521,10 @@ de entrega.
   o layout (sem isso o input ficava escondido atras do teclado no app).
   sw.js bumpado para kora-v3 para os apps instalados pegarem os novos
   assets
-- Indicador de espera do agente reformulado: as 4 bolinhas que quicavam
-  em sequencia viraram 4 pontos orbitando em um unico circulo — cada ponto
-  tem rotor proprio com velocidade/direcao diferentes (2.6s/1.9s reverso/
-  2.2s/3.1s reverso) e pulso de escala, entao eles se cruzam
-  continuamente mantendo a impressao de carregamento
+- Indicador de espera do agente reformulado: as 4 bolinhas orbitais viraram
+  uma pilula com 3 gotas em efeito metaball (blur na camada das gotas +
+  contrast no palco), com movimento continuo esquerda-centro-direita e
+  delays negativos escalonados; componente IndicadorCarregando no App.tsx
 
 ## Em andamento
 
