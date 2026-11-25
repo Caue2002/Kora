@@ -488,7 +488,7 @@ export default function App() {
   // Aurora: ref do overlay para escrever as CSS vars do mouse, e refs da
   // posicao atual/alvo para a interpolacao suave (lerp via rAF)
   const auroraRef = useRef<HTMLDivElement>(null);
-  const mouseAuroraRef = useRef({ x: 0, y: 0, tx: 0, ty: 0, vx: 0, vy: 0 });
+  const mouseAuroraRef = useRef({ x: 0.5, y: 0.5, tx: 0.5, ty: 0.5, vx: 0, vy: 0 });
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -695,8 +695,10 @@ export default function App() {
   // a aurora nem zera os timers de inatividade
   useEffect(() => {
     const moverMouse = (e: PointerEvent) => {
-      mouseAuroraRef.current.tx = (e.clientX / window.innerWidth) * 2 - 1;
-      mouseAuroraRef.current.ty = (e.clientY / window.innerHeight) * 2 - 1;
+      // posicao do cursor como fracao da viewport (0..1): o brilho da
+      // aurora fica exatamente em volta do mouse, nao no centro da tela
+      mouseAuroraRef.current.tx = e.clientX / window.innerWidth;
+      mouseAuroraRef.current.ty = e.clientY / window.innerHeight;
     };
     window.addEventListener('pointermove', moverMouse, { passive: true });
     return () => window.removeEventListener('pointermove', moverMouse);
@@ -716,13 +718,17 @@ export default function App() {
       const ny = m.y + (m.ty - m.y) * 0.06;
       // velocidade suavizada do cursor: alimenta o leve tilt das camadas
       // (a luz "deita" um pouco na direcao do movimento, como se fosse
-      // peso/molho reagindo ao ponteiro)
-      m.vx += ((nx - m.x) * 10 - m.vx) * 0.12;
-      m.vy += ((ny - m.y) * 10 - m.vy) * 0.12;
+      // peso/molho reagindo ao ponteiro). Ganho 20 compensa a fracao 0..1
+      m.vx += ((nx - m.x) * 20 - m.vx) * 0.12;
+      m.vy += ((ny - m.y) * 20 - m.vy) * 0.12;
       m.x = nx;
       m.y = ny;
-      auroraRef.current?.style.setProperty('--aurora-mx', m.x.toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-my', m.y.toFixed(3));
+      // --aurora-cx/cy: posicao exata do cursor (0..1) para os brilhos;
+      // --aurora-mx/my: mesma posicao em -1..1 para o paralaxe das camadas
+      auroraRef.current?.style.setProperty('--aurora-cx', m.x.toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-cy', m.y.toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-mx', (m.x * 2 - 1).toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-my', (m.y * 2 - 1).toFixed(3));
       auroraRef.current?.style.setProperty('--aurora-vx', m.vx.toFixed(3));
       auroraRef.current?.style.setProperty('--aurora-vy', m.vy.toFixed(3));
       raf = requestAnimationFrame(passo);

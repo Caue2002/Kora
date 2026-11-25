@@ -2159,19 +2159,20 @@ body {
   opacity: 1;
 }
 
-/* nucleo: area menor, amplitude maior e brilho mais forte */
+/* nucleo: area menor e brilho mais forte — centralizado EXATAMENTE no
+   cursor via --aurora-cx/cy (fracao 0..1 da tela) */
 .aurora::before {
   background: radial-gradient(
-    26% 22% at calc(50% + var(--aurora-mx, 0) * 240px) calc(50% + var(--aurora-my, 0) * 170px),
+    26% 22% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
     rgba(37, 99, 235, 0.16),
     rgba(37, 99, 235, 0) 70%
   );
 }
 
-/* halo: area ampla e suave */
+/* halo: area ampla e suave, tambem no cursor */
 .aurora::after {
   background: radial-gradient(
-    55% 45% at calc(50% + var(--aurora-mx, 0) * 140px) calc(50% + var(--aurora-my, 0) * 100px),
+    55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
     rgba(37, 99, 235, 0.12),
     rgba(37, 99, 235, 0) 70%
   );
@@ -2179,7 +2180,7 @@ body {
 
 [data-theme='escuro'] .aurora::before {
   background: radial-gradient(
-    26% 22% at calc(50% + var(--aurora-mx, 0) * 240px) calc(50% + var(--aurora-my, 0) * 170px),
+    26% 22% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
     rgba(255, 255, 255, 0.14),
     rgba(255, 255, 255, 0) 70%
   );
@@ -2187,7 +2188,7 @@ body {
 
 [data-theme='escuro'] .aurora::after {
   background: radial-gradient(
-    55% 45% at calc(50% + var(--aurora-mx, 0) * 140px) calc(50% + var(--aurora-my, 0) * 100px),
+    55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
     rgba(255, 255, 255, 0.09),
     rgba(255, 255, 255, 0) 70%
   );

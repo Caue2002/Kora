@@ -614,14 +614,14 @@ de entrega.
   aleatoriamente — a cada ~10s cada luz ganha left/top aleatorio com
   faixa ampla para alcancar as QUATRO bordas da tela e desliza por
   transicao CSS de 10s — e REAGEM AO MOUSE sem contar como
-  atividade: pointermove alimenta so as CSS vars --aurora-mx/--aurora-my
+  atividade: pointermove alimenta so as CSS vars --aurora-cx/cy/mx/my/vx/vy
   via rAF com lerp (~0.06/frame, loop so roda com a aurora acesa),
   gerando paralaxe de profundidade por camada (translate individual
   18-70px), tilt de ate 5deg proporcional a velocidade horizontal do
-  cursor (rotate + vars --aurora-vx/vy) e DOIS brilhos radiais que
-  perseguem o cursor (.aurora::before nucleo concentrado + ::after
-  halo difuso, azul no claro / branco no escuro).
-  prefers-reduced-motion desliga tudo. pointer-events:none, fade de 450ms, paletas claro/escuro via
+  cursor (rotate) e DOIS brilhos radiais centralizados EXATAMENTE no
+  cursor (.aurora::before nucleo + ::after halo, posicionados por
+  --aurora-cx/cy = fracao 0..1 da viewport; azul no claro / branco no
+  escuro). prefers-reduced-motion desliga tudo. pointer-events:none, fade de 450ms, paletas claro/escuro via
   data-theme. Regra do usuario: acende ao abrir e volta sempre que a
   tela passa 60s sem NENHUM sinal de vida — qualquer clique, toque,
   tecla ou scroll em qualquer lugar apaga na hora e rearma os 60s.
