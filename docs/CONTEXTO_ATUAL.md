@@ -473,6 +473,13 @@ de entrega.
   thinkingConfig.thinkingBudget=0 (igual ao shared/llm.ts) e marca
   respostas 200 com texto vazio como VAZIO — antes modelos que so
   "pensavam" apareciam como OK
+- "Exportar resumo" saiu do menu "..." do caso e ficou so no icone de
+  download do cabecalho (canto superior direito), visivel apenas quando
+  ha mensagens na conversa
+- Metricas: linhas de cache_hit passam a gravar o modelo que gerou a
+  resposta cacheada (cache.modelo) e erros de fila gravam modelo
+  'indisponivel' — antes iam null e apareciam como "desconhecido" no
+  painel /metricas.html. Migration 0012 faz o backfill do historico
 
 ## Em andamento
 
@@ -496,6 +503,9 @@ de entrega.
 - ~~Migration 0011_trace_tools_metricas.sql PENDENTE~~ FEITO: verificado
   via PostgREST que as colunas trace/tools_usadas existem e a RPC
   metricas_chat_resumo ja retorna p50/p95, tools_total e traces_recentes
+- Migration 0012_metricas_modelo_backfill.sql PENDENTE: backfill de
+  modelo/provedor em metricas_chat (cache_hit -> 'cache', erro ->
+  'indisponivel'). Sem urgencia — so afeta o rotulo no painel
 - Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
   da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
   /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md

@@ -501,6 +501,8 @@ async function webHandler(req: Request): Promise<Response> {
       montarHistoricoConversa(historico, mensagem, cache.resposta, !!imagem),
     );
     registrarMetrica({
+      modelo: cache.modelo ?? 'cache',
+      provedor: 'cache',
       stream: corpo.stream === true,
       cacheHit: true,
       latenciaMs: Date.now() - t0,
@@ -539,7 +541,7 @@ async function webHandler(req: Request): Promise<Response> {
 
   if (!modelo) {
     // Esgotamento total dos modelos no ciclo vigente
-    registrarMetrica({ stream: corpo.stream === true, latenciaMs: Date.now() - t0, perfil, erro: 'cotas_esgotadas' });
+    registrarMetrica({ modelo: 'indisponivel', stream: corpo.stream === true, latenciaMs: Date.now() - t0, perfil, erro: 'cotas_esgotadas' });
     return json(429, {
       erro: 'As cotas gratuitas dos modelos de IA estao temporariamente esgotadas. Tente novamente em instantes.',
     });
@@ -608,7 +610,7 @@ async function webHandler(req: Request): Promise<Response> {
   if (corpo.stream === true) {
     const gerado = await streamComFailover(modelo, mensagens, comTools);
     if (!gerado) {
-      registrarMetrica({ stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
+      registrarMetrica({ modelo: 'indisponivel', stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
       persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
       return respostaFallbackStream();
     }
@@ -748,7 +750,7 @@ async function webHandler(req: Request): Promise<Response> {
   const tLlm = Date.now();
   const traceNaoStream = { contexto_ms: tContexto - t0, llm_ms: tLlm - tContexto };
   if (!gerado) {
-    registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
+    registrarMetrica({ modelo: 'indisponivel', stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
     persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
     return json(
       200,

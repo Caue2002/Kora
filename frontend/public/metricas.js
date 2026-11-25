@@ -109,7 +109,7 @@ function render(m) {
           const custo = (tokens / 1e6) * preco;
           const pct = maxTok > 0 ? Math.max(2, (tokens / maxTok) * 100) : 0;
           return `<tr>
-            <td><span class="tag">${escapar(x.modelo ?? 'desconhecido')}</span></td>
+            <td><span class="tag">${escapar(x.modelo ?? '(sem modelo)')}</span></td>
             <td>${fmt(x.total)}</td>
             <td>${fmt(x.latencia_media_ms)} ms</td>
             <td>${fmt(tokens)}<div class="barra" style="margin-top:5px"><div style="width:${pct}%"></div></div></td>

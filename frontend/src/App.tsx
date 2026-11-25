@@ -1333,17 +1333,6 @@ function pararAudio() {
                   </button>
                   <button
                     className="menu-item"
-                    disabled={exportando}
-                    onClick={() => {
-                      setMenuAcoes(false);
-                      exportarResumo();
-                    }}
-                  >
-                    {iconeDownload}
-                    <span className="menu-item-label">Exportar resumo</span>
-                  </button>
-                  <button
-                    className="menu-item"
                     disabled={handoff === 'carregando' || enviando}
                     onClick={() => {
                       setMenuAcoes(false);
