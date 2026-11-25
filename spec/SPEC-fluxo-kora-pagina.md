@@ -70,7 +70,5 @@ faz sentido):
 
 ## Open Questions
 
-- Nenhuma bloqueante. SUGESTAO (pendente de decisao do usuario): criar skill
-  `.devin/skills/fluxo-kora/SKILL.md` para formalizar a atualizacao da pagina
-  ao final de cada tarefa — por ora o protocolo esta no `Fluxo Kora/README.md`
-  e no proprio HTML.
+- Nenhuma. Skill `.devin/skills/fluxo-kora/SKILL.md` criada para formalizar
+  a atualizacao obrigatoria da pagina ao final de cada tarefa.
