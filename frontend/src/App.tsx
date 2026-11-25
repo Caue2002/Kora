@@ -132,27 +132,6 @@ function novoId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// Solta uma particula de aurora no ponto do cursor: bolha, brilho ou
-// fumaca azulada subindo e sumindo. Criada via DOM (sem re-render) e
-// removida no animationend; teto de 48 para nao pesar em arrastos longos
-function soltarParticulaAurora(caixa: HTMLElement, x: number, y: number) {
-  if (caixa.childElementCount > 48) caixa.firstElementChild?.remove();
-  const p = document.createElement('i');
-  const tipos = ['bolha', 'brilho', 'fumaca'] as const;
-  const tipo = tipos[Math.floor(Math.random() * tipos.length)];
-  const tam = tipo === 'fumaca' ? 26 + Math.random() * 30 : 5 + Math.random() * 9;
-  p.className = `aurora-particula aurora-particula-${tipo}`;
-  p.style.left = `${x}px`;
-  p.style.top = `${y}px`;
-  p.style.width = `${tam}px`;
-  p.style.height = `${tam}px`;
-  // deriva lateral aleatoria + duracao variada para nao parecerem clones
-  p.style.setProperty('--dx', `${(Math.random() - 0.5) * 70}px`);
-  p.style.setProperty('--dur', `${1.2 + Math.random() * 1.1}s`);
-  p.addEventListener('animationend', () => p.remove(), { once: true });
-  caixa.appendChild(p);
-}
-
 // Alvo aleatorio de posicao para uma camada da aurora de inatividade:
 // left/top em % do container com faixa ampla o bastante para a luz
 // alcancar as QUATRO bordas da tela (cima, baixo, esquerda e direita),
@@ -506,19 +485,6 @@ export default function App() {
   // Ref para o tick de inatividade chamar o encerramento sem fechar sobre
   // estado velho (conversaId/mensagens do render em que o efeito rodou)
   const encerrarAtendimentoRef = useRef<() => void>(() => {});
-  // Aurora: ref do overlay para escrever as CSS vars do mouse, e refs da
-  // posicao atual/alvo para a interpolacao suave (lerp via rAF)
-  const auroraRef = useRef<HTMLDivElement>(null);
-  const particulasRef = useRef<HTMLDivElement>(null);
-  // x/y: posicao com inercia (paralaxe); fx/fy: posicao "rapida" que os
-  // brilhos do cursor usam — grudam no mouse sem o lag do lerp principal
-  const mouseAuroraRef = useRef({
-    x: 0.5, y: 0.5, tx: 0.5, ty: 0.5,
-    fx: 0.5, fy: 0.5, vx: 0, vy: 0,
-  });
-  // Estado do arrasto para disparar particulas: ultima posicao/tempo e o
-  // momento do ultimo spawn (throttle para nao lotar a tela de bolhas)
-  const arrastoRef = useRef({ x: 0, y: 0, t: 0, spawn: 0 });
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -708,7 +674,7 @@ export default function App() {
     ultimaAtividadeRef.current = Date.now();
   }, [mensagens, etapaStream, enviando, tocandoId, handoff]);
 
-  // As camadas da aurora trocam de lugar aleatoriamente: a cada ~10s cada
+  // As camadas da aurora trocam de lugar aleatoriamente: a cada ~7s cada
   // luz ganha um novo alvo (left/top) e desliza ate ele pela transicao
   // CSS — o fundo nunca fica estatico. Desligado com prefers-reduced-motion
   useEffect(() => {
@@ -718,86 +684,6 @@ export default function App() {
     }, 7000);
     return () => clearInterval(id);
   }, []);
-
-  // O mouse MOVE a luz da aurora sem contar como atividade: so alimenta
-  // as CSS vars --aurora-mx/--aurora-my (paralaxe + brilho no cursor).
-  // Fica fora do marcarAtividade de proposito — mover o mouse nao apaga
-  // a aurora nem zera os timers de inatividade
-  useEffect(() => {
-    const moverMouse = (e: PointerEvent) => {
-      // posicao do cursor como fracao da viewport (0..1): os brilhos da
-      // aurora ficam exatamente em volta do mouse, nao no centro da tela
-      mouseAuroraRef.current.tx = e.clientX / window.innerWidth;
-      mouseAuroraRef.current.ty = e.clientY / window.innerHeight;
-
-      // Arrastar rapido solta particulas (bolhas/brilhos/fumaca) — efeito
-      // puramente visual: nao passa pelo marcarAtividade nem conta para
-      // os timers de inatividade
-      const a = arrastoRef.current;
-      const agora = performance.now();
-      const dt = agora - a.t;
-      if (dt > 0) {
-        const velocidade = (Math.hypot(e.clientX - a.x, e.clientY - a.y) / dt) * 1000;
-        const caixa = particulasRef.current;
-        if (
-          velocidade > 900 &&
-          agora - a.spawn > 45 &&
-          caixa &&
-          auroraRef.current?.classList.contains('aurora-on')
-        ) {
-          a.spawn = agora;
-          // 1 a 3 particulas por disparo, levemente atras do ponteiro
-          const n = 1 + Math.floor(Math.random() * 3);
-          for (let i = 0; i < n; i++) {
-            soltarParticulaAurora(caixa, e.clientX + (Math.random() - 0.5) * 24, e.clientY + (Math.random() - 0.5) * 24);
-          }
-        }
-      }
-      a.x = e.clientX;
-      a.y = e.clientY;
-      a.t = agora;
-    };
-    window.addEventListener('pointermove', moverMouse, { passive: true });
-    return () => window.removeEventListener('pointermove', moverMouse);
-  }, []);
-
-  // Loop rAF so enquanto a aurora esta acesa: interpola a posicao do
-  // mouse (lerp ~0.06/frame) e escreve as vars no elemento — o efeito de
-  // "a luz persegue o cursor com inercia" sai macio em vez de travado
-  // no ponteiro. Desligado junto com prefers-reduced-motion
-  useEffect(() => {
-    if (!mostrarAurora) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let raf = 0;
-    const passo = () => {
-      const m = mouseAuroraRef.current;
-      const nx = m.x + (m.tx - m.x) * 0.06;
-      const ny = m.y + (m.ty - m.y) * 0.06;
-      // velocidade suavizada do cursor: alimenta o leve tilt das camadas
-      // (a luz "deita" um pouco na direcao do movimento, como se fosse
-      // peso/molho reagindo ao ponteiro). Ganho 20 compensa a fracao 0..1
-      m.vx += ((nx - m.x) * 20 - m.vx) * 0.12;
-      m.vy += ((ny - m.y) * 20 - m.vy) * 0.12;
-      // posicao "rapida" do cursor para os brilhos: lerp bem maior (0.3)
-      // faz o nucleo/halo grudarem no mouse em vez de flutuar atras
-      m.fx += (m.tx - m.fx) * 0.3;
-      m.fy += (m.ty - m.fy) * 0.3;
-      m.x = nx;
-      m.y = ny;
-      // --aurora-cx/cy: posicao do cursor (0..1) para os brilhos — usa a
-      // versao rapida fx/fy; --aurora-mx/my: posicao com inercia (-1..1)
-      // para o paralaxe das camadas
-      auroraRef.current?.style.setProperty('--aurora-cx', m.fx.toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-cy', m.fy.toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-mx', (m.x * 2 - 1).toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-my', (m.y * 2 - 1).toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-vx', m.vx.toFixed(3));
-      auroraRef.current?.style.setProperty('--aurora-vy', m.vy.toFixed(3));
-      raf = requestAnimationFrame(passo);
-    };
-    raf = requestAnimationFrame(passo);
-    return () => cancelAnimationFrame(raf);
-  }, [mostrarAurora]);
 
   // Congela o relogio durante qualquer processamento: o tempo ocioso nao
   // corre nem zera — ao terminar, a contagem retoma de onde parou
@@ -1296,7 +1182,7 @@ function pararAudio() {
           ao abrir o app e volta apos 60s sem nenhuma atividade; qualquer
           clique, toque, tecla ou scroll em qualquer lugar apaga na hora
           e rearma o timer. pointer-events:none — ver styles.css */}
-      <div ref={auroraRef} className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
+      <div className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
         {alvosAurora.map((a, i) => (
           <i
             key={i}
@@ -1309,9 +1195,6 @@ function pararAudio() {
             }}
           />
         ))}
-        {/* camada de particulas: bolhas/brilhos/fumaca soltos ao arrastar
-            o mouse — criados via DOM pelo listener de pointermove */}
-        <div className="aurora-particulas" ref={particulasRef} />
       </div>
       {/* Banner amarelo de erro da API: pequeno, some sozinho em 3s */}
       {alertaApi && (

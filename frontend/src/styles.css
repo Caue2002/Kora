@@ -2076,10 +2076,11 @@ body {
    Acende ao abrir o app e volta apos 60s sem atividade; qualquer
    interacao em qualquer lugar apaga.
    A posicao/tamanho vem de inline style no App.tsx (alvos aleatorios
-   a cada ~10s) com transicao de 10s — o keyframe aurora-deriva soma
+   a cada ~7s) com transicao de 7s — o keyframe aurora-deriva soma
    um vaivem continuo de transform por cima. pointer-events:none — os
    cliques atravessam e contam como atividade via listeners do App.
-   A entrada/saida e um fade de ~450ms via opacity+visibility. */
+   A entrada/saida e um fade de ~450ms via opacity+visibility.
+   Nao ha interacao com o cursor: a aurora e puramente autonoma. */
 .aurora {
   position: fixed;
   inset: 0;
@@ -2102,148 +2103,29 @@ body {
   position: absolute;
   border-radius: 50%;
   /* deslize suave entre os alvos aleatorios de posicao (left/top vem
-     inline do App.tsx); o transform continua animado pelo keyframes */
+     inline do App.tsx); o vaivem continuo vem do keyframes aurora-deriva */
   transition:
     left 7s ease-in-out,
     top 7s ease-in-out;
-  /* paralaxe do mouse: translate individual compoe com o transform do
-     keyframes — cada camada persegue o cursor com forca propria
-     (--aurora-px/py definidas por camada = efeito de profundidade).
-     O rotate reage a VELOCIDADE do cursor (--aurora-vx/vy): a luz
-     inclina um pouco na direcao do movimento, como massa reagindo */
-  translate: calc(var(--aurora-mx, 0) * var(--aurora-px, 30px))
-    calc(var(--aurora-my, 0) * var(--aurora-py, 22px));
-  rotate: clamp(-5deg, calc(var(--aurora-vx, 0) * 5deg), 5deg);
   animation: aurora-deriva 11s ease-in-out infinite alternate;
 }
 
 /* tema claro: azul azure -> azul royal -> azul profundo (tons saturados
-   para a luz ser visivel sobre o fundo quase branco). A "frente" e a
-   camada mais saturada, invertendo a lógica de profundidade do escuro */
+   para a luz ser visivel sobre o fundo quase branco) */
 .aurora-camada-1 {
-  --aurora-px: 18px;
-  --aurora-py: 12px;
   background: radial-gradient(circle, rgba(96, 165, 250, 0.85), rgba(96, 165, 250, 0) 68%);
 }
 
 .aurora-camada-2 {
-  --aurora-px: 45px;
-  --aurora-py: 30px;
   background: radial-gradient(circle, rgba(37, 99, 235, 0.5), rgba(37, 99, 235, 0) 68%);
   animation-duration: 9s;
   animation-delay: -3s;
 }
 
 .aurora-camada-3 {
-  --aurora-px: 70px;
-  --aurora-py: 48px;
   background: radial-gradient(circle, rgba(29, 78, 216, 0.5), rgba(29, 78, 216, 0) 70%);
   animation-duration: 14s;
   animation-delay: -7s;
-}
-
-/* brilhos que perseguem o cursor: dois radiais com amplitudes e
-   intensidades diferentes — ::before e o nucleo concentrado ("lanterna",
-   segue mais longe) e ::after o halo difuso. Posicionados pelas vars
-   --aurora-mx/--aurora-my (mesma interpolacao das camadas) */
-.aurora::before,
-.aurora::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-
-.aurora-on::before,
-.aurora-on::after {
-  opacity: 1;
-}
-
-/* nucleo: area menor, azul royal mais carregado — centralizado
-   EXATAMENTE no cursor via --aurora-cx/cy (fracao 0..1 da tela) */
-.aurora::before {
-  background: radial-gradient(
-    24% 20% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(37, 99, 235, 0.45),
-    rgba(37, 99, 235, 0) 70%
-  );
-}
-
-/* halo: area ampla e suave em azul azure — tambem no cursor */
-.aurora::after {
-  background: radial-gradient(
-    55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(96, 165, 250, 0.28),
-    rgba(96, 165, 250, 0) 70%
-  );
-}
-
-[data-theme='escuro'] .aurora::before {
-  background: radial-gradient(
-    24% 20% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(59, 130, 246, 0.4),
-    rgba(59, 130, 246, 0) 70%
-  );
-}
-
-[data-theme='escuro'] .aurora::after {
-  background: radial-gradient(
-    55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(147, 197, 253, 0.16),
-    rgba(147, 197, 253, 0) 70%
-  );
-}
-
-/* ===== particulas da aurora (bolhas, brilhos e fumaca) =====
-   Soltas ao arrastar o mouse: nascem no cursor, sobem com deriva
-   lateral aleatoria (--dx) e desvanecem. Tudo em variacoes de azul;
-   cada particula se remove do DOM no animationend (App.tsx) */
-.aurora-particulas {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.aurora-particula {
-  position: absolute;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: particula-sobe var(--dur, 1.6s) ease-out forwards;
-  will-change: transform, opacity;
-}
-
-/* bolha: circulo translucido com borda azul */
-.aurora-particula-bolha {
-  border: 1px solid rgba(147, 197, 253, 0.55);
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.14), rgba(59, 130, 246, 0) 70%);
-}
-
-/* brilho: ponto luminoso azul que sobe e some */
-.aurora-particula-brilho {
-  background: radial-gradient(circle, rgba(191, 219, 254, 0.95), rgba(59, 130, 246, 0) 70%);
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
-}
-
-/* fumaca: borrada azul-acinzentada, maior e mais difusa */
-.aurora-particula-fumaca {
-  background: radial-gradient(circle, rgba(100, 116, 139, 0.35), rgba(100, 116, 139, 0) 70%);
-  filter: blur(6px);
-}
-
-@keyframes particula-sobe {
-  0% {
-    transform: translate(-50%, -50%) scale(0.5);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 90px)) scale(1.15);
-    opacity: 0;
-  }
 }
 
 /* tema escuro: azul escuro -> azul medio -> branco suave (brilho difuso) */
