@@ -21,7 +21,7 @@ protocolo, metrica).
    (ou "Em andamento" se depender de config externa) e pendencias novas.
 5. **README.md** — atualizar se a feature muda a descricao do produto,
    a cadeia de failover ou a lista de funcionalidades/tecnologias.
-6. **Guia de entrevista** — `Guia Kora Nori - Entrevistas Tecnicas.pdf`
+6. **Guia de entrevista** — `Guia Kora iFood.pdf`
    em `C:\Users\caue\Downloads\`: adicionar pagina/seção nova no MESMO
    estilo (Helvetica, titulos hebo 12pt cor 0x0f172a, corpo helv ~9.8pt
    cor 0x1e293b, rodape cinza 8.5pt "...Kora / Nori    Page N of M").
