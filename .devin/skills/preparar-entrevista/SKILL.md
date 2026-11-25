@@ -32,8 +32,12 @@ protocolo, metrica).
    **IMPORTANTE: o PDF e de uso pessoal, NUNCA commitar no repo.**
    Antes de editar, fazer backup (`Guia Kora iFood - backup.pdf`).
 
-### REGRA CRITICA — nunca reescrever conteudo do guia
+### REGRA CRITICA — nunca mexer no guia sem pedido explicito
 
+- **NAO editar o `Guia Kora iFood.pdf` a menos que o usuario peca
+  explicitamente.** O usuario edita o guia por conta propria; qualquer
+  alteracao (secao nova, correcao, formatacao) so com solicitacao
+  direta na conversa.
 - **NUNCA alterar, resumir, traduzir ou "melhorar" o texto existente do
   guia.** Somente ACRESCENTAR secoes novas ou CORRIGIR formatacao
   (cores, espacamento, numeracao). Se uma feature exigir mudanca de
