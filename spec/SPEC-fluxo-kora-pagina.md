@@ -39,7 +39,7 @@ faz sentido):
    function calling, streaming, guardrails, caso em segundo plano, metricas.
 6. Estado do caso — ciclo triagem > coleta > analise > parecer > encerrado,
    com handoff humano.
-7. Resiliencia — cadeia de failover de 11 modelos gratuitos com cotas por janela,
+7. Resiliencia — cadeia de failover de 10 modelos gratuitos com cotas por janela,
    cache, timeouts, retry, guardrails de saida.
 8. Qualidade — golden dataset, evals, LLM-as-judge, guardrails, CI, feedback
    loop, observabilidade (painel /metricas.html).

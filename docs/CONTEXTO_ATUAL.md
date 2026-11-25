@@ -381,8 +381,8 @@ de entrega.
   em generateContent e streamGenerateContent: todo o orcamento vai para o
   texto visivel, respostas mais rapidas (~4.5s vs ~28s no cenario de
   teste) e sem pensamento interno — adequado ao formato curto do Nori
-- Fallback de thinkingConfig no cliente LLM: gemini-3.5-flash-lite (id de
-  cota 7 do catalogo) rejeita thinkingConfig.thinkingBudget com 400 INVALID_ARGUMENT
+- Fallback de thinkingConfig no cliente LLM: gemini-3.5-flash-lite (slot 7
+  do catalogo) rejeita thinkingConfig.thinkingBudget com 400 INVALID_ARGUMENT
   — toda chamada a ele caia no failover. shared/llm.ts agora repete a
   chamada UMA vez sem o campo quando o Gemini devolve 400 (generateContent
   e streamGenerateContent), mantendo o thinking desligado nos modelos que
@@ -545,7 +545,7 @@ de entrega.
   git via .gitignore): material visual para entrevistas com a dor do
   projeto, jornada de disputa em 6 passos (diagrama + chat animado),
   arquitetura em camadas, fluxograma do /api/chat, estado do caso, failover
-  dos 11 modelos, qualidade/evals, capacidades, stack e protocolo de
+  dos 10 modelos, qualidade/evals, capacidades, stack e protocolo de
   atualizacao (Fluxo Kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md
 - Indicador de orbita padronizado em TODO o app: spec em
@@ -567,19 +567,6 @@ de entrega.
   duas ondas que nascem no centro e expandem alem da orbita
   (.msg-orbita-onda, scale+fade 2.6s defasadas). Tudo em circulo, atras
   das esferas (z-index -1 contido pelo stacking context do palco)
-- Slot de failover: Mistral La Plateforme entrou como prioridade 7 —
-  depois do Groq e antes dos flash-lites do Gemini; Pollinations virou
-  prioridade 11 (ultimo). Catalogo agora tem 11 slots; o id de cota NAO
-  e mais igual a prioridade (Mistral usa id 11 para nao renumerar cotas
-  existentes). ATENCAO: a Mistral NAO tem mais API gratuita — desde
-  ~nov/2026 o plano Free so cobre Vibe/Studio e a API exige billing
-  pago (pre-pago ou Pro); sem MISTRAL_API_KEY o slot fica inerte e o
-  codigo segue pronto caso se ative billing no futuro. Envs:
-  MISTRAL_API_KEY e MISTRAL_MODEL. Migration
-  0014_slot_mistral.sql PENDENTE de aplicar no Supabase (sem ela o slot
-  funciona so com cotas em memoria). Provedor OpenAI-compat usa o fluxo
-  comum de chamarOpenAICompat/stream — function calling segue so no
-  Gemini
 
 ## Em andamento
 

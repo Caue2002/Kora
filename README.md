@@ -24,7 +24,7 @@ Vercel Functions (Node/TS)
   ├─ RAG híbrido (texto + embedding) ──► Supabase/PostgreSQL + pgvector
   ├─ function calling (Gemini tools) ──► shared/tools.ts
   ├─ guardrails de saída (vazamento/PII)
-  └─ failover de modelos ──► Gemini ×6 → Groq → Mistral → Pollinations
+  └─ failover de modelos ──► Gemini ×6 → Groq → Pollinations
         │
         ▼
 Supabase: conversas, casos, conciliações, métricas, cotas, feedback
@@ -48,7 +48,7 @@ Supabase: conversas, casos, conciliações, métricas, cotas, feedback
 - Function calling: o próprio LLM decide consultar pedido ou buscar
   política no meio do raciocínio — tools executadas localmente e devolvidas
   como `functionResponse`, com streaming preservado
-- Failover em cascata de **11 modelos gratuitos** com cotas medidas no
+- Failover em cascata de **10 modelos gratuitos** com cotas medidas no
   Postgres por janela de tokens; failover imediato em stream morto
 - Coerência validada por heurística + regeneração corretiva; guardrails de
   saída contra vazamento de prompt e PII; anti-injection no prompt
@@ -80,7 +80,7 @@ Supabase: conversas, casos, conciliações, métricas, cotas, feedback
 | Frontend | React 18, TypeScript, Vite, Web Speech API, PWA |
 | Backend | Vercel Functions (Node.js/TypeScript) |
 | Banco | Supabase / PostgreSQL + pgvector |
-| IA | Google Gemini (6 modelos), Groq, Mistral, Pollinations, embeddings Gemini |
+| IA | Google Gemini (6 modelos), Groq, Pollinations, embeddings Gemini |
 | Voz | msedge-tts (vozes neurais Edge, gratuito) |
 | Protocolos | MCP (`mcp-handler`), A2A (JSON-RPC próprio) |
 | Testes | Vitest — unitários + integração real com LLM/banco |
