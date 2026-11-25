@@ -2159,39 +2159,90 @@ body {
   opacity: 1;
 }
 
-/* nucleo: area menor e brilho mais forte — centralizado EXATAMENTE no
-   cursor via --aurora-cx/cy (fracao 0..1 da tela) */
+/* nucleo: area menor, azul royal mais carregado — centralizado
+   EXATAMENTE no cursor via --aurora-cx/cy (fracao 0..1 da tela) */
 .aurora::before {
   background: radial-gradient(
-    26% 22% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(37, 99, 235, 0.16),
+    24% 20% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
+    rgba(37, 99, 235, 0.34),
     rgba(37, 99, 235, 0) 70%
   );
 }
 
-/* halo: area ampla e suave, tambem no cursor */
+/* halo: area ampla e suave em azul azure — tambem no cursor */
 .aurora::after {
   background: radial-gradient(
     55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(37, 99, 235, 0.12),
-    rgba(37, 99, 235, 0) 70%
+    rgba(96, 165, 250, 0.2),
+    rgba(96, 165, 250, 0) 70%
   );
 }
 
 [data-theme='escuro'] .aurora::before {
   background: radial-gradient(
-    26% 22% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(255, 255, 255, 0.14),
-    rgba(255, 255, 255, 0) 70%
+    24% 20% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
+    rgba(59, 130, 246, 0.4),
+    rgba(59, 130, 246, 0) 70%
   );
 }
 
 [data-theme='escuro'] .aurora::after {
   background: radial-gradient(
     55% 45% at calc(var(--aurora-cx, 0.5) * 100%) calc(var(--aurora-cy, 0.5) * 100%),
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0) 70%
+    rgba(147, 197, 253, 0.16),
+    rgba(147, 197, 253, 0) 70%
   );
+}
+
+/* ===== particulas da aurora (bolhas, brilhos e fumaca) =====
+   Soltas ao arrastar o mouse: nascem no cursor, sobem com deriva
+   lateral aleatoria (--dx) e desvanecem. Tudo em variacoes de azul;
+   cada particula se remove do DOM no animationend (App.tsx) */
+.aurora-particulas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora-particula {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: particula-sobe var(--dur, 1.6s) ease-out forwards;
+  will-change: transform, opacity;
+}
+
+/* bolha: circulo translucido com borda azul */
+.aurora-particula-bolha {
+  border: 1px solid rgba(147, 197, 253, 0.55);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.14), rgba(59, 130, 246, 0) 70%);
+}
+
+/* brilho: ponto luminoso azul que sobe e some */
+.aurora-particula-brilho {
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.95), rgba(59, 130, 246, 0) 70%);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+}
+
+/* fumaca: borrada azul-acinzentada, maior e mais difusa */
+.aurora-particula-fumaca {
+  background: radial-gradient(circle, rgba(100, 116, 139, 0.35), rgba(100, 116, 139, 0) 70%);
+  filter: blur(6px);
+}
+
+@keyframes particula-sobe {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 90px)) scale(1.15);
+    opacity: 0;
+  }
 }
 
 /* tema escuro: azul escuro -> azul medio -> branco suave (brilho difuso) */

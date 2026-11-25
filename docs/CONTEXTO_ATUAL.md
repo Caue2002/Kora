@@ -618,10 +618,14 @@ de entrega.
   via rAF com lerp (~0.06/frame, loop so roda com a aurora acesa),
   gerando paralaxe de profundidade por camada (translate individual
   18-70px), tilt de ate 5deg proporcional a velocidade horizontal do
-  cursor (rotate) e DOIS brilhos radiais centralizados EXATAMENTE no
-  cursor (.aurora::before nucleo + ::after halo, posicionados por
-  --aurora-cx/cy = fracao 0..1 da viewport; azul no claro / branco no
-  escuro). prefers-reduced-motion desliga tudo. pointer-events:none, fade de 450ms, paletas claro/escuro via
+  cursor (rotate) e DOIS brilhos radiais em variacoes de azul
+  centralizados quase colados no cursor — tracking rapido via vars
+  fx/fy com lerp 0.3 (.aurora::before nucleo royal + ::after halo
+  azure, posicionados por --aurora-cx/cy = fracao 0..1 da viewport).
+  Arrastar o mouse solta particulas azuis (bolha/brilho/fumaca) que
+  sobem e desvanecem — spawn via DOM no pointermove com throttle de
+  45ms e teto de 48, sem contar como atividade.
+  prefers-reduced-motion desliga tudo. pointer-events:none, fade de 450ms, paletas claro/escuro via
   data-theme. Regra do usuario: acende ao abrir e volta sempre que a
   tela passa 60s sem NENHUM sinal de vida — qualquer clique, toque,
   tecla ou scroll em qualquer lugar apaga na hora e rearma os 60s.
