@@ -23,6 +23,14 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
 - `node scripts/testar_modelos_gemini.mjs` — testa quais modelos Gemini a
   GEMINI_API_KEY atual acessa e mede a latencia de cada um
 
+## MCP
+
+- Supabase MCP configurado em `.devin/mcp_config.local.json` (gitignored),
+  servidor hospedado `https://mcp.supabase.com/mcp` com OAuth e escopo no
+  projeto `uzkiayjqcjztzrwestcg`, com acesso de leitura e escrita.
+  Autenticar via `devin mcp login supabase` ou no primeiro uso (abre o
+  navegador).
+
 ## Dominio
 
 App de delivery ficticio; o Nori tria e concilia disputas de pedidos
