@@ -107,6 +107,30 @@ function anexarFunctionResponse(
   });
 }
 
+// Alguns modelos Gemini (ex.: gemini-3.5-flash-lite) rejeitam o campo
+// thinkingConfig com 400 INVALID_ARGUMENT. Quando isso acontece, a mesma
+// chamada e repetida uma vez sem o campo — o modelo segue funcionando,
+// apenas sem o desligamento explicito do raciocinio interno
+async function postGeminiComFallbackThinking(url: string, body: Record<string, unknown>): Promise<Response> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal: AbortSignal.timeout(timeoutLlmMs()),
+    body: JSON.stringify(body),
+  });
+  const geracao = body.generationConfig as Record<string, unknown> | undefined;
+  if (res.status === 400 && geracao && 'thinkingConfig' in geracao) {
+    const { thinkingConfig: _omitido, ...restoGeracao } = geracao;
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(timeoutLlmMs()),
+      body: JSON.stringify({ ...body, generationConfig: restoGeracao }),
+    });
+  }
+  return res;
+}
+
 async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], temperatura: number, maxTokens: number, jsonMode = false, comTools = false): Promise<RespostaLLM> {
   // Gemini usa systemInstruction + contents; o system vai separado das mensagens
   const system = mensagens.find((m) => m.role === 'system')?.content ?? '';
@@ -119,27 +143,22 @@ async function chamarGemini(modelo: ModeloConfig, mensagens: MensagemChat[], tem
     const usarTools = comTools && rodada < MAX_TOOL_ROUNDS;
     // AbortSignal.timeout limita a chamada inteira: provedor pendurado falha
     // rapido e o failover tenta o proximo modelo em vez de travar a requisicao
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(timeoutLlmMs()),
-      body: JSON.stringify({
-        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-        contents,
-        generationConfig: {
-          temperature: temperatura,
-          maxOutputTokens: maxTokens,
-          // Sem isso os modelos Gemini 3.x/4 gastam o maxOutputTokens em
-          // "thoughts" invisiveis e a resposta visivel sai truncada/vazia.
-          // As respostas do Nori sao curtas por design: thinking desligado.
-          thinkingConfig: { thinkingBudget: 0 },
-          // JSON mode: saida garantida como JSON valido (extracao estruturada)
-          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-        },
-        ...(usarTools
-          ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
-          : {}),
-      }),
+    const res = await postGeminiComFallbackThinking(url, {
+      systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+      contents,
+      generationConfig: {
+        temperature: temperatura,
+        maxOutputTokens: maxTokens,
+        // Sem isso os modelos Gemini 3.x/4 gastam o maxOutputTokens em
+        // "thoughts" invisiveis e a resposta visivel sai truncada/vazia.
+        // As respostas do Nori sao curtas por design: thinking desligado.
+        thinkingConfig: { thinkingBudget: 0 },
+        // JSON mode: saida garantida como JSON valido (extracao estruturada)
+        ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+      },
+      ...(usarTools
+        ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
+        : {}),
     });
     const corpo = await res.text();
     if (!res.ok) {
@@ -288,35 +307,23 @@ async function abrirStreamGeminiConteudo(
   temperatura: number,
   comTools: boolean,
 ): Promise<Response> {
-  const handshake = sinalHandshake(timeoutLlmMs());
-  try {
-    const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: handshake.signal,
-      body: JSON.stringify({
-        systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-        contents,
-        generationConfig: {
-          temperature: temperatura,
-          maxOutputTokens: maxTokensSaida(),
-          // Mesmo motivo do generateContent: evita que o raciocinio interno
-          // consuma o orcamento de tokens e trunque a resposta visivel
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-        ...(comTools
-          ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
-          : {}),
-      }),
-    });
-    // Headers recebidos: o corpo SSE pode fluir sem limite de tempo
-    handshake.cancelar();
-    return res;
-  } catch (erro) {
-    handshake.cancelar();
-    throw erro;
-  }
+  // postGeminiComFallbackThinking ja aplica AbortSignal.timeout por tentativa:
+  // o handshake HTTP fica limitado e o corpo SSE flui sem teto de tempo
+  const url = `${modelo.endpoint}/${modelo.nomeModelo}:streamGenerateContent?alt=sse&key=${modelo.apiKey}`;
+  return postGeminiComFallbackThinking(url, {
+    systemInstruction: system ? { parts: [{ text: system }] } : undefined,
+    contents,
+    generationConfig: {
+      temperature: temperatura,
+      maxOutputTokens: maxTokensSaida(),
+      // Mesmo motivo do generateContent: evita que o raciocinio interno
+      // consuma o orcamento de tokens e trunque a resposta visivel
+      thinkingConfig: { thinkingBudget: 0 },
+    },
+    ...(comTools
+      ? { tools: [TOOLS_GEMINI], toolConfig: { functionCallingConfig: { mode: 'AUTO' } } }
+      : {}),
+  });
 }
 
 // Abre a conexao de streaming com o provedor

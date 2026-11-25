@@ -381,6 +381,19 @@ de entrega.
   em generateContent e streamGenerateContent: todo o orcamento vai para o
   texto visivel, respostas mais rapidas (~4.5s vs ~28s no cenario de
   teste) e sem pensamento interno — adequado ao formato curto do Nori
+- Fallback de thinkingConfig no cliente LLM: gemini-3.5-flash-lite (slot 7
+  do catalogo) rejeita thinkingConfig.thinkingBudget com 400 INVALID_ARGUMENT
+  — toda chamada a ele caia no failover. shared/llm.ts agora repete a
+  chamada UMA vez sem o campo quando o Gemini devolve 400 (generateContent
+  e streamGenerateContent), mantendo o thinking desligado nos modelos que
+  aceitam. Verificado ao vivo: o slot passou a responder nos dois modos
+- Varredura geral de bugs (typecheck, build, suite completa): typecheck e
+  vite build limpos; 57/62 testes ok — as 5 falhas sao ambientas (cota
+  free-tier do Gemini esgotada durante a rodada: evals.test.ts timeout de
+  300s e evals-juiz.test.ts com 429 + 1 reprovacao do juiz ja documentada
+  como flake). Pollinations free segue limitado a 16k chars e sempre
+  devolve 413 com o prompt completo do chat — slot ineficaz mas inofensivo
+  (failover segue para o RESPOSTA_FALLBACK se tudo falhar)
 - Function calling na Nori (spec em spec/SPEC-function-calling.md):
   shared/tools.ts define consultar_pedido e buscar_politica (schemas zod
   compartilhados com o servidor MCP); shared/llm.ts converte para o formato
@@ -549,6 +562,11 @@ de entrega.
   indicadores antigos (.msg-digitando, .dot, pulsa, .encerrando-spinner)
   removido. Historico: V1 era metaball (blur+contrast, gotas fundidas)
   com movimento linear; substituida pela orbita por decisao de design
+- Movimento extra circular no indicador de orbita: anel tracejado azul
+  girando continuamente em volta (.msg-orbita-anel, rotate linear 8s) e
+  duas ondas que nascem no centro e expandem alem da orbita
+  (.msg-orbita-onda, scale+fade 2.6s defasadas). Tudo em circulo, atras
+  das esferas (z-index -1 contido pelo stacking context do palco)
 
 ## Em andamento
 
