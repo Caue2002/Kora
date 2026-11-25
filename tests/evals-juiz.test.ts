@@ -45,24 +45,34 @@ async function chamarApi(mensagem: string, historico: Array<{ role: string; cont
   );
 }
 
+// Resposta de fallback quando todos os modelos falham: falha transitoria,
+// nao reprova o cenario — tenta de novo apos espera
+const FALLBACK_MODELOS = /dificuldade para formular essa resposta/i;
+
 async function perguntar(mensagem: string, historico: Array<{ role: string; content: string }> = []) {
-  let res = await chamarApi(mensagem, historico);
-  if (res.status === 429) {
-    await dormir(65_000);
-    res = await chamarApi(mensagem, historico);
+  let dados: { status: number; resposta?: string; erro?: string } | null = null;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    let res = await chamarApi(mensagem, historico);
+    if (res.status === 429) {
+      await dormir(65_000);
+      res = await chamarApi(mensagem, historico);
+    }
+    dados = { status: res.status, ...((await res.json()) as { resposta?: string; erro?: string }) };
+    if (dados.status !== 200 || !dados.resposta || !FALLBACK_MODELOS.test(dados.resposta)) break;
+    if (tentativa < 2) await dormir(60_000);
   }
-  const dados = (await res.json()) as { resposta?: string; erro?: string };
-  return { status: res.status, ...dados };
+  return dados!;
 }
 
-// Juiz: ultimo Gemini lite do catalogo (mais barato/rapido); se nao houver,
-// cai no primeiro Gemini disponivel
-function modeloJuiz(): ModeloConfig {
+// Candidatos a juiz: Gemini lite primeiro (mais barato/rapido), do mais
+// fraco ao mais forte; modelos saturados (503/429) sao pulados na hora
+function modelosJuiz(): ModeloConfig[] {
   const geminis = catalogoModelos().filter((m) => m.provedor === 'gemini');
-  const lite = [...geminis].reverse().find((m) => m.nomeModelo.includes('lite'));
-  const escolhido = lite ?? geminis[0];
-  if (!escolhido) throw new Error('catalogo sem modelo Gemini para o juiz');
-  return escolhido;
+  const lite = geminis.filter((m) => m.nomeModelo.includes('lite')).reverse();
+  const resto = geminis.filter((m) => !m.nomeModelo.includes('lite'));
+  const lista = [...lite, ...resto];
+  if (lista.length === 0) throw new Error('catalogo sem modelo Gemini para o juiz');
+  return lista;
 }
 
 interface Veredito {
@@ -71,7 +81,7 @@ interface Veredito {
 }
 
 // Pede ao juiz uma nota 1-5 em JSON; tolera texto ao redor do JSON
-async function julgar(modelo: ModeloConfig, pergunta: string, resposta: string, rubrica: string): Promise<Veredito> {
+async function julgar(pergunta: string, resposta: string, rubrica: string): Promise<Veredito> {
   const mensagens: MensagemChat[] = [
     {
       role: 'system',
@@ -87,15 +97,26 @@ async function julgar(modelo: ModeloConfig, pergunta: string, resposta: string, 
       content: `RUBRICA: ${rubrica}\n\nPERGUNTA DO USUARIO: ${pergunta}\n\nRESPOSTA DO AGENTE: ${resposta}`,
     },
   ];
-  const r = await chamarLLM(modelo, mensagens, { temperatura: 0, maxTokens: 300 });
-  const json = r.texto.match(/\{[\s\S]*\}/)?.[0];
-  if (!json) return { nota: 0, justificativa: `resposta do juiz nao-JSON: ${r.texto.slice(0, 120)}` };
-  try {
-    const v = JSON.parse(json) as { nota?: number; justificativa?: string };
-    return { nota: Number(v.nota) || 0, justificativa: v.justificativa ?? '' };
-  } catch {
-    return { nota: 0, justificativa: 'JSON do juiz invalido' };
+  // Tenta cada modelo candidato: free-tier devolve 503/429 por janela de
+  // demanda e um unico modelo falhando nao deve reprovar o cenario
+  let ultimoErro: unknown = null;
+  for (const modelo of modelosJuiz()) {
+    try {
+      const r = await chamarLLM(modelo, mensagens, { temperatura: 0, maxTokens: 300 });
+      const json = r.texto.match(/\{[\s\S]*\}/)?.[0];
+      if (!json) return { nota: 0, justificativa: `resposta do juiz nao-JSON: ${r.texto.slice(0, 120)}` };
+      try {
+        const v = JSON.parse(json) as { nota?: number; justificativa?: string };
+        return { nota: Number(v.nota) || 0, justificativa: v.justificativa ?? '' };
+      } catch {
+        return { nota: 0, justificativa: 'JSON do juiz invalido' };
+      }
+    } catch (e) {
+      ultimoErro = e;
+      await dormir(2_000);
+    }
   }
+  throw ultimoErro instanceof Error ? ultimoErro : new Error('todos os modelos juiz falharam');
 }
 
 interface CenarioJuiz {
@@ -150,7 +171,7 @@ describe('Evals com LLM-as-Judge', () => {
       expect(r.status, `chat falhou: ${r.erro ?? ''}`).toBe(200);
       expect(r.resposta, 'resposta vazia').toBeTruthy();
 
-      const veredito = await julgar(modeloJuiz(), cenario.msg, r.resposta!, cenario.rubrica);
+      const veredito = await julgar(cenario.msg, r.resposta!, cenario.rubrica);
       console.log(
         `\n  [juiz] ${cenario.nome}: nota ${veredito.nota}/5 — ${veredito.justificativa}`,
       );

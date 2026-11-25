@@ -41,14 +41,23 @@ async function chamarApi(mensagem: string, historico: Array<{ role: string; cont
   );
 }
 
+// Resposta de fallback emitida quando todos os modelos falham (cota/503):
+// tratar como falha transitoria e tentar de novo em vez de reprovar a rubrica
+const FALLBACK_MODELOS = /dificuldade para formular essa resposta/i;
+
 async function perguntar(mensagem: string, historico: Array<{ role: string; content: string }> = []) {
-  let res = await chamarApi(mensagem, historico);
-  if (res.status === 429) {
-    await dormir(65_000);
-    res = await chamarApi(mensagem, historico);
+  let dados: { status: number; resposta?: string; erro?: string } | null = null;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    let res = await chamarApi(mensagem, historico);
+    if (res.status === 429) {
+      await dormir(65_000);
+      res = await chamarApi(mensagem, historico);
+    }
+    dados = { status: res.status, ...((await res.json()) as { resposta?: string; erro?: string }) };
+    if (dados.status !== 200 || !dados.resposta || !FALLBACK_MODELOS.test(dados.resposta)) break;
+    if (tentativa < 2) await dormir(60_000);
   }
-  const dados = (await res.json()) as { resposta?: string; erro?: string };
-  return { status: res.status, ...dados };
+  return dados!;
 }
 
 interface CenarioEval {

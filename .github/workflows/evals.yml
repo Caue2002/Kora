@@ -34,11 +34,13 @@ jobs:
           } > .env
 
       - name: Rodar evals (golden dataset + LLM-as-judge)
-        # Modelos free-tier saturam por janelas: uma segunda tentativa apos
-        # 3min absorve a maioria dos flakes sem esconder falha real
+        # Arquivos rodam em sequencia: em paralelo dobravam a carga na API
+        # free-tier e causavam 503/429 em cascata. Cota satura por janelas:
+        # ate 3 tentativas com 4min de espera absorvem os flakes
         run: |
-          npx vitest run tests/evals.test.ts tests/evals-juiz.test.ts || {
-            echo "Primeira tentativa falhou (provavel saturacao de cota) — aguardando 3min e tentando de novo"
-            sleep 180
-            npx vitest run tests/evals.test.ts tests/evals-juiz.test.ts
-          }
+          for tentativa in 1 2 3; do
+            npx vitest run tests/evals.test.ts && npx vitest run tests/evals-juiz.test.ts && exit 0
+            echo "Tentativa $tentativa falhou (provavel saturacao de cota)"
+            [ "$tentativa" -lt 3 ] && sleep 240
+          done
+          exit 1
