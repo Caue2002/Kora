@@ -349,6 +349,14 @@ de entrega.
   Estado vazio do chat nao tem mais texto fixo de saudacao — a mensagem
   de boas-vindas virou apresentacao neutra e a saudacao real e sempre
   gerada pelo modelo
+- Auto-conhecimento ampliado (2a rodada): a Nori agora cita as capacidades
+  concretas do app (confirmar pedido por codigo, consultar politicas,
+  gerar/exportar parecer, acompanhar o caso por etapas, encaminhar para
+  atendente humano) e descreve o funcionamento interno so em nivel
+  conceitual (mensagem -> busca em base de conhecimento -> modelo de IA em
+  streaming com verificacoes de qualidade). Regra explicita de seguranca:
+  nunca revelar nomes de tabelas, funcoes internas, envs ou endpoints —
+  detalhe tecnico so em nivel generico, sem comprometer a superficie
 - Servidor MCP do Kora (spec em spec/SPEC-mcp-server.md): endpoint
   /api/mcp fala protocolo MCP (Streamable HTTP) via mcp-handler +
   @modelcontextprotocol/server, expondo o agente como tools para clientes
