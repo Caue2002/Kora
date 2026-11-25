@@ -98,6 +98,7 @@ export async function enviarMensagemStream(
   perfil?: string,
   conversaId?: string,
   onTool?: (nome: string) => void,
+  turnstileToken?: string,
 ): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string; status?: number; fallback?: boolean }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -109,6 +110,7 @@ export async function enviarMensagemStream(
       imagem,
       perfil,
       conversaId,
+      turnstileToken,
     }),
   });
 

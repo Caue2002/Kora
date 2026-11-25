@@ -24,6 +24,17 @@ import { ALERTA_SATURACAO, mapearErroApi, type AlertaErro } from './alertas';
 import { Markdown } from './markdown';
 import Sidebar from './Sidebar';
 
+// Cloudflare Turnstile: widget anti-abuso do /api/chat — so renderiza
+// quando VITE_TURNSTILE_SITE_KEY esta definida no build do frontend;
+// sem ela nada muda (o backend tambem fica em no-op sem o secret par)
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+
+// API minima do script da Cloudflare (tipos locais, sem dependencia)
+interface TurnstileApi {
+  render: (el: HTMLElement, opcoes: Record<string, unknown>) => string;
+  reset: (id?: string) => void;
+}
+
 const AVISOS = ['util', 'confuso', 'incompleto', 'prolixo'] as const;
 
 // Sugestoes rapidas por perfil: cada papel do marketplace tem situacoes tipicas diferentes
@@ -485,6 +496,13 @@ export default function App() {
   // Ref para o tick de inatividade chamar o encerramento sem fechar sobre
   // estado velho (conversaId/mensagens do render em que o efeito rodou)
   const encerrarAtendimentoRef = useRef<() => void>(() => {});
+  // Turnstile: container do widget, id do widget renderizado e token
+  // atual em ref (o callback do script atualiza sem re-render). O token
+  // e de uso unico — cada envio consome e o widget e resetado
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+  const turnstileTokenRef = useRef<string | undefined>(undefined);
+  const turnstileEsperaRef = useRef<((token?: string) => void) | null>(null);
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -680,9 +698,58 @@ export default function App() {
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
-      setAlvosAurora((atual) => atual.map((a) => ({ ...a, ...posicaoAleatoriaAurora() })));
+      setAlvosAurora((atual) => {
+        // Cada camada ganha um alvo novo com distancia minima das outras:
+        // sem isso as 3 luzes podiam cair todas no mesmo canto da tela.
+        // Ate 12 tentativas por camada; se nenhuma passar, fica a ultima
+        const alvos: typeof atual = [];
+        for (const a of atual) {
+          let p = posicaoAleatoriaAurora();
+          for (let t = 0; t < 12; t++) {
+            const colada = alvos.some((o) => Math.hypot(o.left - p.left, o.top - p.top) < 45);
+            if (!colada) break;
+            p = posicaoAleatoriaAurora();
+          }
+          alvos.push({ ...a, ...p });
+        }
+        return alvos;
+      });
     }, 7000);
     return () => clearInterval(id);
+  }, []);
+
+  // Carrega o script do Turnstile e renderiza o widget uma unica vez
+  // quando ha site key configurada. O callback guarda o token na ref e
+  // acorda quem estiver aguardando um token novo (apos cada envio)
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    const render = () => {
+      const w = (window as { turnstile?: TurnstileApi }).turnstile;
+      if (!w || !turnstileRef.current || turnstileWidgetId.current !== null) return;
+      turnstileWidgetId.current = w.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        callback: (token: string) => {
+          turnstileTokenRef.current = token;
+          turnstileEsperaRef.current?.(token);
+          turnstileEsperaRef.current = null;
+        },
+        'expired-callback': () => {
+          turnstileTokenRef.current = undefined;
+        },
+        theme: 'auto',
+      });
+    };
+    const w = (window as { turnstile?: TurnstileApi }).turnstile;
+    if (w) {
+      render();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    s.async = true;
+    s.defer = true;
+    s.onload = render;
+    document.head.appendChild(s);
   }, []);
 
   // Congela o relogio durante qualquer processamento: o tempo ocioso nao
@@ -877,19 +944,27 @@ export default function App() {
     const enviouFoto = !!anexo;
 
     // Uma falha transitoria de rede/stream ganha uma segunda tentativa
-    // automatica e silenciosa antes de exibir o erro para o usuario
-    const chamarApi = () =>
-      // A foto nao vai para o modelo: o agente so confirma o recebimento dela
-      enviarMensagemStream(textoMsg, mensagens, (delta) => {
-        textoStream += delta;
-        if (primeiroDelta) {
-          primeiroDelta = false;
-          setEtapaStream('gerando');
-        }
-        setMensagens((atual) =>
-          atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
-        );
-      }, undefined, perfil ?? undefined, cid, (tool) => setEtapaStream(`tool:${tool}`));
+    // automatica e silenciosa antes de exibir o erro para o usuario.
+    // Cada tentativa precisa de token Turnstile NOVO (uso unico): o
+    // finally consome o atual e reseta o widget para a proxima chamada
+    const chamarApi = async () => {
+      const token = await garantirTokenTurnstile();
+      try {
+        // A foto nao vai para o modelo: o agente so confirma o recebimento dela
+        return await enviarMensagemStream(textoMsg, mensagens, (delta) => {
+          textoStream += delta;
+          if (primeiroDelta) {
+            primeiroDelta = false;
+            setEtapaStream('gerando');
+          }
+          setMensagens((atual) =>
+            atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
+          );
+        }, undefined, perfil ?? undefined, cid, (tool) => setEtapaStream(`tool:${tool}`), token);
+      } finally {
+        consumirTokenTurnstile();
+      }
+    };
 
     try {
       let r;
@@ -951,6 +1026,40 @@ export default function App() {
       setEnviando(false);
       setEtapaStream(null);
       setAnexo(null);
+    }
+  }
+
+  // Garante um token Turnstile fresco para o proximo envio: reusa o
+  // atual se o widget ja emitiu; senao aguarda o callback dele (ate 10s
+  // de margem — o modo gerenciado normalmente emite sem interacao).
+  // Sem site key configurada devolve undefined e nada muda no fluxo
+  function garantirTokenTurnstile(): Promise<string | undefined> {
+    if (!TURNSTILE_SITE_KEY) return Promise.resolve(undefined);
+    if (turnstileTokenRef.current) return Promise.resolve(turnstileTokenRef.current);
+    return new Promise((resolve) => {
+      const t = setTimeout(() => {
+        turnstileEsperaRef.current = null;
+        resolve(turnstileTokenRef.current);
+      }, 10_000);
+      turnstileEsperaRef.current = (token) => {
+        clearTimeout(t);
+        resolve(token);
+      };
+    });
+  }
+
+  // O siteverify invalida o token a cada uso: depois de cada chamada a
+  // API o widget e resetado para emitir um novo antes da proxima mensagem
+  function consumirTokenTurnstile() {
+    turnstileTokenRef.current = undefined;
+    const w = (window as { turnstile?: TurnstileApi }).turnstile;
+    if (w?.reset && turnstileWidgetId.current !== null) {
+      try {
+        w.reset(turnstileWidgetId.current);
+      } catch {
+        // Widget ainda nao renderizou (script carregando): o proximo
+        // garantirTokenTurnstile aguarda o callback normalmente
+      }
     }
   }
 
@@ -1643,6 +1752,15 @@ function pararAudio() {
             Enviar
           </button>
         </form>
+
+        {/* Widget Turnstile: so renderiza quando VITE_TURNSTILE_SITE_KEY
+            esta definida no build — o backend exige o token enquanto
+            TURNSTILE_SECRET_KEY estiver configurada */}
+        {TURNSTILE_SITE_KEY && (
+          <div className="turnstile-faixa">
+            <div ref={turnstileRef} />
+          </div>
+        )}
       </div>
 
       {/* Modal de handoff: briefing estruturado da disputa para o atendente humano */}

@@ -39,9 +39,19 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
   significativa exige `spec/SPEC-<nome>.md` (workflow SDD com aprovacao do
   usuario entre fases). Nao implementar no mesmo turno em que a spec foi
   escrita. Specs de features implementadas ficam `Status: implementado`.
-- **Documentacao antes do commit**: nenhuma tarefa termina sem
-  `docs/CONTEXTO_ATUAL.md` em dia; `docs/DECISOES.md` so para decisoes
-  tecnicas duraveis; README de pasta quando o contrato do modulo mudar.
+- **Documentacao e prioridade — atualizar SEMPRE, em toda tarefa**: o
+  usuario depende da documentacao para entender o projeto, entao
+  sincronizar docs e material de entrevista faz parte da tarefa, nao e
+  opcional. Checklist obrigatorio antes de commitar:
+  1. `docs/CONTEXTO_ATUAL.md` — estado, decisoes, pendencias;
+  2. `docs/fluxo-kora/index.html` — pagina de entrevista (ver skill);
+  3. painel de metricas (`frontend/public/metricas.html`/`.js`) — se o
+     que ele exibe mudou (KPIs, modelos, colunas, RPC);
+  4. `Guia Kora iFood.pdf` (`C:\Users\caue\Downloads\`) — **somente
+     quando o usuario pedir** (regra acima): backup + acrescimo
+     incremental via PyMuPDF;
+  5. `docs/DECISOES.md` so para decisoes tecnicas duraveis; README de
+     pasta quando o contrato do modulo mudar.
   Ver skill `atualizar-documentacao`.
 - **Validar antes de commitar**: `npm run typecheck`, `npm test`,
   `npm --prefix frontend run build`.

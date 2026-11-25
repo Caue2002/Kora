@@ -195,7 +195,12 @@ de entrega.
 - Input do chat virou textarea: Enter/tecla de enviar do teclado so insere
   quebra de linha; o envio acontece apenas pelo botao Enviar. Placeholder:
   "Fale com a Nori...". Foco automatico do input restrito a pointer:fine
-  (desktop) — no mobile nao abre mais o teclado ao chegar resposta da Nori
+  (desktop) — no mobile nao abre mais o teclado ao chegar resposta da Nori.
+  ATUALIZACAO (25/11): no DESKTOP o Enter sem Shift agora envia a mensagem
+  (onKeyDown no textarea, guarda por `podeFocarInput()` = matchMedia
+  pointer:fine, Shift+Enter segue quebra de linha e `isComposing` protege
+  IME); no mobile nada muda — sem teclado fisico confiavel, o botao Enviar
+  continua sendo o unico caminho
 - Botao de som removido do header (icone, estado kora-som e WebAudio)
 - Otimizacao de latencia do /api/chat: selecionarModelo agora busca o consumo
   das cotas de todos os modelos em UMA query (antes era sequencial por
@@ -629,6 +634,44 @@ de entrega.
 - Cabecalho do chat virou barra flutuante arredondada (.chat-topo:
   margem lateral, border-radius 16px, borda completa no lugar do
   border-bottom reto) — a pedido do usuario, sem mudar o layout
+- Anti-abuso Cloudflare Turnstile no /api/chat (DORMENTE por padrao):
+  shared/turnstile.ts verifica o token via siteverify da Cloudflare;
+  so exige quando TURNSTILE_SECRET_KEY esta definida — sem ela tudo
+  passa (no-op). Falha ABERTA se o siteverify estiver inacessivel (o
+  chat ja tem rate limit por IP). Frontend so renderiza o widget
+  quando VITE_TURNSTILE_SITE_KEY existe no build (script da Cloudflare
+  carregado sob demanda, token de uso unico consumido a cada envio e
+  resetado). Par de envs documentado em .env.example; para ativar em
+  producao falta cadastrar as duas chaves (Vercel env + rebuild)
+- Verificacao semantica de coerencia antes de regenerar: quando a
+  heuristica (validarHeuristico) aponta problema numa resposta, o
+  /api/chat agora chama validarComLLM — um modelo Gemini lite julga se
+  o problema e real antes de pagar uma regeneracao inteira (a camada
+  semantica so roda quando a heuristica falha, custo raro). Recusa
+  generica NAO passa pelo verificador: sempre regenera. Se o verificador
+  nao conseguir analisar, devolve ok e a resposta segue como esta —
+  evita regenerar por falso positivo da heuristica conservadora
+- Fallback em camadas com crescimento pelo uso (spec em
+  spec/SPEC-fallback-camadas.md, IMPLEMENTADO): quando a fila de
+  modelos falha por completo ou a resposta e recusada/vazia, o
+  /api/chat nao devolve mais a mesma string fixa — api/fallback.ts
+  resolve em cascata, sem nenhuma chamada de LLM: (1) cache semantico
+  relaxado via RPC buscar_cache_fallback (score >= 0.80 vs 0.95 do
+  caminho normal, qualquer escopo); (2) banco canonico por intencao
+  (tabela fallback_respostas, intencao detectada por heuristicas
+  leves — sem LLM); (3) pool de 5 variantes genericas estaveis por
+  conversaId. Todas as camadas falham silenciosamente para a proxima.
+  Crescimento organico: cache_respostas ganhou coluna `escopo` —
+  turnos COM historico gravam respostas boas como escopo='fallback'
+  (so servidas na emergencia; o cache hit normal filtra 'geral',
+  entao follow-ups nunca viram cache indevido). Respostas vindas do
+  fallback nunca sao regravadas no cache. Metricas registram a camada
+  (cache-fallback/banco-fallback/generico-fallback) como modelo e
+  headers x-fallback-camada; testes em tests/fallback.test.ts (11).
+  PENDENTE: aplicar migration 0016_fallback_em_camadas.sql no
+  Supabase (aguardando aprovacao do usuario — sem ela o fallback
+  cai direto no banco/variantes, pois buscar_cache_fallback nao
+  existe ainda e consultar falha silenciosamente)
 
 ## Em andamento
 
@@ -647,15 +690,15 @@ de entrega.
   ATENCAO: tabelas criadas via SQL Editor nao herdam grants — foi preciso
   rodar grants manuais para service_role (select/insert/update/delete nas
   tabelas + execute nas funcoes); os grants ja estao no fim da migration
-- Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
-  "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
-  api/caso.ts). Sem urgencia — nada quebra sem ela
+- ~~Migration 0010_categoria_pagamento.sql PENDENTE~~ FEITO 25/11/2026
+  via Supabase MCP (apply_migration): categoria "pagamento" (id 5)
+  inserida em categorias_divergencia
 - ~~Migration 0011_trace_tools_metricas.sql PENDENTE~~ FEITO: verificado
   via PostgREST que as colunas trace/tools_usadas existem e a RPC
   metricas_chat_resumo ja retorna p50/p95, tools_total e traces_recentes
-- Migration 0012_metricas_modelo_backfill.sql PENDENTE: backfill de
-  modelo/provedor em metricas_chat (cache_hit -> 'cache', erro ->
-  'indisponivel'). Sem urgencia — so afeta o rotulo no painel
+- ~~Migration 0012_metricas_modelo_backfill.sql PENDENTE~~ FEITO
+  25/11/2026 via MCP: cache_hit -> modelo/provedor 'cache', erros ->
+  'indisponivel'; restaram 0 linhas com modelo null
 - ~~Migration 0013_cotas_por_modelo.sql PENDENTE~~ FEITO: um id de cota
   por slot do catalogo (ids 1-10, id = prioridade) no lugar dos ids
   compartilhados 1/3. Verificado via PostgREST: modelos_ia tem as 10
@@ -664,23 +707,25 @@ de entrega.
   modelos_ia.id ampliado para 1-12, gemini-3.7-flash (id 11, prio 10) e
   gemini-4-argon (id 12, prio 11) inseridos e pollinations movido para
   prioridade 12. Verificado via PostgREST: as 12 linhas estao corretas
-- Migration 0015_candidatos_gemini_finais.sql PENDENTE: check de
-  modelos_ia.id ampliado para 1-15, insere gemini-flash-latest (id 13,
-  prio 12), gemini-3.1-pro-preview (id 14, prio 13) e gemini-pro-latest
-  (id 15, prio 14), e move pollinations para prioridade 15
+- ~~Migration 0015_candidatos_gemini_finais.sql PENDENTE~~ FEITO
+  25/11/2026 via MCP: check ampliado para 1-15, ids 13-15 inseridos
+  (flash-latest prio 12, 3.1-pro-preview prio 13, pro-latest prio 14) e
+  pollinations (id 10) desceu para prioridade 15. Verificado via SQL:
+  as 15 linhas estao corretas
 - Re-teste pendente: quando a cota diaria do Gemini renovar, rodar
   scripts/testar_modelos_gemini.mjs para confirmar quais candidatos
-  tem free tier de verdade (todos responderam 429, que indica acesso
-  mas nao garante cota): 3.7-flash, 4-argon, flash-latest,
-  3.1-pro-preview, pro-latest
+  tem free tier de verdade. Re-teste em 25/11/2026: TODOS os slots
+  Gemini seguiram 429 (cota ainda esgotada) e gemini-2.5-* seguem 404
+  (descontinuados). Nada mudou — continua pendente
 - Flake conhecido: tests/evals-juiz.test.ts > "guardrail: injecao de
   prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
   pedido de revelar o prompt de forma explicita). O eval deterministico
   (evals.test.ts, checagem regex) passa — e variacao de qualidade do
   modelo, nao regressao de codigo
-- Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
-  da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
-  /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md
+- ~~Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env
+  vars da Vercel~~ VERIFICADO 25/11/2026: a env ja esta configurada —
+  /api/mcp e /api/a2a respondem 401 (auth exigida) e nao 503;
+  /.well-known/agent-card.json responde 200
 
 ## Decisoes tecnicas tomadas
 
@@ -696,12 +741,23 @@ de entrega.
 2. ~~Deploy na Vercel~~ FEITO: projeto `nori-agente-ai`
    (Root Directory = raiz do repo; env vars SUPABASE_URL,
    SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, GROQ_API_KEY)
-3. Testar o chat em producao com cenarios de disputa reais e ajustar
-   prompt/politicas conforme necessario
-4. Endurecer abuso: Cloudflare Turnstile (gratuito, sem login) e/ou
-   lista de dominios permitidos no CORS se o site for embutido
-5. Validacao de coerencia via LLM esta implementada mas so roda quando a heuristica falha;
-   avaliar ativacao permanente conforme custo de tokens
+3. ~~Testar o chat em producao~~ SMOKE TEST FEITO 25/11/2026:
+   POST /api/chat em koradelivery.vercel.app respondeu cenarios reais
+   de disputa (item faltante com confirmacao de pedido) via failover
+   Pollinations — Gemini e Groq seguiram sem cota. Segue valendo
+   exercitar mais cenarios quando a cota renovar
+4. Endurecer abuso: ~~Cloudflare Turnstile~~ IMPLEMENTADO mas DORMENTE
+   (spec/SPEC-turnstile.md; falta cadastrar TURNSTILE_SECRET_KEY +
+   VITE_TURNSTILE_SITE_KEY na Vercel e rebuild); pendente lista de
+   dominios permitidos no CORS se o site for embutido — a API nao
+   emite Access-Control-Allow-Origin, leitura cross-origin ja e
+   bloqueada pelo browser
+5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
+   LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
+   a heuristica flagra, o verificador LLM confirma se o problema e
+   real antes da regeneracao (recusa generica sempre regenera; falha
+   do verificador nao bloqueia). Custo raro: 1 chamada pequena so em
+   respostas flagradas
 
 ## Handoff para outra conta/sessao
 
@@ -719,8 +775,10 @@ de entrega.
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
-  migrations 0005-0009, 0011, 0013 e 0014 aplicadas; 0010, 0012 e 0015
-  pendentes (sem urgencia)
+  migrations 0005-0009, 0011, 0013, 0014 e 0015 aplicadas; 0010 e 0012
+  pendentes (sem urgencia); 0016_fallback_em_camadas PENDENTE de
+  aprovacao do usuario (fallback em camadas — sem ela o sistema segue
+  funcionando, so sem a camada de cache relaxado e o banco canonico)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)

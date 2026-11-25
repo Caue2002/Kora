@@ -1,6 +1,6 @@
 # Spec: A2A (Agent2Agent) + Handoff para Atendente — V1
 
-Status: proposto
+Status: implementado
 
 ## Objetivo
 

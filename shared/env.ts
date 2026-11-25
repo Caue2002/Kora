@@ -172,6 +172,12 @@ export function mcpApiKey(): string | undefined {
   return env('MCP_API_KEY');
 }
 
+// Cloudflare Turnstile (anti-abuso do /api/chat): so ativa quando
+// TURNSTILE_SECRET_KEY esta definida — sem ela a checagem e no-op
+export function turnstileSecretKey(): string | undefined {
+  return env('TURNSTILE_SECRET_KEY');
+}
+
 export function limitesJanela() {
   return {
     minuto: Number(env('LIMITE_TOKENS_MINUTO', '8000')),

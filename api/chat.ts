@@ -11,11 +11,13 @@ import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
+import { turnoLiberado } from '../shared/turnstile.js';
 import { extrairCodigoPedido, pedidoConfirmadoNaHistorico, pedidoFicticio } from '../shared/pedidos.js';
 import { classificarSaida } from '../shared/guardrails.js';
 import { buscaHibrida } from '../rag/search.js';
 import { embedTexts } from '../rag/embeddings.js';
 import { inserir, rpc, upsert } from '../shared/supabase.js';
+import { resolverFallback, ehFallback } from './fallback.js';
 import {
   carregarDiretrizes,
   montarContextoRAG,
@@ -34,6 +36,7 @@ interface CorpoRequisicao {
   imagem?: unknown;
   perfil?: unknown;
   conversaId?: unknown;
+  turnstileToken?: unknown;
 }
 
 // Perfis de usuario do marketplace: cada um recebe um contexto de solucao proprio
@@ -57,10 +60,10 @@ const TAMANHO_MAX_HISTORICO = 24;
 const MIMES_IMAGEM = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const TAMANHO_MAX_IMAGEM_B64 = 4_200_000; // ~3MB em base64 (body total fica abaixo do limite da Vercel)
 
-// Ultima instancia quando o modelo nao consegue formular resposta nenhuma:
-// avisa com educacao e lembra o que a Nori faz, em vez de uma recusa seca
-const RESPOSTA_FALLBACK =
-  'Tive uma dificuldade para formular essa resposta agora. Posso te ajudar com disputas de pedidos do Kora (item faltante, item errado, qualidade, atraso), confirmacao de pedido por codigo, orientacao sobre evidencias e parecer de conciliacao — e tambem respondo assuntos gerais. Como posso ajudar?';
+// A ultima instancia quando o modelo nao consegue formular resposta
+// nenhuma NAO e mais uma string fixa: resolverFallback tenta o cache
+// semantico relaxado, depois o banco canonico por intencao e por fim as
+// variantes genericas (api/fallback.ts — spec SPEC-fallback-camadas)
 
 // Ids de conversa gerados no frontend como `${timestamp}-${aleatorio}`
 const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
@@ -181,7 +184,9 @@ async function buscarCache(embedding: number[], perfil: string): Promise<LinhaCa
   }
 }
 
-// Grava a resposta no cache (somente primeira mensagem sem contexto)
+// Grava a resposta no cache semantico. `escopo` define quem pode servir:
+// 'geral' (primeira mensagem, cache hit normal) ou 'fallback' (turno com
+// historico, so camada de emergencia quando os modelos falham)
 function guardarCache(
   embedding: number[] | undefined,
   pergunta: string,
@@ -190,6 +195,7 @@ function guardarCache(
   fontes: Array<{ titulo: string; categoria?: string | null }>,
   modelo: string | undefined,
   tokensTotal: number | undefined,
+  escopo: 'geral' | 'fallback' = 'geral',
 ): void {
   if (!embedding) return;
   void inserir('cache_respostas', {
@@ -200,6 +206,7 @@ function guardarCache(
     fontes,
     modelo: modelo ?? null,
     tokens_total: tokensTotal ?? null,
+    escopo,
   }).catch(() => undefined);
 }
 
@@ -308,14 +315,15 @@ async function gerarComFailover(
 }
 
 // Ultima instancia quando TODOS os provedores falham: em vez de um erro 502
-// ("tentar novamente"), o usuario recebe o fallback educado com 200 — a falha
-// continua registrada nas metricas para observabilidade
-function respostaFallbackStream(): Response {
+// ("tentar novamente"), o usuario recebe a resposta de emergencia resolvida
+// em camadas (cache relaxado -> banco por intencao -> variante) com 200 —
+// a falha continua registrada nas metricas para observabilidade
+function respostaFallbackStream(texto: string, camada: string): Response {
   const codificador = new TextEncoder();
   const fluxo = new ReadableStream<Uint8Array>({
     start(controller) {
-      for (let i = 0; i < RESPOSTA_FALLBACK.length; i += 400) {
-        controller.enqueue(codificador.encode(RESPOSTA_FALLBACK.slice(i, i + 400)));
+      for (let i = 0; i < texto.length; i += 400) {
+        controller.enqueue(codificador.encode(texto.slice(i, i + 400)));
       }
       controller.close();
     },
@@ -324,11 +332,12 @@ function respostaFallbackStream(): Response {
     status: 200,
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'x-modelo': 'fallback',
+      'x-modelo': camada,
       'x-fontes': '[]',
       // Sinaliza ao frontend que a resposta e o fallback de saturacao (todos
       // os modelos falharam), mesmo com HTTP 200 — dispara o alerta amarelo
       'x-fallback': '1',
+      'x-fallback-camada': camada,
     },
   });
 }
@@ -435,6 +444,13 @@ async function webHandler(req: Request): Promise<Response> {
   const mensagem =
     mensagemBruta.length > 0 ? mensagemBruta : '(o usuario enviou somente uma foto como evidencia)';
 
+  // Anti-abuso (Cloudflare Turnstile): so exige token quando
+  // TURNSTILE_SECRET_KEY esta configurada — sem ela a checagem e no-op
+  const tokenTurnstile = typeof corpo.turnstileToken === 'string' ? corpo.turnstileToken : undefined;
+  if (!(await turnoLiberado(tokenTurnstile, ip))) {
+    return json(403, { erro: 'Verificacao de seguranca falhou. Recarregue a pagina e tente novamente.' });
+  }
+
   const historico = normalizarHistorico(corpo.historico);
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
@@ -470,6 +486,15 @@ async function webHandler(req: Request): Promise<Response> {
     historico.length === 0 &&
     !codigoTravado &&
     !PERGUNTA_TEMPORAL.test(mensagem);
+
+  // Escopo da gravacao no cache semantico: 'geral' so quando o turno e
+  // elegivel ao cache hit normal (primeira mensagem); os demais turnos
+  // gravam como 'fallback' — respostas boas de follow-ups reforcam a rede
+  // de emergencia sem nunca vazar para o cache normal. Imagem (contexto
+  // visual nao reproduzivel), codigo travado (resposta citaria dados do
+  // pedido) e pergunta temporal nunca gravam em nenhum escopo
+  const podeCachearTurno = !imagem && !codigoTravado && !PERGUNTA_TEMPORAL.test(mensagem);
+  const escopoCache = cacheElegivel ? 'geral' : 'fallback';
 
   // Estimativa antecipada de tokens de entrada (historico + mensagem + margem
   // para prompt de sistema e contexto RAG) permite escolher o modelo em
@@ -517,7 +542,7 @@ async function webHandler(req: Request): Promise<Response> {
   // Quando nenhum modelo tem folga nas cotas internas, ainda assim tenta a
   // fila inteira a partir do mais forte: as marcas de esgotado expiram em
   // ~1min e um 429 real custa so uma tentativa — o failover abaixo cai no
-  // RESPOSTA_FALLBACK se tudo falhar, em vez de um erro 429 para o usuario
+  // fallback em camadas se tudo falhar, em vez de um erro 429 para o usuario
   const modelo =
     modeloPreferido ??
     catalogoModelos()
@@ -646,9 +671,19 @@ async function webHandler(req: Request): Promise<Response> {
   if (corpo.stream === true) {
     const gerado = await streamComFailover(modelo, mensagens, comTools);
     if (!gerado) {
-      registrarMetrica({ modelo: 'indisponivel', stream: true, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
-      persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
-      return respostaFallbackStream();
+      // Todos os modelos falharam: resolve a emergencia em camadas
+      // (cache relaxado -> banco por intencao -> variante generica)
+      const fb = await resolverFallback({ mensagem, embedding, chaveCache, conversaId });
+      registrarMetrica({
+        modelo: fb.camada,
+        provedor: 'sistema',
+        stream: true,
+        latenciaMs: Date.now() - t0,
+        perfil,
+        erro: 'sem_modelo',
+      });
+      persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, fb.texto, !!imagem));
+      return respostaFallbackStream(fb.texto, fb.camada);
     }
     const tLlm = Date.now();
     const traceStream = { contexto_ms: tContexto - t0, llm_ms: tLlm - tContexto };
@@ -656,6 +691,10 @@ async function webHandler(req: Request): Promise<Response> {
     // Conta os frames de controle de tools que passam pelo stream (cada
     // \u001E marca uma execucao de function calling no turno)
     let toolsUsadas = 0;
+    // Marca quando o texto final veio do fallback em camadas (nao de um
+    // modelo): respostas de emergencia nunca sao regravadas no cache como
+    // se fossem geradas — ja estao no cache ou sao canonicas
+    let respostaVeioDeFallback = false;
     const decodificador = new TextDecoder();
     const codificador = new TextEncoder();
     // Os primeiros bytes ficam retidos para inspecao: no modo stream nao ha
@@ -734,7 +773,13 @@ async function webHandler(req: Request): Promise<Response> {
             } catch (erroRegen) {
               console.warn('[chat] regeneracao de stream falhou:', erroRegen);
             }
-            if (!novo || ehRespostaDeRecusa(novo)) novo = RESPOSTA_FALLBACK;
+            if (!novo || ehRespostaDeRecusa(novo)) {
+              // Fila de regeneracao esgotada: mesma cascata do !gerado —
+              // cache relaxado -> banco por intencao -> variante generica
+              const fb = await resolverFallback({ mensagem, embedding, chaveCache, conversaId });
+              novo = fb.texto;
+              respostaVeioDeFallback = true;
+            }
             textoFinal = novo;
             for (let i = 0; i < novo.length; i += 400) {
               emitir(codificador.encode(novo.slice(i, i + 400)));
@@ -747,8 +792,10 @@ async function webHandler(req: Request): Promise<Response> {
         } finally {
           controller.close();
           const texto = textoFinal || acumulado.trim() || '[resposta interrompida]';
-          if (cacheElegivel && texto && !ehRespostaDeRecusa(texto) && texto !== RESPOSTA_FALLBACK) {
-            guardarCache(embedding, mensagem, chaveCache, texto, fontes, gerado.modelo.nomeModelo, undefined);
+          // Gravacao por escopo: primeira mensagem vira 'geral' (cache hit
+          // normal); turnos com historico viram 'fallback' (so emergencia)
+          if (podeCachearTurno && texto && !respostaVeioDeFallback && !ehRespostaDeRecusa(texto) && !ehFallback(texto)) {
+            guardarCache(embedding, mensagem, chaveCache, texto, fontes, gerado.modelo.nomeModelo, undefined, escopoCache);
           }
           persistirConversa(
             conversaId,
@@ -786,18 +833,27 @@ async function webHandler(req: Request): Promise<Response> {
   const tLlm = Date.now();
   const traceNaoStream = { contexto_ms: tContexto - t0, llm_ms: tLlm - tContexto };
   if (!gerado) {
-    registrarMetrica({ modelo: 'indisponivel', stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
-    persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
+    // Todos os modelos falharam: resolve a emergencia em camadas
+    const fb = await resolverFallback({ mensagem, embedding, chaveCache, conversaId });
+    registrarMetrica({
+      modelo: fb.camada,
+      provedor: 'sistema',
+      stream: false,
+      latenciaMs: Date.now() - t0,
+      perfil,
+      erro: 'sem_modelo',
+    });
+    persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, fb.texto, !!imagem));
     return json(
       200,
       {
-        resposta: RESPOSTA_FALLBACK,
-        modelo: 'fallback',
+        resposta: fb.texto,
+        modelo: fb.camada,
         provedor: 'sistema',
         tokens: 0,
-        fontes,
+        fontes: fb.fontes ?? fontes,
       },
-      { 'x-fallback': '1' },
+      { 'x-fallback': '1', 'x-fallback-camada': fb.camada },
     );
   }
 
@@ -810,6 +866,15 @@ async function webHandler(req: Request): Promise<Response> {
   // dispara a mesma regeneracao apontando o problema
   let resposta = gerado.texto;
   let aviso: string | undefined;
+  // Quando a resposta final veio do fallback em camadas (e nao de um
+  // modelo), a camada fica registrada: bloqueia regravacao no cache e
+  // aparece na metrica como origem da resposta de emergencia
+  let camadaFallback: string | undefined;
+  const responderFallback = async (): Promise<string> => {
+    const fb = await resolverFallback({ mensagem, embedding, chaveCache, conversaId });
+    camadaFallback = fb.camada;
+    return fb.texto;
+  };
   const heuristica = validarHeuristico(resposta);
   const recusaInicial = ehRespostaDeRecusa(resposta);
   if (!heuristica.ok || recusaInicial) {
@@ -817,6 +882,21 @@ async function webHandler(req: Request): Promise<Response> {
       '[chat] validacao falhou:',
       recusaInicial ? 'resposta de recusa/incapacidade' : heuristica.problemas,
     );
+    // A heuristica e conservadora e pode dar falso positivo: antes de
+    // pagar uma regeneracao inteira, o verificador via LLM decide se o
+    // problema e real (a camada semantica so roda quando a heuristica
+    // falha — custo extra raro). Recusa generica nao passa pelo
+    // verificador: sempre regenera. Se o verificador nao conseguir
+    // analisar, validarComLLM devolve ok e a resposta segue como esta.
+    let regenerar = recusaInicial;
+    if (!regenerar) {
+      const v = await validarComLLM(gerado.modelo, resposta, historicoJanela, promptSistema);
+      regenerar = !v.ok;
+      if (!regenerar) {
+        console.warn('[chat] heuristica apontou', heuristica.problemas, 'mas o verificador LLM considerou a resposta coerente');
+      }
+    }
+    if (regenerar) {
     // Uma tentativa de regeneracao apontando os problemas detectados
     const motivo = recusaInicial
       ? 'Sua resposta anterior foi uma recusa generica, sem responder a pergunta. Responda de verdade: para perguntas sobre suas capacidades, liste o que voce faz; para conhecimento geral, use seu proprio conhecimento de forma resumida; para dados do Kora, use apenas o contexto fornecido.'
@@ -835,14 +915,15 @@ async function webHandler(req: Request): Promise<Response> {
         await registrarConsumo(r2.modelo.id, r2.tokensUso ?? estimarTokens(texto2));
       } else if (ehRespostaDeRecusa(texto2) || !texto2) {
         // Modelo insistiu na recusa ou a fila inteira falhou: ultima instancia
-        resposta = RESPOSTA_FALLBACK;
+        resposta = await responderFallback();
       } else {
         aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
       }
     } catch (erro) {
       console.warn('[chat] regeneracao de coerencia falhou:', erro);
-      if (recusaInicial) resposta = RESPOSTA_FALLBACK;
+      if (recusaInicial) resposta = await responderFallback();
       else aviso = 'Resposta gerada com ressalvas de coerencia; confirme os pontos sinalizados.';
+    }
     }
   }
 
@@ -868,17 +949,20 @@ async function webHandler(req: Request): Promise<Response> {
         resposta = texto2;
         await registrarConsumo(r2.modelo.id, r2.tokensUso ?? estimarTokens(texto2));
       } else {
-        resposta = RESPOSTA_FALLBACK;
+        resposta = await responderFallback();
       }
     } catch {
-      resposta = RESPOSTA_FALLBACK;
+      resposta = await responderFallback();
     }
   }
 
-  // Recusas e o fallback nunca entram no cache semantico: evita perpetuar a falha
-  const cacheavel = !ehRespostaDeRecusa(resposta) && resposta !== RESPOSTA_FALLBACK;
-  if (cacheElegivel && cacheavel) {
-    guardarCache(embedding, mensagem, chaveCache, resposta, fontes, gerado.modelo.nomeModelo, tokensUso);
+  // Recusas e respostas de emergencia nunca entram no cache como 'geral'.
+  // Turnos com historico gravam como 'fallback': cada conversa real engorda
+  // a rede de seguranca que so e usada quando os modelos falham
+  const cacheavel =
+    podeCachearTurno && !camadaFallback && !ehRespostaDeRecusa(resposta) && !ehFallback(resposta);
+  if (cacheavel) {
+    guardarCache(embedding, mensagem, chaveCache, resposta, fontes, gerado.modelo.nomeModelo, tokensUso, escopoCache);
   }
   persistirConversa(
     conversaId,
@@ -886,8 +970,10 @@ async function webHandler(req: Request): Promise<Response> {
     montarHistoricoConversa(historico, mensagem, resposta, !!imagem),
   );
   registrarMetrica({
-    modelo: gerado.modelo.nomeModelo,
-    provedor: gerado.modelo.provedor,
+    // Quando a resposta veio do fallback em camadas, a metrica registra a
+    // camada como origem (cache-fallback/banco-fallback/generico-fallback)
+    modelo: camadaFallback ?? gerado.modelo.nomeModelo,
+    provedor: camadaFallback ? 'sistema' : gerado.modelo.provedor,
     stream: false,
     latenciaMs: Date.now() - t0,
     fontes: fontes.length,
@@ -899,8 +985,8 @@ async function webHandler(req: Request): Promise<Response> {
 
   return json(200, {
     resposta,
-    modelo: gerado.modelo.nomeModelo,
-    provedor: gerado.modelo.provedor,
+    modelo: camadaFallback ?? gerado.modelo.nomeModelo,
+    provedor: camadaFallback ? 'sistema' : gerado.modelo.provedor,
     aviso,
     tokens: tokensUso,
     fontes,

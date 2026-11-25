@@ -114,3 +114,19 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
   Pendencias); frontend exporta como HTML formatado.
 - Motivo: transforma o chat em entregavel operacional auditavel, conforme a
   proposta do agente de conciliacao.
+
+## D15 - Fallback em camadas com crescimento organico pelo cache
+
+- Decisao: quando a fila de modelos falha por completo, a resposta de
+  emergencia e resolvida em cascata sem LLM (api/fallback.ts): cache
+  semantico relaxado (score >= 0.80, qualquer escopo) -> banco canonico
+  por intencao (tabela fallback_respostas, deteccao heuristica) -> pool
+  de variantes genericas estaveis por conversa. cache_respostas ganhou
+  coluna `escopo` ('geral' vs 'fallback'): respostas boas de turnos com
+  historico sao gravadas como 'fallback' e so servem na emergencia —
+  o cache hit normal filtra 'geral'.
+- Motivo: a string unica de fallback nao respondia nada e nao melhorava
+  com o uso; a camada de cache alimentada por turnos reais faz a rede de
+  seguranca crescer organicamente sem poluir o cache normal.
+- Ressalva: depende da migration 0016 (pendente de aprovacao); sem ela o
+  resolverFallback degrada para banco/variantes silenciosamente.

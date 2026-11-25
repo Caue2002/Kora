@@ -1,6 +1,6 @@
 # Spec: Function Calling na Nori — V1
 
-Status: proposto
+Status: implementado
 
 ## Objetivo
 

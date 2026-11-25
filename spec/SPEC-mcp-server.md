@@ -1,6 +1,6 @@
 # Spec: Servidor MCP do Kora — V1
 
-Status: proposto
+Status: implementado
 
 ## Objetivo
 

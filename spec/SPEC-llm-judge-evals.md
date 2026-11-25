@@ -1,6 +1,6 @@
 # Spec: LLM-as-Judge + Guardrails nos Evals — V1
 
-Status: proposto
+Status: implementado
 
 ## Objetivo
 

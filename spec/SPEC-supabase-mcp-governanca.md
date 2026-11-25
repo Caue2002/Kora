@@ -1,6 +1,6 @@
 # Spec: Governanca do Supabase MCP — V1
 
-Status: proposto
+Status: implementado
 
 ## Objetivo
 
