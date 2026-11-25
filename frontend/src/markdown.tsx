@@ -42,7 +42,9 @@ function CheckItem({ texto, marcadoInicial, chave }: { texto: string; marcadoIni
       >
         {marcado ? '☑' : '☐'}
       </button>{' '}
-      {inline(texto, chave)}
+      {/* span unico com min-width:0 — sem ele cada trecho inline vira um
+          flex item rigido e textos longos/formatados vazam da bolha */}
+      <span className="md-check-texto">{inline(texto, chave)}</span>
     </li>
   );
 }

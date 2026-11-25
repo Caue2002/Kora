@@ -256,6 +256,9 @@ body {
   font-size: 15px;
   line-height: 1.45;
   word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .msg-user .msg-balao {
@@ -466,6 +469,15 @@ body {
   align-items: baseline;
   gap: 6px;
   margin-bottom: 4px;
+  min-width: 0;
+}
+
+/* texto do checklist dentro de um unico span: permite quebrar linha e
+   encolher abaixo do min-content, evitando vazamento para fora da bolha */
+.md-check-texto {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .md-check .check-box {
@@ -945,11 +957,19 @@ body {
   margin: 0 0 4px;
 }
 
+/* markdown nunca pode ficar mais largo que a bolha: blocos com scroll
+   interno (tabelas, codigo) respeitam a largura disponível */
+.md {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .md-tabela-wrap {
   overflow-x: auto;
   margin: 6px 0 10px;
   border: 1px solid var(--agente-borda);
   border-radius: 10px;
+  max-width: 100%;
 }
 
 .md-tabela {
@@ -980,6 +1000,7 @@ body {
   border-radius: 10px;
   padding: 12px 14px;
   overflow-x: auto;
+  max-width: 100%;
   font-size: 12.5px;
   line-height: 1.5;
   margin: 6px 0 10px;
@@ -1113,6 +1134,12 @@ body {
   flex-shrink: 0;
 }
 
+/* texto do chip dentro de span para respeitar a largura da bolha */
+.chip-sugestao-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 /* ===== botao voltar ao fim ===== */
 .btn-scroll-fim {
   position: sticky;
@@ -1241,6 +1268,12 @@ body {
   color: var(--acento);
 }
 
+/* rotulo do item de menu precisa poder encolher dentro do flex */
+.menu-item-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
 /* Item de menu que e link externo (ex.: painel de metricas) */
 .menu-item-link {
   text-decoration: none;
@@ -1315,6 +1348,13 @@ body {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+/* pills do caso sao flex items: sem min-width:0 um rotulo longo
+   nao encolhe e estoura o card */
+.caso-header > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .caso-titulo {

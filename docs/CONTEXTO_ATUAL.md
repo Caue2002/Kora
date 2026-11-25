@@ -393,7 +393,8 @@ de entrega.
 - Painel de observabilidade: frontend/public/metricas.html (link "Painel de
   metricas" no menu do chat) — KPIs (total, cache hit rate, latencia media,
   custo equivalente), grafico de mensagens/dia e tabela por modelo com
-  latencia/tokens/custo estimado a preco de tabela (PRECOS_1M no proprio html)
+  latencia/tokens/custo estimado a preco de tabela (PRECOS_1M em
+  public/metricas.js — script externo por causa da CSP script-src 'self')
 - LLM-as-judge nos evals (spec em spec/SPEC-llm-judge-evals.md):
   tests/evals-juiz.test.ts roda um modelo Gemini lite como juiz rigoroso
   (rubrica em linguagem natural -> nota 1-5 + justificativa, aprova >= 4)
@@ -434,6 +435,19 @@ de entrega.
   Loop documentado: avaliacao -> relatorio -> ajuste de diretrizes/prompt
 - README reescrito vendavel: arquitetura em ASCII, capacidades por
   pilar (UX, inteligencia, interoperabilidade MCP/A2A, qualidade), stack
+- Correcao do painel /metricas.html e das bolhas do chat: o script do
+  painel era inline e a CSP da Vercel (script-src 'self') o bloqueava em
+  producao — a pagina ficava presa em "carregando…". JS movido para
+  frontend/public/metricas.js (externo), com botao "Atualizar", erro
+  explicito (HTTP/sem dados), escape de HTML, datas dd/mm e grafico de
+  barras com scroll horizontal no mobile. Migration 0011 verificada como
+  APLICADA no Supabase (colunas trace/tools_usadas e RPC estendida ok).
+  Bolhas: markdown.tsx envolve o texto do checklist em span unico
+  (.md-check-texto, flex:1 + min-width:0) — antes cada trecho inline
+  virava flex item rigido e textos formatados/longos vazavam da bolha;
+  .msg-balao ganhou min-width:0/overflow-wrap, .md/.md-tabela-wrap/.md-pre
+  com max-width:100%; rotulos do menu "...", chips de sugestao e pills do
+  caso ganharam spans com min-width:0 para nao estourar em telas estreitas
 
 ## Em andamento
 
@@ -452,10 +466,9 @@ de entrega.
 - Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
   "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
   api/caso.ts). Sem urgencia — nada quebra sem ela
-- Migration 0011_trace_tools_metricas.sql PENDENTE e PRIORITARIA: sem as
-  colunas trace/tools_usadas o insert em metricas_chat falha (catch
-  silencioso) e as metricas param de gravar. Aplicar no SQL Editor junto
-  com a 0010 de preferencia
+- ~~Migration 0011_trace_tools_metricas.sql PENDENTE~~ FEITO: verificado
+  via PostgREST que as colunas trace/tools_usadas existem e a RPC
+  metricas_chat_resumo ja retorna p50/p95, tools_total e traces_recentes
 - Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
   da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
   /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md

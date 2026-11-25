@@ -11,31 +11,45 @@
     --verde: #22c55e; --ambar: #f59e0b; --vermelho: #ef4444;
   }
   * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--texto); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 24px; }
+  body { background: var(--bg); color: var(--texto); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; }
   .wrap { max-width: 980px; margin: 0 auto; }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
   h1 { font-size: 20px; font-weight: 700; }
   h1 span { color: var(--ciano); }
   .sub { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .kpi { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .kpi { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; min-width: 0; }
   .kpi .rot { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-  .kpi .val { font-size: 24px; font-weight: 700; margin-top: 4px; }
-  .kpi .det { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .card { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+  .kpi .val { font-size: 24px; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; }
+  .kpi .det { font-size: 11px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+  .card { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 18px; margin-bottom: 16px; min-width: 0; }
   .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .tabela-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 6px 8px; border-bottom: 1px solid var(--borda); }
-  td { padding: 8px; border-bottom: 1px solid #16213a; }
-  .barra { height: 8px; border-radius: 4px; background: #1a2540; overflow: hidden; min-width: 90px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 6px 8px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
+  td { padding: 8px; border-bottom: 1px solid #16213a; vertical-align: top; }
+  .barra { height: 8px; border-radius: 4px; background: #1a2540; overflow: hidden; min-width: 90px; max-width: 100%; }
   .barra > div { height: 100%; background: linear-gradient(90deg, var(--azul), var(--ciano)); }
-  .barras { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
-  .barras .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  /* grafo de barras rola na horizontal em telas estreitas em vez de
+     espremer as colunas ate os rotulos se sobrepoem */
+  .barras { display: flex; align-items: flex-end; gap: 6px; height: 140px; overflow-x: auto; padding-bottom: 4px; }
+  .barras .col { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; min-width: 0; }
   .barras .v { background: linear-gradient(180deg, var(--ciano), var(--azul)); border-radius: 4px 4px 0 0; width: 70%; min-height: 2px; }
   .barras .d { font-size: 10px; color: var(--muted); transform: rotate(-45deg); transform-origin: top left; margin-top: 26px; white-space: nowrap; }
   .vazio { color: var(--muted); font-size: 13px; padding: 12px 0; }
   .atualizado { font-size: 11px; color: var(--muted); }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #16213a; color: var(--ciano); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #16213a; color: var(--ciano); max-width: 100%; overflow-wrap: anywhere; }
+  .btn-atualizar {
+    background: none; border: 1px solid var(--borda); color: var(--ciano);
+    font-size: 12px; border-radius: 8px; padding: 6px 12px; cursor: pointer;
+  }
+  .btn-atualizar:hover { border-color: var(--ciano); }
+  .erro-caixa { background: #2a1418; border: 1px solid #7f1d1d; color: #fca5a5; }
+  @media (max-width: 560px) {
+    body { padding: 12px; }
+    .kpi .val { font-size: 20px; }
+    .card { padding: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -45,7 +59,10 @@
       <h1>Nori <span>·</span> Observabilidade</h1>
       <div class="sub">Projeto Kora — métricas agregadas de produção (metricas_chat)</div>
     </div>
-    <div class="sub atualizado" id="atualizado">carregando…</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="atualizado" id="atualizado">carregando…</span>
+      <button class="btn-atualizar" id="btn-atualizar" type="button">Atualizar</button>
+    </div>
   </header>
 
   <div class="grid" id="kpis"></div>
@@ -62,117 +79,17 @@
 
   <div class="card">
     <h2>Consumo por modelo</h2>
-    <table>
-      <thead><tr><th>Modelo</th><th>Mensagens</th><th>Latência média</th><th>Tokens totais</th><th>Custo equivalente*</th></tr></thead>
-      <tbody id="por-modelo"></tbody>
-    </table>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Modelo</th><th>Mensagens</th><th>Latência média</th><th>Tokens totais</th><th>Custo equivalente*</th></tr></thead>
+        <tbody id="por-modelo"></tbody>
+      </table>
+    </div>
     <p class="vazio" style="margin-top:10px">* custo estimado a preço de tabela dos provedores, por 1M de tokens mistos — os modelos atuais rodam em free tier, então o custo real é ~US$ 0.</p>
   </div>
 </div>
 
-<script>
-// Precos aproximados por 1M de tokens (entrada+saida misturados) para estimar
-// "quanto custaria" se os mesmos modelos rodassem pagos — os valores sao
-// referencias de tabela publica e servem so para comparacao relativa.
-const PRECOS_1M = {
-  'gemini-4-hydrogen': 1.50,
-  'gemini-3.8-flash': 0.50,
-  'gemini-3.6-flash': 0.30,
-  'gemini-3.5-flash': 0.30,
-  'gemini-3-flash-preview': 0.30,
-  'gemini-3.5-flash-lite': 0.10,
-  'gemini-3.1-flash-lite': 0.10,
-  'gemini-3.1-flash-lite-preview': 0.10,
-  'gpt-oss-120b': 0.15,
-  'openai': 0.20,
-};
-const fmt = (n, d = 0) => (n ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: d });
-const usd = (n) => 'US$ ' + (n ?? 0).toFixed(4);
-
-function kpi(rot, val, det) {
-  return `<div class="kpi"><div class="rot">${rot}</div><div class="val">${val}</div><div class="det">${det ?? ''}</div></div>`;
-}
-
-async function carregar() {
-  try {
-    const res = await fetch('/api/metricas');
-    const { metricas: m } = await res.json();
-    if (!m) throw new Error('sem dados');
-
-    const total = m.total_geral ?? 0;
-    const cacheHits = m.cache_hits ?? 0;
-    const hitRate = total > 0 ? (cacheHits / total) * 100 : 0;
-    const lat = m.latencia_media_ms ?? 0;
-    const p50 = m.latencia_p50_ms ?? 0;
-    const p95 = m.latencia_p95_ms ?? 0;
-    document.getElementById('kpis').innerHTML = [
-      kpi('Mensagens totais', fmt(total), `${fmt(m.ultimas_24h)} nas últimas 24h`),
-      kpi('Cache hit rate', hitRate.toFixed(1) + '%', `${fmt(cacheHits)} respostas reutilizadas`),
-      kpi('Latência média', fmt(lat) + ' ms', `p50 ${fmt(p50)} ms · p95 ${fmt(p95)} ms`),
-      kpi('Function calls', fmt(m.tools_total ?? 0), 'tools executadas pelo agente'),
-      kpi('Custo equivalente', usd(custoTotal(m)), 'se pago, por 1M tokens mistos'),
-    ].join('');
-
-    // trace medio: media por etapa sobre os traces recentes
-    const traces = m.traces_recentes ?? [];
-    const etapas = {};
-    for (const t of traces) {
-      for (const [k, v] of Object.entries(t ?? {})) {
-        etapas[k] = etapas[k] ?? { soma: 0, n: 0 };
-        etapas[k].soma += Number(v) || 0;
-        etapas[k].n += 1;
-      }
-    }
-    const ROTULOS = { contexto_ms: 'Contexto (RAG+modelo+cache)', llm_ms: 'LLM (geração)' };
-    const maxEtapa = Math.max(1, ...Object.values(etapas).map(e => e.soma / e.n));
-    document.getElementById('trace-medio').innerHTML = Object.keys(etapas).length
-      ? Object.entries(etapas).map(([k, e]) => {
-          const media = e.soma / e.n;
-          return `<div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-              <span>${ROTULOS[k] ?? k}</span><span style="color:var(--muted)">${fmt(media)} ms médio · ${e.n} reqs</span>
-            </div>
-            <div class="barra"><div style="width:${Math.max(2, (media / maxEtapa) * 100)}%"></div></div>
-          </div>`;
-        }).join('')
-      : '<div class="vazio">Sem traces ainda — chegam com as próximas mensagens.</div>';
-
-    // por dia
-    const dias = (m.por_dia ?? []).slice().reverse();
-    const maxDia = Math.max(1, ...dias.map(d => d.total));
-    document.getElementById('por-dia').innerHTML = dias.length
-      ? dias.map(d => `<div class="col"><div class="v" style="height:${Math.max(2, (d.total / maxDia) * 110)}px" title="${d.dia}: ${d.total}"></div><div class="d">${String(d.dia).slice(5)}</div></div>`).join('')
-      : '<div class="vazio">Sem dados ainda.</div>';
-
-    // por modelo
-    const modelos = m.por_modelo ?? [];
-    const maxTok = Math.max(1, ...modelos.map(x => x.tokens_total ?? 0));
-    document.getElementById('por-modelo').innerHTML = modelos.length
-      ? modelos.map(x => {
-          const preco = PRECOS_1M[x.modelo] ?? 0.20;
-          const custo = ((x.tokens_total ?? 0) / 1e6) * preco;
-          return `<tr>
-            <td><span class="tag">${x.modelo ?? 'desconhecido'}</span></td>
-            <td>${fmt(x.total)}</td>
-            <td>${fmt(x.latencia_media_ms)} ms</td>
-            <td>${fmt(x.tokens_total)}</td>
-            <td>${usd(custo)}</td>
-          </tr>`;
-        }).join('')
-      : '<tr><td colspan="5" class="vazio">Sem dados ainda.</td></tr>';
-
-    document.getElementById('atualizado').textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR');
-  } catch (e) {
-    document.getElementById('kpis').innerHTML = kpi('Status', 'indisponível', String(e));
-  }
-}
-
-function custoTotal(m) {
-  return (m.por_modelo ?? []).reduce((acc, x) => acc + ((x.tokens_total ?? 0) / 1e6) * (PRECOS_1M[x.modelo] ?? 0.20), 0);
-}
-
-carregar();
-setInterval(carregar, 30000);
-</script>
+<noscript><p class="vazio">Este painel precisa de JavaScript habilitado.</p></noscript>
+<script src="/metricas.js" defer></script>
 </body>
 </html>

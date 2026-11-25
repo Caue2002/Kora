@@ -1012,7 +1012,7 @@ function pararAudio() {
                   <div className="chat-sugestoes">
                     {SUGESTOES_POR_PERFIL[perfil].map((texto) => (
                       <button key={texto} className="chip-sugestao" onClick={() => processarEnvio(texto)}>
-                        {texto}
+                        <span className="chip-sugestao-label">{texto}</span>
                       </button>
                     ))}
                   </div>
@@ -1236,7 +1236,7 @@ function pararAudio() {
                     }}
                   >
                     {iconeResumo}
-                    Resumir caso
+                    <span className="menu-item-label">Resumir caso</span>
                   </button>
                   <button
                     className="menu-item"
@@ -1247,7 +1247,7 @@ function pararAudio() {
                     }}
                   >
                     {iconeChecklist}
-                    Checklist de evidências
+                    <span className="menu-item-label">Checklist de evidências</span>
                   </button>
                   <button
                     className="menu-item"
@@ -1258,7 +1258,7 @@ function pararAudio() {
                     }}
                   >
                     {iconeDownload}
-                    Exportar resumo
+                    <span className="menu-item-label">Exportar resumo</span>
                   </button>
                   <button
                     className="menu-item"
@@ -1269,7 +1269,7 @@ function pararAudio() {
                     }}
                   >
                     {iconeAtendente}
-                    Encaminhar p/ atendente
+                    <span className="menu-item-label">Encaminhar p/ atendente</span>
                   </button>
                   <a
                     className="menu-item menu-item-link"
@@ -1279,7 +1279,7 @@ function pararAudio() {
                     onClick={() => setMenuAcoes(false)}
                   >
                     {iconeGrafico}
-                    Painel de métricas
+                    <span className="menu-item-label">Painel de métricas</span>
                   </a>
                 </div>
               </>
