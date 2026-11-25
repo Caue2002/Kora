@@ -66,10 +66,35 @@ const RESPOSTA_FALLBACK =
 const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;
 const MAX_MENSAGENS_CONVERSA = 60;
 
-// Cache semantico: so primeira mensagem (sem contexto), score minimo alto e
-// perguntas temporais excluidas — respostas dependentes de data/hora nunca
-// podem ser servidas dias depois
+// Cache semantico: primeira mensagem sem historico (com ou sem codigo de
+// pedido — o codigo entra na chave), score minimo alto e perguntas
+// temporais excluidas — respostas dependentes de data/hora nunca podem
+// ser servidas dias depois
 const CACHE_SCORE_MIN = 0.95;
+
+// O Pollinations free limita o prompt a ~16 mil caracteres e o contexto
+// completo do chat estoura isso sempre: quando o failover chega nele,
+// enviamos uma versao enxuta (system cortado + so as ultimas mensagens)
+// para ter chance de resposta em vez de um 413 garantido
+const POLLINATIONS_LIMITE_CHARS = 15000;
+function mensagensParaModelo(modelo: ModeloConfig, mensagens: MensagemChat[]): MensagemChat[] {
+  if (modelo.provedor !== 'pollinations') return mensagens;
+  const saida: MensagemChat[] = [];
+  let restante = POLLINATIONS_LIMITE_CHARS;
+  const sistema = mensagens.find((m) => m.role === 'system');
+  if (sistema) {
+    const conteudo = sistema.content.slice(0, 9000);
+    saida.push({ ...sistema, content: conteudo });
+    restante -= conteudo.length;
+  }
+  for (const m of mensagens.filter((x) => x.role !== 'system').slice(-8)) {
+    const conteudo = m.content.slice(0, 700);
+    if (conteudo.length + 1 > restante) break;
+    restante -= conteudo.length + 1;
+    saida.push({ ...m, content: conteudo });
+  }
+  return saida;
+}
 
 // Periodo do dia em America/Sao_Paulo: a saudacao da Nori depende do horario,
 // entao a chave do cache semantico inclui o periodo — nunca se serve um
@@ -266,7 +291,7 @@ async function gerarComFailover(
 
   for (const modelo of fila) {
     try {
-      const r = await chamarLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT, comTools });
+      const r = await chamarLLM(modelo, mensagensParaModelo(modelo, mensagens), { temperatura: TEMPERATURA_CHAT, comTools });
       return { texto: r.texto, modelo, tokensUso: r.tokensUso };
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) {
@@ -324,7 +349,7 @@ async function streamComFailover(
   for (const modelo of fila) {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
-      const bruto = await streamLLM(modelo, mensagens, { temperatura: TEMPERATURA_CHAT, comTools });
+      const bruto = await streamLLM(modelo, mensagensParaModelo(modelo, mensagens), { temperatura: TEMPERATURA_CHAT, comTools });
       reader = bruto.getReader();
       // O handshake so cobre os headers HTTP: um stream que abre e nunca
       // emite o primeiro byte ficaria pendurado para sempre. Limitamos a
@@ -421,14 +446,15 @@ async function webHandler(req: Request): Promise<Response> {
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
   const perfilChave = perfil ?? '';
-  // O cache so atende primeira mensagem, que sempre pode abrir com saudacao
-  // dependente do horario: o periodo entra na chave para nao servir uma
-  // resposta de manha a noite
-  const chaveCache = `${perfilChave}|${periodoDoDia()}`;
 
   // Codigo de pedido informado: os dados deterministicos sao injetados no
   // prompt abaixo e o proprio modelo confirma o pedido com variacao natural
   const codigoPedido = extrairCodigoPedido(mensagem);
+
+  // O codigo do pedido entra na chave do cache: a mesma pergunta sobre
+  // pedidos diferentes nunca colide, e o cache passa a cobrir tambem a
+  // primeira mensagem que ja informa um codigo (antes era excluida)
+  const chaveCache = `${perfilChave}|${periodoDoDia()}|${codigoPedido ?? ''}`;
 
   // Pedido confirmado em turno anterior fica TRAVADO ate o fim da conversa:
   // os dados deterministicos dele sao injetados e o modelo e proibido de
@@ -436,12 +462,12 @@ async function webHandler(req: Request): Promise<Response> {
   const codigoTravado = pedidoConfirmadoNaHistorico(historico);
   const tentandoTrocar = !!codigoTravado && !!codigoPedido && codigoPedido !== codigoTravado;
 
-  // Cache so em primeira mensagem sem contexto: sem pedido, sem historico e
-  // sem pergunta temporal — a resposta nao depende de estado da conversa
+  // Cache so em primeira mensagem sem historico e sem pergunta temporal —
+  // a resposta nao depende de estado da conversa. Codigo de pedido e
+  // permitido porque entra na chave (perfil|periodo|codigo)
   const cacheElegivel =
     !imagem &&
     historico.length === 0 &&
-    !codigoPedido &&
     !codigoTravado &&
     !PERGUNTA_TEMPORAL.test(mensagem);
 

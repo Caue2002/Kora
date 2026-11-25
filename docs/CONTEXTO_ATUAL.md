@@ -567,6 +567,16 @@ de entrega.
   duas ondas que nascem no centro e expandem alem da orbita
   (.msg-orbita-onda, scale+fade 2.6s defasadas). Tudo em circulo, atras
   das esferas (z-index -1 contido pelo stacking context do palco)
+- Pollinations volta a ter chance real no failover: a API free limita o
+  prompt a ~16 mil caracteres e o contexto completo do chat sempre
+  estourava (413). api/chat.ts ganhou mensagensParaModelo: quando o
+  modelo da fila e pollinations, envia versao enxuta (system cortado em
+  9000 chars + ultimas 8 mensagens de ate 700 chars cada, teto de 15000)
+  — aplica-se tanto ao caminho normal quanto ao streaming
+- Cache semantico ampliado: a chave agora e perfil|periodo|codigo-pedido
+  (antes so perfil|periodo), entao a primeira mensagem que ja informa um
+  codigo de pedido passa a ser cacheavel sem risco de colisao entre
+  pedidos diferentes. Entradas antigas expiram em 72h
 
 ## Em andamento
 
