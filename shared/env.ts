@@ -36,9 +36,11 @@ export function supabaseServiceKey(): string {
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo.
 // Ordem (verificada com scripts/testar_modelos_gemini.mjs):
 // hydrogen/3.8/3.6/3.5/3-preview > groq > 3.5-lite > 3.1-lite(-preview)
-// > 3.7-flash/4-argon (candidatos, free tier a confirmar) > pollinations
-// O pollinations e o unico slot com id != prioridade (id 10 travado por
-// FK no banco; prioridade 12 para ficar por ultimo na fila).
+// > 3.7-flash/4-argon (candidatos, free tier a confirmar)
+// > flash-latest/pro-latest/3.1-pro-preview (candidatos fracos:
+//   aliases moveis e modelos pro, provavelmente sem free tier)
+// > pollinations. O pollinations e o unico slot com id != prioridade
+//   (id 10 travado por FK no banco; prioridade 15 para ficar por ultimo).
 export function catalogoModelos(): ModeloConfig[] {
   return [
     {
@@ -130,12 +132,36 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 11,
     },
     {
+      id: 13,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_11', 'gemini-flash-latest')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 12,
+    },
+    {
+      id: 14,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_12', 'gemini-3.1-pro-preview')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 13,
+    },
+    {
+      id: 15,
+      provedor: 'gemini',
+      nomeModelo: env('GEMINI_MODEL_13', 'gemini-pro-latest')!,
+      apiKey: env('GEMINI_API_KEY'),
+      endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+      prioridade: 14,
+    },
+    {
       id: 10,
       provedor: 'pollinations',
       nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
       apiKey: env('POLLINATIONS_KEY', 'pollinations'),
       endpoint: 'https://text.pollinations.ai/openai',
-      prioridade: 12,
+      prioridade: 15,
     },
   ];
 }

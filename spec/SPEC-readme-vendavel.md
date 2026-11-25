@@ -20,7 +20,7 @@ evals+juiz, observabilidade), como rodar local e links.
 - Seccoes: O que e | Demo (screenshot + URL producao) | Arquitetura |
   Capacidades | Como rodar | Testes/Evals | Protocolos abertos (MCP/A2A)
   | Stack.
-- Tom: direto, bullets, numeros concretos (12 modelos, 20 politicas,
+- Tom: direto, bullets, numeros concretos (15 modelos, 20 politicas,
   4 tools MCP, p95 etc.).
 
 ## Fora de escopo (V2)

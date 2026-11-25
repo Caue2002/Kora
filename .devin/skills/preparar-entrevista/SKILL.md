@@ -56,7 +56,7 @@ protocolo, metrica).
   deixar trechos em Helvetica 10 preta — foi o erro que gerou as
   paginas 6-9 originais em estilo divergente.
 - **Elementos com cor**: ha spans inline coloridos (ex.: 0xf162a,
-  0x1d4ed8) e "chips" de texto preto (ex.: "12 modelos", "~70 testes")
+  0x1d4ed8) e "chips" de texto preto (ex.: "15 modelos", "~70 testes")
   embutidos no meio das frases — sao parte do design, preservar
   fonte/tamanho/cor de CADA span, nao so do paragrafo.
 - **Bullets**: o caractere '•' (U+2022) NAO pode ser inserido via

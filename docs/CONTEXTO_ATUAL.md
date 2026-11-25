@@ -512,7 +512,7 @@ de entrega.
   expira na virada do minuto, igual ao banco. consumoBancoTodos so honra
   esgotado de linhas da janela de minuto — linhas legadas de hora/dia
   marcadas pelo bug antigo nao bloqueiam mais o modelo. Cada slot do
-  catalogo ganhou id de cota proprio (ids 1-12): as cotas
+  catalogo ganhou id de cota proprio (ids 1-15): as cotas
   free-tier do Gemini sao por modelo e antes os slots compartilhavam ids
   1/3, entao um 429 derrubava varios modelos juntos (migration 0013
   cria as linhas em modelos_ia — PENDENTE de aplicar). /api/chat e
@@ -545,7 +545,7 @@ de entrega.
   git via .gitignore): material visual para entrevistas com a dor do
   projeto, jornada de disputa em 6 passos (diagrama + chat animado),
   arquitetura em camadas, fluxograma do /api/chat, estado do caso, failover
-  dos 12 modelos, qualidade/evals, capacidades, stack e protocolo de
+  dos 15 modelos, qualidade/evals, capacidades, stack e protocolo de
   atualizacao (Fluxo Kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md
 - Indicador de orbita padronizado em TODO o app: spec em
@@ -577,16 +577,16 @@ de entrega.
   (antes so perfil|periodo), entao a primeira mensagem que ja informa um
   codigo de pedido passa a ser cacheavel sem risco de colisao entre
   pedidos diferentes. Entradas antigas expiram em 72h
-- Dois slots candidatos do Gemini adicionados ao fim da fila Gemini,
-  antes do pollinations: gemini-3.7-flash (id 11, prioridade 10) e
-  gemini-4-argon (id 12, prioridade 11). O pollinations desceu para
-  prioridade 12 mantendo id 10 (travado por FK). Os dois candidatos
-  retornaram 429 no teste de acesso — existem e a chave os alcanca,
-  mas o free tier so se confirma quando a cota diaria renovar
-  (scripts/testar_modelos_gemini.mjs). gemini-4-neon e gemini-4-carbon
+- Catalogo fechado em 15 slots: alem dos 2 candidatos anteriores,
+  entraram gemini-flash-latest (id 13, prioridade 12),
+  gemini-3.1-pro-preview (id 14, prioridade 13) e gemini-pro-latest
+  (id 15, prioridade 14); pollinations desceu para prioridade 15
+  mantendo id 10. Os 3 novos sao candidatos fracos — flash-latest e
+  pro-latest sao aliases moveis e os "pro" provavelmente nao tem free
+  tier; ficam antes do pollinations porque mesmo sem cota so gastam
+  uma tentativa rapida de failover. gemini-4-neon e gemini-4-carbon
   foram descartados: a documentacao confirma que exigem tier pago;
-  aliases gemini-*-latest e gemini-3.1-pro-preview tambem ficaram fora
-  (alias muda de modelo silenciosamente / pro e pago)
+  gemini-2.5-* retornaram 404 (descontinuados para contas novas)
 
 ## Em andamento
 
@@ -621,10 +621,15 @@ de entrega.
   modelos_ia.id ampliado para 1-12, gemini-3.7-flash (id 11, prio 10) e
   gemini-4-argon (id 12, prio 11) inseridos e pollinations movido para
   prioridade 12. Verificado via PostgREST: as 12 linhas estao corretas
+- Migration 0015_candidatos_gemini_finais.sql PENDENTE: check de
+  modelos_ia.id ampliado para 1-15, insere gemini-flash-latest (id 13,
+  prio 12), gemini-3.1-pro-preview (id 14, prio 13) e gemini-pro-latest
+  (id 15, prio 14), e move pollinations para prioridade 15
 - Re-teste pendente: quando a cota diaria do Gemini renovar, rodar
-  scripts/testar_modelos_gemini.mjs para confirmar se gemini-3.7-flash
-  e gemini-4-argon tem free tier de verdade (os dois responderam 429,
-  que indica acesso mas nao garante cota)
+  scripts/testar_modelos_gemini.mjs para confirmar quais candidatos
+  tem free tier de verdade (todos responderam 429, que indica acesso
+  mas nao garante cota): 3.7-flash, 4-argon, flash-latest,
+  3.1-pro-preview, pro-latest
 - Flake conhecido: tests/evals-juiz.test.ts > "guardrail: injecao de
   prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
   pedido de revelar o prompt de forma explicita). O eval deterministico
@@ -670,8 +675,8 @@ de entrega.
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
-  migrations 0005-0009, 0011 e 0013 aplicadas; 0010 e 0012 pendentes
-  (sem urgencia)
+  migrations 0005-0009, 0011, 0013 e 0014 aplicadas; 0010, 0012 e 0015
+  pendentes (sem urgencia)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
