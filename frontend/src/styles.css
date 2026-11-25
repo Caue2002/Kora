@@ -54,13 +54,16 @@ body {
   background: var(--fundo);
 }
 
-/* topo discreto com acoes utilitarias */
+/* topo discreto com acoes utilitarias: barra flutuante arredondada
+   (nao cola nas bordas) — o raio acompanha a largura em qualquer tela */
 .chat-topo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  border-bottom: 1px solid var(--agente-borda);
+  margin: calc(8px + env(safe-area-inset-top)) 10px 0;
+  padding: 10px 16px;
+  border: 1px solid var(--agente-borda);
+  border-radius: 16px;
   background: color-mix(in srgb, var(--cartao) 90%, transparent);
   backdrop-filter: blur(6px);
 }

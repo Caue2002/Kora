@@ -602,8 +602,9 @@ de entrega.
   implementadas em 25/11/2026): relogio unico em App.tsx mede a
   inatividade por timestamp (ultimaAtividadeRef, inicia "expirado" -61s
   para a aurora nascer acesa) alimentado por listeners globais
-  (pointerdown/pointermove/keydown/wheel/scroll capture/touchmove —
-  cobre mouse, toque e caneta) e por qualquer processo visivel da
+  (pointerdown/keydown/wheel/scroll capture/touchmove — cobre clique,
+  toque, tecla e scroll; movimento do mouse NAO conta, a pedido do
+  usuario) e por qualquer processo visivel da
   Nori (mensagens/etapaStream/enviando/tocandoId/handoff). Efeito
   visual: overlay .aurora FIXO na tela inteira (z-index 2, acima do
   conteudo do chat, abaixo de sidebar/modais) com 3 camadas de
@@ -620,6 +621,9 @@ de entrega.
   regressiva dos segundos restantes (ate 60); aos 5min o caso e
   encerrado na hora via encerrarAtendimento (sem a contagem de 3s do
   encerramento manual — o aviso ja avisou)
+- Cabecalho do chat virou barra flutuante arredondada (.chat-topo:
+  margem lateral, border-radius 16px, borda completa no lugar do
+  border-bottom reto) — a pedido do usuario, sem mudar o layout
 
 ## Em andamento
 

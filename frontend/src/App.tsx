@@ -636,23 +636,22 @@ export default function App() {
   }, [encerrandoEm]);
 
   // Listeners globais de atividade do usuario: clique/toque (pointerdown
-  // cobre mouse, touch e caneta), movimento do mouse, tecla, roda e scroll
-  // (capture pega scroll de qualquer container) zeram os timers de
-  // inatividade. No mobile todo input e touch — pointerdown cobre tudo.
+  // cobre mouse, touch e caneta), tecla, roda e scroll (capture pega
+  // scroll de qualquer container) zeram os timers de inatividade. No
+  // mobile todo input e touch — pointerdown cobre tudo. Movimento do
+  // mouse NAO conta: so interacao real apaga a aurora.
   useEffect(() => {
     const marcarAtividade = () => {
       ultimaAtividadeRef.current = Date.now();
     };
     const opcoes = { passive: true };
     window.addEventListener('pointerdown', marcarAtividade, opcoes);
-    window.addEventListener('pointermove', marcarAtividade, opcoes);
     window.addEventListener('keydown', marcarAtividade, opcoes);
     window.addEventListener('wheel', marcarAtividade, opcoes);
     window.addEventListener('touchmove', marcarAtividade, opcoes);
     window.addEventListener('scroll', marcarAtividade, { passive: true, capture: true });
     return () => {
       window.removeEventListener('pointerdown', marcarAtividade);
-      window.removeEventListener('pointermove', marcarAtividade);
       window.removeEventListener('keydown', marcarAtividade);
       window.removeEventListener('wheel', marcarAtividade);
       window.removeEventListener('touchmove', marcarAtividade);
