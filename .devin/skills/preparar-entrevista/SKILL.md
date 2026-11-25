@@ -32,6 +32,18 @@ protocolo, metrica).
    **IMPORTANTE: o PDF e de uso pessoal, NUNCA commitar no repo.**
    Antes de editar, fazer backup (`Guia Kora iFood - backup.pdf`).
 
+### REGRA CRITICA — nunca reescrever conteudo do guia
+
+- **NUNCA alterar, resumir, traduzir ou "melhorar" o texto existente do
+  guia.** Somente ACRESCENTAR secoes novas ou CORRIGIR formatacao
+  (cores, espacamento, numeracao). Se uma feature exigir mudanca de
+  texto existente, perguntar ao usuario antes.
+- Qualquer edicao deve ser incremental (insert_text/redact cirurgico
+  com PyMuPDF), nao rebuild do documento inteiro — rebuild so e
+  aceitavel se o usuario pedir explicitamente.
+- Depois de editar, validar que o texto existente saiu identico
+  (comparar extracao antes/depois).
+
 ### Estilo do guia — O QUE PRESERVAR ao editar
 
 - **Tema unico**: todas as paginas seguem o estilo das paginas 1-5 —
