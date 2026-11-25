@@ -525,6 +525,15 @@ de entrega.
   uma pilula com 3 gotas em efeito metaball (blur na camada das gotas +
   contrast no palco), com movimento continuo esquerda-centro-direita e
   delays negativos escalonados; componente IndicadorCarregando no App.tsx
+- Indicador metaball padronizado em TODO o app: spec em
+  spec/SPEC-indicador-carregamento.md e skill
+  .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
+  com loading/espera DEVE usar o padrao, sem spinners/dots/textos soltos).
+  Aplicado tambem no modal de handoff ("Gerando resumo do caso..."), na
+  tela "Encerrando..." (variante grande via custom properties de tamanho)
+  e no painel /metricas.html (versao escura, gotas claras). CSS morto de
+  indicadores antigos (.msg-digitando, .dot, pulsa, .encerrando-spinner)
+  removido
 
 ## Em andamento
 

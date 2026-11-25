@@ -218,11 +218,16 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
-// Indicador de carregamento do agente: 3 gotas em efeito metaball dentro de
-// uma pilula sutil — substitui o texto "Pensando..." na bolha vazia
-function IndicadorCarregando() {
+// Indicador de carregamento padrao do app: 3 gotas em efeito metaball dentro
+// de uma pilula sutil. Usar SEMPRE que houver espera/processing visivel —
+// ver .devin/skills/indicador-carregamento-metaball e spec/SPEC-indicador-carregamento.md
+function IndicadorCarregando({ grande = false }: { grande?: boolean }) {
   return (
-    <span className="msg-metaball" role="status" aria-label="Carregando">
+    <span
+      className={`msg-metaball${grande ? ' msg-metaball-grande' : ''}`}
+      role="status"
+      aria-label="Carregando"
+    >
       <span className="msg-metaball-palco" aria-hidden="true">
         <span className="msg-metaball-gotas">
           {[0, 1, 2].map((i) => (
@@ -1487,7 +1492,10 @@ function pararAudio() {
             </div>
             <div className="handoff-corpo">
               {handoff === 'carregando' ? (
-                <p className="handoff-carregando">Gerando resumo do caso...</p>
+                <p className="handoff-carregando">
+                  <IndicadorCarregando />
+                  <span>Gerando resumo do caso...</span>
+                </p>
               ) : (
                 <Markdown texto={handoff} />
               )}
@@ -1530,7 +1538,7 @@ function pararAudio() {
       {encerrandoEm !== null && (
         <div className="encerrando-overlay" role="status" aria-live="polite">
           <div className="encerrando-card">
-            <span className="encerrando-spinner" aria-hidden="true" />
+            <IndicadorCarregando grande />
             <p className="encerrando-titulo">Encerrando...</p>
             <p className="encerrando-contagem">{encerrandoEm}</p>
           </div>
