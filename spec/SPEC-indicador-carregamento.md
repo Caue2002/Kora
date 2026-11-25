@@ -5,9 +5,9 @@ Status: aprovado (substitui o metaball da V1)
 ## Objetivo
 
 Padronizar TODOS os indicadores de espera/processamento do app em um unico
-efeito visual: 3 esferas em orbita eliptica dentro de uma pilula sutil.
-Qualquer UI nova que mostre loading DEVE reutilizar o padrao —
-sem spinners, pontinhos ou textos soltos de "carregando".
+efeito visual: 3 esferas em orbita eliptica, SEM pilula/borda ao redor —
+apenas as bolinhas. Qualquer UI nova que mostre loading DEVE reutilizar
+o padrao — sem spinners, pontinhos ou textos soltos de "carregando".
 
 ## Decisoes
 
@@ -19,9 +19,9 @@ sem spinners, pontinhos ou textos soltos de "carregando".
 - Movimento continuo em loop com `cubic-bezier(0.45, 0, 0.55, 1)` e
   `animation-delay` negativo escalonado (1/3 e 2/3 do ciclo = 120/240
   graus de defasagem entre as 3 esferas).
-- Pilula sempre PEQUENA: padrao 40x18px (`.msg-orbita`), variante
-  `grande` 48x22px (`.msg-orbita-grande`) so para telas de transicao —
-  ambas menores que a pilula metaball anterior (56x26 / 72x34).
+- Indicador SEM container: `.msg-orbita` e apenas um `inline-flex` de
+  apoio; o tamanho visual vem do `.msg-orbita-palco` (26x16 padrao,
+  32x20 na variante `grande`). Esferas de 6px (7px na variante).
 - Componente React unico `IndicadorCarregando` em `frontend/src/App.tsx`,
   com prop `grande`. Tamanhos via custom properties (`--orbita-tam`,
   `--orbita-rx`, `--orbita-ry`) para variantes sem duplicar keyframes.
@@ -29,8 +29,7 @@ sem spinners, pontinhos ou textos soltos de "carregando".
   externo; camadas internas `aria-hidden`.
 - Paginas estaticas fora do bundle React (ex.: `frontend/public/metricas.html`)
   replicam o mesmo principio com classes proprias (`orbita`, `orbita-palco`,
-  `orbita-ponto`) e cores invertidas para o tema escuro (esferas claras
-  sobre pilula escura).
+  `orbita-ponto`) e cores invertidas para o tema escuro (esferas claras).
 
 ## Pontos de aplicacao (mapa)
 
@@ -49,6 +48,6 @@ sem spinners, pontinhos ou textos soltos de "carregando".
 ## Historico
 
 - V1 (metaball): pilula 56x26 com 3 gotas fundidas por `blur(5px)` +
-  `contrast(20)`, movimento linear esquerda-direita. Substituida por
-  decisao de design: a orbita eliptica com variacao de escala/opacidade
-  le melhor e a pilula ficou menor.
+  `contrast(20)`, movimento linear esquerda-direita. Substituida pela
+  orbita eliptica, que depois perdeu a pilula por decisao de design —
+  o indicador e so as bolinhas.

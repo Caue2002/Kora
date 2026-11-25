@@ -8,7 +8,8 @@ description: Padrao obrigatorio de indicador de carregamento do Projeto Kora. Us
 ## Regra principal
 
 Todo indicador de carregamento/espera do app DEVE usar o efeito de orbita
-padrao. NUNCA criar spinners CSS (`border` + `rotate`), pontinhos
+padrao: 3 esferas em orbita eliptica, SEM pilula/borda ao redor — apenas
+as bolinhas. NUNCA criar spinners CSS (`border` + `rotate`), pontinhos
 pulsando (`pulsa`), barras ou textos "carregando..." sem o indicador.
 
 Spec de referencia: `spec/SPEC-indicador-carregamento.md`.
@@ -18,8 +19,8 @@ Spec de referencia: `spec/SPEC-indicador-carregamento.md`.
 Componente: `IndicadorCarregando` em `frontend/src/App.tsx`.
 
 ```tsx
-<IndicadorCarregando />        {/* pilula padrao (40x18) */}
-<IndicadorCarregando grande /> {/* variante p/ telas de transicao (48x22) */}
+<IndicadorCarregando />        {/* orbita padrao */}
+<IndicadorCarregando grande /> {/* variante p/ telas de transicao */}
 ```
 
 Marcacao gerada (nao reescrever na mao):
@@ -34,10 +35,11 @@ Marcacao gerada (nao reescrever na mao):
 
 ## Como funciona (CSS em frontend/src/styles.css)
 
-- `.msg-orbita` — pilula externa (fundo `--acento-claro`, borda sutil).
-  Sempre PEQUENA. Define variaveis de tamanho: `--orbita-tam`,
+- `.msg-orbita` — wrapper `inline-flex` SEM fundo/borda (o indicador e so
+  as bolinhas). Define variaveis de tamanho: `--orbita-tam`,
   `--orbita-rx`, `--orbita-ry`.
-- `.msg-orbita-palco` — container da orbita (22x12 no padrao).
+- `.msg-orbita-palco` — container da orbita (26x16 no padrao, 32x20 na
+  variante `grande`). Nao tem fundo nem borda.
 - `.msg-orbita-ponto` — 3 esferas `var(--usuario)` animadas por
   `@keyframes orbita-agente`: elipse amostrada a cada 45 graus via
   `translate` (raios vem das custom properties, entao variantes nao
@@ -52,8 +54,8 @@ Marcacao gerada (nao reescrever na mao):
 
 - Velocidade: `animation-duration` em `.msg-orbita-ponto`.
 - Tamanho/forma: variaveis `--orbita-tam`/`--orbita-rx`/`--orbita-ry` na
-  classe `.msg-orbita` (ou nova variante) + width/height da pilula e do
-  `.msg-orbita-palco`. Manter a pilula pequena.
+  classe `.msg-orbita` (ou nova variante) + width/height de
+  `.msg-orbita-palco`. Manter so as bolinhas, sem container visivel.
 - Intensidade da profundidade: `scale`/`opacity` dentro de
   `@keyframes orbita-agente`.
 
@@ -61,7 +63,7 @@ Marcacao gerada (nao reescrever na mao):
 
 Paginas estaticas (ex.: `frontend/public/metricas.html`, tema escuro)
 replicam o mesmo principio com classes proprias (`orbita`, `orbita-palco`,
-`orbita-ponto`) e cores invertidas: esferas CLARAS sobre pilula ESCURA.
+`orbita-ponto`) e cores invertidas: esferas CLARAS sobre o tema escuro.
 Manter 3 esferas, orbita eliptica, `cubic-bezier` e delays escalonados —
 so mudam cores e medidas.
 

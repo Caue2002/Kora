@@ -1025,54 +1025,44 @@ body {
 }
 
 /* ===== indicador de carregamento: orbita =====
-   Tres esferas pequenas percorrem uma orbita eliptica continua dentro de
-   uma pilula sutil. As que passam "na frente" ficam maiores e mais
-   opacas; as de tras ficam menores e mais sutis — sensacao de
-   profundidade leve sem libs nem filtros.
+   Tres esferas pequenas percorrem uma orbita eliptica continua — sem
+   pilula/borda ao redor, so as bolinhas. As que passam "na frente" ficam
+   maiores e mais opacas; as de tras ficam menores e mais sutis —
+   sensacao de profundidade leve sem libs nem filtros.
    O keyframes usa as custom properties --orbita-rx/--orbita-ry, entao as
    variantes mudam so as variaveis, sem duplicar animacao.
    Ajustes rapidos:
    - velocidade: animation-duration em .msg-orbita-ponto
    - tamanho/forma: --orbita-tam, --orbita-rx, --orbita-ry e
-     width/height de .msg-orbita */
+     width/height de .msg-orbita-palco */
 .msg-orbita {
   /* variaveis de tamanho: herdam para palco/pontos e keyframes */
-  --orbita-tam: 5px;
-  --orbita-rx: 7px;
-  --orbita-ry: 3.5px;
+  --orbita-tam: 6px;
+  --orbita-rx: 10px;
+  --orbita-ry: 5px;
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--acento-claro);
-  border: 1px solid var(--agente-borda);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
   vertical-align: middle;
-  overflow: hidden;
 }
 
-/* variante um pouco maior para telas de transicao (ex.: "Encerrando..."),
-   ainda assim bem menor que a pilula antiga */
+/* variante um pouco maior para telas de transicao (ex.: "Encerrando...") */
 .msg-orbita-grande {
-  --orbita-tam: 6px;
-  --orbita-rx: 9px;
-  --orbita-ry: 4px;
-  width: 48px;
-  height: 22px;
+  --orbita-tam: 7px;
+  --orbita-rx: 12px;
+  --orbita-ry: 6px;
 }
 
 .msg-orbita-palco {
   position: relative;
-  width: 22px;
-  height: 12px;
+  width: 26px;
+  height: 16px;
 }
 
 .msg-orbita-grande .msg-orbita-palco {
-  width: 26px;
-  height: 15px;
+  width: 32px;
+  height: 20px;
 }
 
 .msg-orbita-ponto {
