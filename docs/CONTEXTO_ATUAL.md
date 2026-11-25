@@ -448,6 +448,31 @@ de entrega.
   .msg-balao ganhou min-width:0/overflow-wrap, .md/.md-tabela-wrap/.md-pre
   com max-width:100%; rotulos do menu "...", chips de sugestao e pills do
   caso ganharam spans com min-width:0 para nao estourar em telas estreitas
+- Alertas de erro da API reformulados (frontend/src/alertas.ts): barra
+  amarela larga e fina fixa na PARTE INFERIOR da tela (antes era pill no
+  topo), some em 3s, texto minimo no formato "Erro N — descricao curta"
+  (ex.: "Erro 503 — Saturação do modelo."). Mapeamento coberto: 0 rede,
+  400, 401, 403, 404, 405, 413 anexo grande, 429 (cotas x rate limit),
+  500, 502, 503, 504 e fallback de saturacao
+- Conversa encerrada nao reabre no refresh: Conversa ganhou flag
+  `encerrada` (api.ts); encerrarAtendimento marca a conversa antes de
+  voltar a tela inicial e o auto-open da primeira carga ignora
+  encerradas. Reabrir manualmente pelo historico remove a marca — se o
+  usuario atualizar com ela aberta de proposito, ela volta normalmente
+- Instalacao do app (PWA): item "Baixar app" no menu "..." do chat.
+  Captura o evento beforeinstallprompt e dispara o prompt nativo do
+  navegador (Chrome/Edge); sem suporte (iOS Safari etc.) abre modal com
+  instrucoes manuais por plataforma. O Kora NAO esta na Play Store nem
+  na App Store — e PWA; prompt.ts ganhou regra proibindo a Nori de
+  citar lojas de app ou inventar links/QR codes de download
+- Indicador de espera do agente: "Pensando..." substituido por 4
+  bolinhas quicando em sequencia (componente BolinhasCarregando +
+  keyframe bolinha-quica no styles.css); textos "Gerando resposta..."
+  e rotulos de tool continuam ao lado das bolinhas
+- scripts/testar_modelos_gemini.mjs agora envia
+  thinkingConfig.thinkingBudget=0 (igual ao shared/llm.ts) e marca
+  respostas 200 com texto vazio como VAZIO — antes modelos que so
+  "pensavam" apareciam como OK
 
 ## Em andamento
 

@@ -25,6 +25,8 @@ export interface Conversa {
   titulo: string;
   mensagens: Mensagem[];
   atualizadoEm: number;
+  // Conversa encerrada pelo usuario: nao reabre sozinha ao atualizar a pagina
+  encerrada?: boolean;
 }
 
 const CHAVE_CONVERSAS = 'kora-conversas-v1';

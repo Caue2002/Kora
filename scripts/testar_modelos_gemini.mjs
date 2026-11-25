@@ -55,7 +55,13 @@ for (const modelo of CANDIDATOS) {
       signal: AbortSignal.timeout(20_000),
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: PROMPT }] }],
-        generationConfig: { maxOutputTokens: 10, temperature: 0 },
+        generationConfig: {
+          maxOutputTokens: 10,
+          temperature: 0,
+          // Mesmo parametro do shared/llm.ts: sem ele os Gemini 3.x/4 gastam
+          // o orcamento em "thinking" e devolvem texto vazio (falso OK)
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       }),
     });
     const ms = Date.now() - t0;
@@ -67,7 +73,10 @@ for (const modelo of CANDIDATOS) {
     }
     const texto = corpo?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
     const tokens = corpo?.usageMetadata?.totalTokenCount;
-    console.log(`${modelo.padEnd(28)} OK ${String(ms).padStart(5)}ms — "${texto.trim().slice(0, 40)}" (${tokens ?? '?'} tok)`);
+    const finish = corpo?.candidates?.[0]?.finishReason;
+    // Resposta 200 com texto vazio (ex.: MAX_TOKENS em thinking) nao serve
+    const status = texto.trim() ? 'OK' : 'VAZIO';
+    console.log(`${modelo.padEnd(28)} ${status} ${String(ms).padStart(5)}ms — "${texto.trim().slice(0, 40)}" (${tokens ?? '?'} tok, ${finish ?? '-'})`);
   } catch (erro) {
     console.log(`${modelo.padEnd(28)} ERRO ${Date.now() - t0}ms — ${erro.message}`);
   }

@@ -864,21 +864,24 @@ body {
   border-color: var(--acento);
 }
 
-/* ===== alerta amarelo de erro da API (some em 3s) ===== */
+/* ===== alerta de erro da API: barra larga e fina na parte inferior (some em 3s) ===== */
 .alerta-api {
   position: fixed;
-  top: 12px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 200;
+  width: min(92vw, 640px);
   background: #fef08a;
   border: 1px solid #facc15;
   color: #713f12;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 8px;
-  padding: 6px 12px;
-  max-width: min(90vw, 420px);
+  border-radius: 10px;
+  padding: 8px 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: center;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   animation: alerta-entrada 0.2s ease-out;
@@ -887,12 +890,24 @@ body {
 @keyframes alerta-entrada {
   from {
     opacity: 0;
-    transform: translate(-50%, -6px);
+    transform: translate(-50%, 6px);
   }
   to {
     opacity: 1;
     transform: translate(-50%, 0);
   }
+}
+
+/* ===== instrucoes de instalacao do app (PWA) ===== */
+.app-ajuda-lista {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.app-ajuda-lista li {
+  margin-bottom: 8px;
 }
 
 /* ===== retentativa de erro ===== */
@@ -1029,6 +1044,47 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+/* ===== indicador de carregamento: 4 bolinhas quicando em sequencia ===== */
+.msg-bolinhas {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 6px 4px;
+}
+
+.msg-bolinhas .bolinha {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--acento);
+  animation: bolinha-quica 1.2s infinite ease-in-out;
+}
+
+.msg-bolinhas .bolinha:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.msg-bolinhas .bolinha:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.msg-bolinhas .bolinha:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+@keyframes bolinha-quica {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
 }
 
 .msg-status-texto {

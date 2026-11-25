@@ -218,6 +218,19 @@ function categoriaPredominante(fontes?: Fonte[]): string | null {
   return melhor;
 }
 
+// Indicador de carregamento do agente: 4 bolinhas quicando em sequencia,
+// no estilo do "pensando" — substitui o texto "Pensando..." na bolha vazia
+function BolinhasCarregando() {
+  return (
+    <span className="msg-bolinhas" aria-label="Carregando">
+      <span className="bolinha" />
+      <span className="bolinha" />
+      <span className="bolinha" />
+      <span className="bolinha" />
+    </span>
+  );
+}
+
 // Texto de uma resposta da Nori: mensagens longas ficam colapsadas por padrao
 // com um "Ver mais", para nao virar um muro de texto na conversa
 function TextoAssistente({ texto }: { texto: string }) {
@@ -342,6 +355,12 @@ const iconeClipe = (
     <path d="M21.4 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   </Icone>
 );
+const iconeCelular = (
+  <Icone size={13}>
+    <rect x="5" y="2" width="14" height="20" rx="2" />
+    <line x1="12" y1="18" x2="12.01" y2="18" />
+  </Icone>
+);
 const iconeFechar = (
   <Icone size={11}>
     <line x1="18" y1="6" x2="6" y2="18" />
@@ -359,6 +378,12 @@ interface ReconhecimentoVoz {
   onerror: ((e?: { error?: string }) => void) | null;
   start: () => void;
   stop: () => void;
+}
+
+// Tipo minimo do evento beforeinstallprompt (instalacao do PWA)
+interface EventoInstalacaoPwa extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
 export default function App() {
@@ -398,6 +423,10 @@ export default function App() {
     const salvo = localStorage.getItem(CHAVE_PERFIL);
     return PERFIS.some((p) => p.id === salvo) ? (salvo as PerfilId) : null;
   });
+  // Instalacao do PWA: o evento beforeinstallprompt fica guardado para o
+  // item "Baixar app" do menu disparar o prompt nativo do navegador
+  const installPromptRef = useRef<EventoInstalacaoPwa | null>(null);
+  const [mostrarAjudaApp, setMostrarAjudaApp] = useState(false);
   const fimRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -408,12 +437,17 @@ export default function App() {
   conversasRef.current = conversas;
   const encerrarRef = useRef<() => void>(() => {});
 
-  // Na primeira carga, abre a conversa mais recente se existir
+  // Na primeira carga, abre a conversa mais recente que NAO foi encerrada:
+  // conversa encerrada pelo usuario nunca volta sozinha ao atualizar a pagina
   useEffect(() => {
     if (conversaId === null && conversas.length > 0) {
-      const maisRecente = [...conversas].sort((a, b) => b.atualizadoEm - a.atualizadoEm)[0]!;
-      setConversaId(maisRecente.id);
-      setMensagens(maisRecente.mensagens);
+      const maisRecente = [...conversas]
+        .filter((c) => !c.encerrada)
+        .sort((a, b) => b.atualizadoEm - a.atualizadoEm)[0];
+      if (maisRecente) {
+        setConversaId(maisRecente.id);
+        setMensagens(maisRecente.mensagens);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -423,6 +457,25 @@ export default function App() {
     document.documentElement.dataset.theme = escuro ? 'escuro' : 'claro';
     localStorage.setItem(CHAVE_TEMA, escuro ? 'escuro' : 'claro');
   }, [escuro]);
+
+  // Captura o evento de instalacao do PWA para o menu "..." oferecer
+  // "Baixar app" sob demanda; navegadores sem suporte caem nas instrucoes
+  useEffect(() => {
+    const aoBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e as EventoInstalacaoPwa;
+    };
+    const aoInstalado = () => {
+      installPromptRef.current = null;
+      setMostrarAjudaApp(false);
+    };
+    window.addEventListener('beforeinstallprompt', aoBeforeInstall);
+    window.addEventListener('appinstalled', aoInstalado);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', aoBeforeInstall);
+      window.removeEventListener('appinstalled', aoInstalado);
+    };
+  }, []);
 
   // O alerta amarelo de erro da API fica 3s na tela e some sozinho
   useEffect(() => {
@@ -442,6 +495,8 @@ export default function App() {
         titulo: existente?.titulo ?? tituloDe(mensagens),
         mensagens,
         atualizadoEm: Date.now(),
+        // Preserva a marca de encerrada para nao reabrir no refresh
+        encerrada: existente?.encerrada,
       };
       const nova = [conversa, ...atual.filter((c) => c.id !== conversaId)];
       salvarConversas(nova);
@@ -750,6 +805,15 @@ export default function App() {
   function selecionarConversa(c: Conversa) {
     setConversaId(c.id);
     setMensagens(c.mensagens);
+    // Reabertura manual remove a marca de encerrada: se o usuario atualizar
+    // a pagina com ela aberta de proposito, ela pode reabrir normalmente
+    if (c.encerrada) {
+      setConversas((atual) => {
+        const nova = atual.map((x) => (x.id === c.id ? { ...x, encerrada: false } : x));
+        salvarConversas(nova);
+        return nova;
+      });
+    }
     setErro(null);
     setSidebarAberta(false);
     setPerguntaEncerramentoId(null);
@@ -776,6 +840,15 @@ export default function App() {
     const cid = conversaId;
     localStorage.removeItem(CHAVE_PERFIL);
     setPerfil(null);
+    // Marca a conversa como encerrada ANTES de limpar a tela: o refresh nao
+    // pode reabri-la sozinho (ela continua acessivel pelo historico)
+    if (cid) {
+      setConversas((atual) => {
+        const nova = atual.map((c) => (c.id === cid ? { ...c, encerrada: true } : c));
+        salvarConversas(nova);
+        return nova;
+      });
+    }
     novaConversa();
     if (cid) void encerrarCaso(cid);
   }
@@ -786,6 +859,19 @@ export default function App() {
     setEncerrandoEm((v) => v ?? 3);
   }
   encerrarRef.current = iniciarEncerramento;
+
+  // "Baixar app": dispara o prompt nativo de instalacao do PWA quando o
+  // navegador oferece (Chrome/Edge); sem suporte mostra instrucoes manuais
+  async function baixarApp() {
+    const evt = installPromptRef.current;
+    if (!evt) {
+      setMostrarAjudaApp(true);
+      return;
+    }
+    installPromptRef.current = null;
+    await evt.prompt().catch(() => undefined);
+    await evt.userChoice.catch(() => undefined);
+  }
 
   // Exclui uma conversa do historico
   function excluirConversa(id: string) {
@@ -1037,18 +1123,14 @@ function pararAudio() {
                   <div className="msg-balao">
                     {m.content === '' ? (
                       <span className="msg-status-stream">
-                        <span className="msg-digitando-inline">
-                          <span className="dot" />
-                          <span className="dot" />
-                          <span className="dot" />
-                        </span>
-                        <span className="msg-status-texto">
-                          {etapaStream === 'gerando'
-                            ? 'Gerando resposta...'
-                            : etapaStream?.startsWith('tool:')
-                              ? rotuloTool(etapaStream.slice(5))
-                              : 'Pensando...'}
-                        </span>
+                        <BolinhasCarregando />
+                        {(etapaStream === 'gerando' || etapaStream?.startsWith('tool:')) && (
+                          <span className="msg-status-texto">
+                            {etapaStream === 'gerando'
+                              ? 'Gerando resposta...'
+                              : rotuloTool(etapaStream.slice(5))}
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <>
@@ -1281,6 +1363,16 @@ function pararAudio() {
                     {iconeGrafico}
                     <span className="menu-item-label">Painel de métricas</span>
                   </a>
+                  <button
+                    className="menu-item"
+                    onClick={() => {
+                      setMenuAcoes(false);
+                      void baixarApp();
+                    }}
+                  >
+                    {iconeCelular}
+                    <span className="menu-item-label">Baixar app</span>
+                  </button>
                 </div>
               </>
             )}
@@ -1407,6 +1499,36 @@ function pararAudio() {
               ) : (
                 <Markdown texto={handoff} />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de instalacao do app: o Kora e PWA e se instala pelo navegador,
+          sem passar por loja de aplicativos */}
+      {mostrarAjudaApp && (
+        <div className="handoff-overlay" role="dialog" aria-modal="true" aria-label="Baixar o app">
+          <div className="handoff-card">
+            <div className="handoff-topo">
+              <div>
+                <h2 className="handoff-titulo">Baixar o app Kora</h2>
+                <p className="handoff-sub">
+                  O Kora é um app web instalável: não está na Play Store nem na App Store.
+                  A instalação é feita pelo próprio navegador.
+                </p>
+              </div>
+              <div className="handoff-acoes">
+                <button className="btn-icon" title="Fechar" aria-label="Fechar" onClick={() => setMostrarAjudaApp(false)}>
+                  {iconeFechar}
+                </button>
+              </div>
+            </div>
+            <div className="handoff-corpo">
+              <ul className="app-ajuda-lista">
+                <li><strong>Android (Chrome):</strong> menu ⋮ → "Instalar app" ou "Adicionar à tela inicial".</li>
+                <li><strong>iPhone (Safari):</strong> botão Compartilhar → "Adicionar à Tela de Início".</li>
+                <li><strong>Computador:</strong> ícone de instalação na barra de endereço do navegador.</li>
+              </ul>
             </div>
           </div>
         </div>
