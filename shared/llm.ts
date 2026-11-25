@@ -403,8 +403,11 @@ async function streamGeminiComTools(
           // Resposta final: texto fluiu ou nenhuma tool foi chamada
           if (chamadas.length === 0 || emitiuTexto) return;
 
-          // Tool calls puras: executa e devolve functionResponse ao modelo
+          // Tool calls puras: executa e devolve functionResponse ao modelo.
+          // Antes de cada execucao emite um frame de controle \u001E<nome>\u001F
+          // para o frontend mostrar "Consultando pedido..." durante a espera
           for (const chamada of chamadas) {
+            controller.enqueue(encoder.encode('\u001E' + chamada.name + '\u001F'));
             const resultado = await executarTool(chamada);
             anexarFunctionResponse(contents, chamada, resultado);
           }

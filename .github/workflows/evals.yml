@@ -1,0 +1,37 @@
+name: Evals do Nori
+
+# Quality gate de qualidade do agente: golden dataset (rubricas regex) +
+# LLM-as-judge rodam contra a API real a cada push/PR. Lentos (~5-10 min)
+# por isso ficam em workflow separado do testes.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias da API
+        run: npm ci
+
+      - name: Configurar .env a partir dos secrets
+        run: |
+          {
+            echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"
+            echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"
+          } > .env
+
+      - name: Rodar evals (golden dataset + LLM-as-judge)
+        run: npx vitest run tests/evals.test.ts tests/evals-juiz.test.ts

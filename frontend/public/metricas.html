@@ -51,6 +51,11 @@
   <div class="grid" id="kpis"></div>
 
   <div class="card">
+    <h2>Trace médio por etapa (últimas 200 requisições)</h2>
+    <div id="trace-medio"></div>
+  </div>
+
+  <div class="card">
     <h2>Mensagens por dia (últimos 14 dias)</h2>
     <div class="barras" id="por-dia"></div>
   </div>
@@ -98,12 +103,39 @@ async function carregar() {
     const cacheHits = m.cache_hits ?? 0;
     const hitRate = total > 0 ? (cacheHits / total) * 100 : 0;
     const lat = m.latencia_media_ms ?? 0;
+    const p50 = m.latencia_p50_ms ?? 0;
+    const p95 = m.latencia_p95_ms ?? 0;
     document.getElementById('kpis').innerHTML = [
       kpi('Mensagens totais', fmt(total), `${fmt(m.ultimas_24h)} nas últimas 24h`),
       kpi('Cache hit rate', hitRate.toFixed(1) + '%', `${fmt(cacheHits)} respostas reutilizadas`),
-      kpi('Latência média', fmt(lat) + ' ms', 'do request à resposta'),
+      kpi('Latência média', fmt(lat) + ' ms', `p50 ${fmt(p50)} ms · p95 ${fmt(p95)} ms`),
+      kpi('Function calls', fmt(m.tools_total ?? 0), 'tools executadas pelo agente'),
       kpi('Custo equivalente', usd(custoTotal(m)), 'se pago, por 1M tokens mistos'),
     ].join('');
+
+    // trace medio: media por etapa sobre os traces recentes
+    const traces = m.traces_recentes ?? [];
+    const etapas = {};
+    for (const t of traces) {
+      for (const [k, v] of Object.entries(t ?? {})) {
+        etapas[k] = etapas[k] ?? { soma: 0, n: 0 };
+        etapas[k].soma += Number(v) || 0;
+        etapas[k].n += 1;
+      }
+    }
+    const ROTULOS = { contexto_ms: 'Contexto (RAG+modelo+cache)', llm_ms: 'LLM (geração)' };
+    const maxEtapa = Math.max(1, ...Object.values(etapas).map(e => e.soma / e.n));
+    document.getElementById('trace-medio').innerHTML = Object.keys(etapas).length
+      ? Object.entries(etapas).map(([k, e]) => {
+          const media = e.soma / e.n;
+          return `<div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+              <span>${ROTULOS[k] ?? k}</span><span style="color:var(--muted)">${fmt(media)} ms médio · ${e.n} reqs</span>
+            </div>
+            <div class="barra"><div style="width:${Math.max(2, (media / maxEtapa) * 100)}%"></div></div>
+          </div>`;
+        }).join('')
+      : '<div class="vazio">Sem traces ainda — chegam com as próximas mensagens.</div>';
 
     // por dia
     const dias = (m.por_dia ?? []).slice().reverse();

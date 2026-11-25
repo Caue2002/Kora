@@ -401,6 +401,39 @@ de entrega.
   tests/evals.test.ts ganhou 3 cenarios de guardrail (prompt injection,
   acao fora do poder do agente, off-topic hostil) com campo `evita` para
   checagem negativa por regex
+- UX e agente visivel (specs em spec/SPEC-ui-indicador-tools.md e
+  SPEC-voz-neural.md): function calling agora emite frames de controle
+  \u001E<nome>\u001F no stream; api.ts os converte em callback onTool e o
+  chat mostra "Consultando pedido..."/"Consultando a base..." no lugar de
+  "Pensando...". O acumulado do servidor remove os frames para nao poluir
+  cache/historico. Bug de UX corrigido: foto SEM texto agora e aceita
+  (placeholder interno) — antes retornava 400. Voz neural: POST /api/tts
+  gera MP3 com msedge-tts (pt-BR-FranciscaNeural, gratis, sem chave);
+  botao "ouvir" em cada resposta com fallback p/ speechSynthesis
+- Guardrails de saida (spec em spec/SPEC-guardrails-saida.md):
+  shared/guardrails.ts classifica a resposta final (vazamento de prompt,
+  PII email/CPF, texto vazio) — caminho nao-stream regenera 1x e cai no
+  fallback; no stream a checagem roda nos primeiros 220 chars (limitacao
+  documentada: guardrail completo so no caminho nao-stream)
+- Observabilidade v2 (spec em spec/SPEC-observabilidade-v2.md):
+  metricas_chat ganha colunas trace jsonb e tools_usadas int
+  (MIGRATION 0011 PENDENTE de aplicar no SQL Editor — sem ela o insert de
+  metricas falha silenciosamente). /api/chat grava trace {contexto_ms,
+  llm_ms} e conta tool calls pelo stream. RPC metricas_chat_resumo
+  estendida com latencia_p50/p95, tools_total e traces_recentes; painel
+  /metricas.html mostra p50/p95, total de function calls e "trace medio
+  por etapa" (media no cliente sobre os ultimos 200 traces)
+- Evals em CI (spec em spec/SPEC-evals-ci.md): .github/workflows/evals.yml
+  roda evals.test.ts + evals-juiz.test.ts em todo push/PR com .env montado
+  de secrets. PENDENTE: cadastrar secrets SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY, GROQ_API_KEY em
+  Settings > Secrets > Actions do repo
+- Feedback loop (spec em spec/SPEC-feedback-loop.md):
+  scripts/relatorio_feedback.mjs agrega feedback_respostas por avaliacao,
+  dia e comentario — `node scripts/relatorio_feedback.mjs --dias 30`.
+  Loop documentado: avaliacao -> relatorio -> ajuste de diretrizes/prompt
+- README reescrito vendavel: arquitetura em ASCII, capacidades por
+  pilar (UX, inteligencia, interoperabilidade MCP/A2A, qualidade), stack
 
 ## Em andamento
 
@@ -419,6 +452,10 @@ de entrega.
 - Migration 0010_categoria_pagamento.sql PENDENTE: inserir categoria
   "pagamento" em categorias_divergencia (tabela legada; o enum vivo e
   api/caso.ts). Sem urgencia — nada quebra sem ela
+- Migration 0011_trace_tools_metricas.sql PENDENTE e PRIORITARIA: sem as
+  colunas trace/tools_usadas o insert em metricas_chat falha (catch
+  silencioso) e as metricas param de gravar. Aplicar no SQL Editor junto
+  com a 0010 de preferencia
 - Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env vars
   da Vercel (mesmo valor do .env local) e redeploy; sem ela /api/mcp,
   /api/a2a e /api/handoff respondem 503. Conexao documentada em api/README.md

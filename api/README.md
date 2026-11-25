@@ -19,6 +19,13 @@ Nori pelo agent card publico em `/.well-known/agent-card.json`
 (frontend/public) e conversam via `message/send`. Pipeline enxuto (um turno,
 sem historico/estado). Mesma auth `MCP_API_KEY`.
 
+## /api/tts — texto para fala
+
+POST `{ texto }` -> `audio/mpeg` com voz neural Microsoft Edge
+(`pt-BR-FranciscaNeural`, gratuita via msedge-tts). Sem auth; rate limit
+30/min por IP; texto limpo de markdown e limitado a 1200 chars. O botao
+"ouvir" do chat usa este endpoint com fallback para a voz do navegador.
+
 ## /api/handoff — encaminhamento humano
 
 Recebe `{ mensagens: [{role, content}] }` e devolve `{ handoff }`: resumo

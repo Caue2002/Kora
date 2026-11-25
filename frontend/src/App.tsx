@@ -9,6 +9,7 @@ import {
   encerrarCaso,
   enviarFeedback,
   enviarMensagemStream,
+  gerarAudioFala,
   gerarHandoff,
   listarConversas,
   salvarConversas,
@@ -316,6 +317,13 @@ const iconeAtendente = (
     <circle cx="12" cy="7" r="4" />
   </Icone>
 );
+const iconeSom = (
+  <Icone size={13}>
+    <path d="M11 5 6 9H2v6h4l5 4V5z" />
+    <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+  </Icone>
+);
 const iconeGrafico = (
   <Icone size={13}>
     <path d="M3 3v18h18" />
@@ -368,7 +376,10 @@ export default function App() {
   const [sidebarAberta, setSidebarAberta] = useState(false);
   const [avaliacaoPendente, setAvaliacaoPendente] = useState<{ msgId: string; avaliacao: string } | null>(null);
   const [comentario, setComentario] = useState('');
-  const [etapaStream, setEtapaStream] = useState<'contexto' | 'gerando' | null>(null);
+  const [etapaStream, setEtapaStream] = useState<string | null>(null);
+  // Id da mensagem da Nori cujo audio esta tocando (botao "ouvir")
+  const [tocandoId, setTocandoId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [avaliacaoAberta, setAvaliacaoAberta] = useState<string | null>(null);
   const [mostrarScroll, setMostrarScroll] = useState(false);
   const [caso, setCaso] = useState<EstadoCaso | null>(null);
@@ -455,6 +466,14 @@ export default function App() {
     const ultima = bolhas[bolhas.length - 1] as HTMLElement | undefined;
     ultima?.scrollIntoView({ behavior: 'auto', block: 'start' });
   }, [enviando]);
+
+  // Para o audio ao desmontar o componente
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+    };
+  }, []);
 
   // Foca o campo de comentario quando uma avaliacao fica pendente
   useEffect(() => {
@@ -658,7 +677,7 @@ export default function App() {
         setMensagens((atual) =>
           atual.map((m) => (m.id === assistId ? { ...m, content: m.content + delta } : m)),
         );
-      }, undefined, perfil ?? undefined, cid);
+      }, undefined, perfil ?? undefined, cid, (tool) => setEtapaStream(`tool:${tool}`));
 
     try {
       let r;
@@ -834,7 +853,54 @@ export default function App() {
     setHandoff(texto ?? 'Não foi possível gerar o resumo de handoff no momento. Tente novamente.');
   }
 
-  // Envia a avaliacao escolhida; comentario e opcional
+  // Rotulo amigavel para as tools que a Nori pode executar (function calling)
+function rotuloTool(nome: string): string {
+  if (nome === 'consultar_pedido') return 'Consultando pedido...';
+  if (nome === 'buscar_politica') return 'Consultando a base de conhecimento...';
+  return 'Consultando dados...';
+}
+
+// Toca a resposta em audio: primeiro tenta a voz neural do /api/tts
+// (Microsoft Edge, gratuita); se falhar, cai na voz do navegador
+async function ouvirMensagem(m: Mensagem) {
+  if (tocandoId === m.id) {
+    pararAudio();
+    return;
+  }
+  pararAudio();
+  const url = await gerarAudioFala(m.content);
+  if (url) {
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    setTocandoId(m.id);
+    const limpar = () => {
+      setTocandoId(null);
+      URL.revokeObjectURL(url);
+      audioRef.current = null;
+    };
+    audio.onended = limpar;
+    audio.onerror = limpar;
+    void audio.play().catch(limpar);
+    return;
+  }
+  // Fallback: voz sintetica do proprio navegador (qualidade inferior)
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(m.content);
+  u.lang = 'pt-BR';
+  u.onend = () => setTocandoId(null);
+  u.onerror = () => setTocandoId(null);
+  speechSynthesis.speak(u);
+  setTocandoId(m.id);
+}
+
+function pararAudio() {
+  audioRef.current?.pause();
+  audioRef.current = null;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  setTocandoId(null);
+}
+
+// Envia a avaliacao escolhida; comentario e opcional
   function confirmarAvaliacao(comComentario: boolean) {
     if (!avaliacaoPendente) return;
     enviarFeedback(
@@ -977,7 +1043,11 @@ export default function App() {
                           <span className="dot" />
                         </span>
                         <span className="msg-status-texto">
-                          {etapaStream === 'gerando' ? 'Gerando resposta...' : 'Pensando...'}
+                          {etapaStream === 'gerando'
+                            ? 'Gerando resposta...'
+                            : etapaStream?.startsWith('tool:')
+                              ? rotuloTool(etapaStream.slice(5))
+                              : 'Pensando...'}
                         </span>
                       </span>
                     ) : (
@@ -991,6 +1061,13 @@ export default function App() {
                               title="Copiar resposta"
                             >
                               {iconeCopiar}
+                            </button>
+                            <button
+                              className="btn-mini"
+                              onClick={() => void ouvirMensagem(m)}
+                              title={tocandoId === m.id ? 'Parar áudio' : 'Ouvir resposta'}
+                            >
+                              {iconeSom}
                             </button>
                             <button
                               className="btn-mini"

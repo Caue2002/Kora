@@ -95,6 +95,7 @@ export async function enviarMensagemStream(
   imagem?: ImagemAnexo,
   perfil?: string,
   conversaId?: string,
+  onTool?: (nome: string) => void,
 ): Promise<{ modelo?: string; fontes?: Fonte[]; erro?: string; status?: number; fallback?: boolean }> {
   const res = await fetch('/api/chat', {
     method: 'POST',
@@ -128,10 +129,33 @@ export async function enviarMensagemStream(
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
+  // Frames de controle do backend: \u001E<nome-da-tool>\u001F sinalizam que o
+  // agente esta executando uma tool (function calling). Nunca aparecem em
+  // texto normal — sao extraidos aqui e viram callback onTool, nao bolha
+  const FRAME_INI = '\u001E';
+  const FRAME_FIM = '\u001F';
+  let resto = '';
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    onDelta(decoder.decode(value, { stream: true }));
+    let texto = resto + decoder.decode(value, { stream: true });
+    resto = '';
+    // extrai todos os frames completos do trecho
+    for (;;) {
+      const ini = texto.indexOf(FRAME_INI);
+      if (ini === -1) break;
+      const fim = texto.indexOf(FRAME_FIM, ini);
+      if (fim === -1) break;
+      onTool?.(texto.slice(ini + 1, fim));
+      texto = texto.slice(0, ini) + texto.slice(fim + 1);
+    }
+    // guarda cauda que pode ser o inicio de um frame incompleto
+    const ini = texto.lastIndexOf(FRAME_INI);
+    if (ini !== -1) {
+      resto = texto.slice(ini);
+      texto = texto.slice(0, ini);
+    }
+    if (texto) onDelta(texto);
   }
   return { modelo, fontes, fallback };
 }
@@ -210,6 +234,23 @@ export async function gerarHandoff(mensagens: Mensagem[]): Promise<string | null
     if (!res.ok) return null;
     const dados = (await res.json()) as { handoff?: string };
     return dados.handoff ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Gera audio MP3 da resposta via /api/tts (voz neural Edge). Retorna blob URL
+// ou null em caso de falha — o chamador decide o fallback
+export async function gerarAudioFala(texto: string): Promise<string | null> {
+  try {
+    const res = await fetch('/api/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texto }),
+    });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
   } catch {
     return null;
   }

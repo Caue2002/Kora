@@ -12,6 +12,7 @@ import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
 import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
 import { extrairCodigoPedido, pedidoConfirmadoNaHistorico, pedidoFicticio } from '../shared/pedidos.js';
+import { classificarSaida } from '../shared/guardrails.js';
 import { buscaHibrida } from '../rag/search.js';
 import { embedTexts } from '../rag/embeddings.js';
 import { inserir, rpc, upsert } from '../shared/supabase.js';
@@ -189,6 +190,9 @@ interface MetricaChat {
   fontes?: number;
   perfil?: string;
   erro?: string;
+  // Trace do pipeline (ms por etapa) e contagem de tool calls do turno
+  trace?: Record<string, number>;
+  toolsUsadas?: number;
 }
 
 // Uma linha por requisicao em metricas_chat; resumo via GET /api/metricas
@@ -205,6 +209,8 @@ function registrarMetrica(m: MetricaChat): void {
     fontes: m.fontes ?? 0,
     perfil: m.perfil ?? null,
     erro: m.erro ?? null,
+    trace: m.trace ?? null,
+    tools_usadas: m.toolsUsadas ?? 0,
   }).catch(() => undefined);
 }
 
@@ -392,13 +398,19 @@ async function webHandler(req: Request): Promise<Response> {
   if (corpoBruto === undefined) return json(400, { erro: 'JSON invalido' });
   const corpo = corpoBruto as CorpoRequisicao;
 
-  const mensagem = typeof corpo.mensagem === 'string' ? corpo.mensagem.trim() : '';
-  if (mensagem.length === 0 || mensagem.length > TAMANHO_MAX_MENSAGEM) {
+  const mensagemBruta = typeof corpo.mensagem === 'string' ? corpo.mensagem.trim() : '';
+  const imagem = normalizarImagem(corpo.imagem);
+  // Foto sozinha (sem texto) e valida: o usuario pode querer mandar apenas a
+  // evidencia fotografica. Sem texto E sem imagem continua sendo erro
+  if ((mensagemBruta.length === 0 && !imagem) || mensagemBruta.length > TAMANHO_MAX_MENSAGEM) {
     return json(400, { erro: 'Mensagem ausente ou acima do limite de tamanho' });
   }
+  // Placeholder para o pipeline quando so ha foto: o modelo recebe o aviso
+  // de anexo adiante, entao um texto minimo basta para as deteccoes
+  const mensagem =
+    mensagemBruta.length > 0 ? mensagemBruta : '(o usuario enviou somente uma foto como evidencia)';
 
   const historico = normalizarHistorico(corpo.historico);
-  const imagem = normalizarImagem(corpo.imagem);
   const janela = janelaHistorico() * 2;
   const historicoJanela = historico.slice(-janela);
 
@@ -475,6 +487,9 @@ async function webHandler(req: Request): Promise<Response> {
   ]);
   const embedding = vetores?.[0];
   const busca = await pBusca;
+  // Marco do trace: tudo acima (embedding + diretrizes + selecao de modelo +
+  // RAG + cache) e a etapa de "contexto"; o resto e geracao pelo LLM
+  const tContexto = Date.now();
 
   // Cache hit: resposta identica ja gerada para a mesma pergunta+perfil.
   // Economiza a chamada ao LLM inteira; vale mesmo com cotas esgotadas
@@ -597,7 +612,12 @@ async function webHandler(req: Request): Promise<Response> {
       persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
       return respostaFallbackStream();
     }
+    const tLlm = Date.now();
+    const traceStream = { contexto_ms: tContexto - t0, llm_ms: tLlm - tContexto };
     let acumulado = '';
+    // Conta os frames de controle de tools que passam pelo stream (cada
+    // \u001E marca uma execucao de function calling no turno)
+    let toolsUsadas = 0;
     const decodificador = new TextDecoder();
     const codificador = new TextEncoder();
     // Os primeiros bytes ficam retidos para inspecao: no modo stream nao ha
@@ -618,12 +638,20 @@ async function webHandler(req: Request): Promise<Response> {
             const { done, value } = await leitor.read();
             if (done) break;
             if (!value || value.length === 0) continue;
-            acumulado += decodificador.decode(value, { stream: true });
+            const pedaco = decodificador.decode(value, { stream: true });
+            toolsUsadas += (pedaco.match(/\u001E/g) || []).length;
+            acumulado += pedaco;
+            // Remove os frames de controle de tools do acumulado: eles vao ao
+            // cliente (que os usa p/ mostrar "Consultando...") mas nao fazem
+            // parte do texto — nao podem ir p/ cache, historico ou metricas
+            acumulado = acumulado.replace(/\u001E[^\u001F]{0,100}\u001F/g, '');
             if (segurando) {
               pendentes.push(value);
               if (acumulado.length >= LIMIAR_INSPECAO) {
                 segurando = false;
-                if (ehRespostaDeRecusa(acumulado)) {
+                // Guardrail de saida no inicio do stream: vazamento de
+                // instrucoes ou PII nos primeiros bytes ja descarta e regenera
+                if (ehRespostaDeRecusa(acumulado) || !classificarSaida(acumulado).ok) {
                   substituido = true;
                   void leitor.cancel().catch(() => undefined);
                   break;
@@ -640,7 +668,7 @@ async function webHandler(req: Request): Promise<Response> {
           // Stream terminou ainda segurando (resposta curta): decide com o todo
           if (segurando) {
             segurando = false;
-            if (acumulado.trim().length === 0 || ehRespostaDeRecusa(acumulado)) {
+            if (acumulado.trim().length === 0 || ehRespostaDeRecusa(acumulado) || !classificarSaida(acumulado).ok) {
               substituido = true;
             } else {
               for (const b of pendentes) emitir(b);
@@ -697,6 +725,8 @@ async function webHandler(req: Request): Promise<Response> {
             fontes: fontes.length,
             perfil,
             tokensEntrada,
+            trace: traceStream,
+            toolsUsadas,
           });
         }
       },
@@ -715,6 +745,8 @@ async function webHandler(req: Request): Promise<Response> {
   }
 
   const gerado = await gerarComFailover(modelo, mensagens, comTools);
+  const tLlm = Date.now();
+  const traceNaoStream = { contexto_ms: tContexto - t0, llm_ms: tLlm - tContexto };
   if (!gerado) {
     registrarMetrica({ stream: false, latenciaMs: Date.now() - t0, perfil, erro: 'sem_modelo' });
     persistirConversa(conversaId, perfil, montarHistoricoConversa(historico, mensagem, RESPOSTA_FALLBACK, !!imagem));
@@ -776,6 +808,35 @@ async function webHandler(req: Request): Promise<Response> {
     }
   }
 
+  // Guardrail de saida: detecta vazamento de instrucoes internas e PII na
+  // resposta final. Reprovado dispara UMA regeneracao corretiva; persistindo
+  // o problema, o usuario recebe o fallback seguro em vez do texto ruim
+  const guardrail = classificarSaida(resposta);
+  if (!guardrail.ok) {
+    console.warn('[chat] guardrail de saida reprovou:', guardrail.motivo);
+    const correcao: MensagemChat[] = [
+      ...mensagens,
+      { role: 'assistant', content: resposta },
+      {
+        role: 'user',
+        content:
+          'Sua resposta anterior continha conteudo inadequado (instrucoes internas ou dados pessoais). Reescreva de forma limpa, respondendo apenas ao usuario.',
+      },
+    ];
+    try {
+      const r2 = await gerarComFailover(gerado.modelo, correcao, comTools);
+      const texto2 = (r2?.texto ?? '').trim();
+      if (r2 && classificarSaida(texto2).ok && !ehRespostaDeRecusa(texto2)) {
+        resposta = texto2;
+        await registrarConsumo(r2.modelo.id, r2.tokensUso ?? estimarTokens(texto2));
+      } else {
+        resposta = RESPOSTA_FALLBACK;
+      }
+    } catch {
+      resposta = RESPOSTA_FALLBACK;
+    }
+  }
+
   // Recusas e o fallback nunca entram no cache semantico: evita perpetuar a falha
   const cacheavel = !ehRespostaDeRecusa(resposta) && resposta !== RESPOSTA_FALLBACK;
   if (cacheElegivel && cacheavel) {
@@ -795,6 +856,7 @@ async function webHandler(req: Request): Promise<Response> {
     perfil,
     tokensEntrada,
     tokensTotal: tokensUso,
+    trace: traceNaoStream,
   });
 
   return json(200, {
