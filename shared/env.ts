@@ -29,13 +29,16 @@ export function supabaseServiceKey(): string {
 
 // Catalogo de modelos gratuitos ordenado do MAIS FORTE ao MAIS FRACO.
 // O primeiro da fila que tiver cota assume a request; os demais sao
-// failover em cascata. Cada slot tem id de cota PROPRIO (id = prioridade):
-// as cotas free-tier do Gemini sao por modelo, entao um 429 em um slot
-// nao pode bloquear os irmaos — antes os slots compartilhavam ids 1 e 3
-// e um unico 429 derrubava varios modelos ao mesmo tempo.
+// failover em cascata. Cada slot tem id de cota PROPRIO (usado em
+// cotas_modelos/modelos_ia): as cotas free-tier sao por modelo, entao um
+// 429 em um slot nao pode bloquear os irmaos — antes os slots
+// compartilhavam ids 1 e 3 e um unico 429 derrubava varios modelos.
+// O id NAO e mais igual a prioridade: slots novos entram com o proximo id
+// livre (11+) sem renumerar as cotas ja registradas.
 // Nomes e endpoints podem ser sobrescritos por env sem alterar codigo.
 // Ordem (verificada com scripts/testar_modelos_gemini.mjs):
-// hydrogen/3.8/3.6/3.5/3-preview > groq > 3.5-lite > 3.1-lite(-preview) > pollinations
+// hydrogen/3.8/3.6/3.5/3-preview > groq > mistral > 3.5-lite >
+// 3.1-lite(-preview) > pollinations
 export function catalogoModelos(): ModeloConfig[] {
   return [
     {
@@ -87,12 +90,23 @@ export function catalogoModelos(): ModeloConfig[] {
       prioridade: 6,
     },
     {
+      // Slot 7: Mistral La Plateforme (tier Experiment gratuito, sem cartao).
+      // id 11 porque os ids 1-10 ja sao das cotas existentes; a prioridade
+      // segue a ordem de forca (depois do Groq, antes dos flash-lites)
+      id: 11,
+      provedor: 'mistral',
+      nomeModelo: env('MISTRAL_MODEL', 'mistral-small-latest')!,
+      apiKey: env('MISTRAL_API_KEY'),
+      endpoint: 'https://api.mistral.ai/v1/chat/completions',
+      prioridade: 7,
+    },
+    {
       id: 7,
       provedor: 'gemini',
       nomeModelo: env('GEMINI_MODEL_6', 'gemini-3.5-flash-lite')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-      prioridade: 7,
+      prioridade: 8,
     },
     {
       id: 8,
@@ -100,7 +114,7 @@ export function catalogoModelos(): ModeloConfig[] {
       nomeModelo: env('GEMINI_MODEL_7', 'gemini-3.1-flash-lite')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-      prioridade: 8,
+      prioridade: 9,
     },
     {
       id: 9,
@@ -108,7 +122,7 @@ export function catalogoModelos(): ModeloConfig[] {
       nomeModelo: env('GEMINI_MODEL_8', 'gemini-3.1-flash-lite-preview')!,
       apiKey: env('GEMINI_API_KEY'),
       endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
-      prioridade: 9,
+      prioridade: 10,
     },
     {
       id: 10,
@@ -116,7 +130,7 @@ export function catalogoModelos(): ModeloConfig[] {
       nomeModelo: env('POLLINATIONS_MODEL', 'openai')!,
       apiKey: env('POLLINATIONS_KEY', 'pollinations'),
       endpoint: 'https://text.pollinations.ai/openai',
-      prioridade: 10,
+      prioridade: 11,
     },
   ];
 }
