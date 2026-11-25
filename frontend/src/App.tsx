@@ -484,6 +484,10 @@ export default function App() {
   // Ref para o tick de inatividade chamar o encerramento sem fechar sobre
   // estado velho (conversaId/mensagens do render em que o efeito rodou)
   const encerrarAtendimentoRef = useRef<() => void>(() => {});
+  // Aurora: ref do overlay para escrever as CSS vars do mouse, e refs da
+  // posicao atual/alvo para a interpolacao suave (lerp via rAF)
+  const auroraRef = useRef<HTMLDivElement>(null);
+  const mouseAuroraRef = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -683,6 +687,39 @@ export default function App() {
     }, 10_000);
     return () => clearInterval(id);
   }, []);
+
+  // O mouse MOVE a luz da aurora sem contar como atividade: so alimenta
+  // as CSS vars --aurora-mx/--aurora-my (paralaxe + brilho no cursor).
+  // Fica fora do marcarAtividade de proposito — mover o mouse nao apaga
+  // a aurora nem zera os timers de inatividade
+  useEffect(() => {
+    const moverMouse = (e: PointerEvent) => {
+      mouseAuroraRef.current.tx = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseAuroraRef.current.ty = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    window.addEventListener('pointermove', moverMouse, { passive: true });
+    return () => window.removeEventListener('pointermove', moverMouse);
+  }, []);
+
+  // Loop rAF so enquanto a aurora esta acesa: interpola a posicao do
+  // mouse (lerp ~0.06/frame) e escreve as vars no elemento — o efeito de
+  // "a luz persegue o cursor com inercia" sai macio em vez de travado
+  // no ponteiro. Desligado junto com prefers-reduced-motion
+  useEffect(() => {
+    if (!mostrarAurora) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    const passo = () => {
+      const m = mouseAuroraRef.current;
+      m.x += (m.tx - m.x) * 0.06;
+      m.y += (m.ty - m.y) * 0.06;
+      auroraRef.current?.style.setProperty('--aurora-mx', m.x.toFixed(3));
+      auroraRef.current?.style.setProperty('--aurora-my', m.y.toFixed(3));
+      raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [mostrarAurora]);
 
   // Congela o relogio durante qualquer processamento: o tempo ocioso nao
   // corre nem zera — ao terminar, a contagem retoma de onde parou
@@ -1181,7 +1218,7 @@ function pararAudio() {
           ao abrir o app e volta apos 60s sem nenhuma atividade; qualquer
           clique, toque, tecla ou scroll em qualquer lugar apaga na hora
           e rearma o timer. pointer-events:none — ver styles.css */}
-      <div className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
+      <div ref={auroraRef} className={`aurora${mostrarAurora ? ' aurora-on' : ''}`} aria-hidden="true">
         {alvosAurora.map((a, i) => (
           <i
             key={i}

@@ -2106,24 +2106,64 @@ body {
   transition:
     left 10s ease-in-out,
     top 10s ease-in-out;
+  /* paralaxe do mouse: translate individual compoe com o transform do
+     keyframes — cada camada persegue o cursor com forca propria
+     (--aurora-px/py definidas por camada = efeito de profundidade) */
+  translate: calc(var(--aurora-mx, 0) * var(--aurora-px, 16px))
+    calc(var(--aurora-my, 0) * var(--aurora-py, 12px));
   animation: aurora-deriva 16s ease-in-out infinite alternate;
 }
 
-/* tema claro: azul muito claro -> azul medio -> branco/brilho azulado */
+/* tema claro: azul muito claro -> azul medio -> branco/brilho azulado.
+   A profundidade do paralaxe cresce da camada 1 (fundo) para a 3 (frente) */
 .aurora-camada-1 {
+  --aurora-px: 10px;
+  --aurora-py: 7px;
   background: radial-gradient(circle, rgba(147, 197, 253, 0.5), rgba(147, 197, 253, 0) 68%);
 }
 
 .aurora-camada-2 {
+  --aurora-px: 24px;
+  --aurora-py: 16px;
   background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0) 68%);
   animation-duration: 13s;
   animation-delay: -5s;
 }
 
 .aurora-camada-3 {
+  --aurora-px: 38px;
+  --aurora-py: 26px;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
   animation-duration: 20s;
   animation-delay: -9s;
+}
+
+/* brilho que persegue o cursor: radial-gradient posicionado pelas vars
+   --aurora-mx/--aurora-my (mesma interpolacao das camadas). No claro um
+   azul suave; no escuro um branco difuso */
+.aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    50% 40% at calc(50% + var(--aurora-mx, 0) * 140px) calc(50% + var(--aurora-my, 0) * 100px),
+    rgba(37, 99, 235, 0.12),
+    rgba(37, 99, 235, 0) 70%
+  );
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.aurora-on::after {
+  opacity: 1;
+}
+
+[data-theme='escuro'] .aurora::after {
+  background: radial-gradient(
+    50% 40% at calc(50% + var(--aurora-mx, 0) * 140px) calc(50% + var(--aurora-my, 0) * 100px),
+    rgba(255, 255, 255, 0.09),
+    rgba(255, 255, 255, 0) 70%
+  );
 }
 
 /* tema escuro: azul escuro -> azul medio -> branco suave (brilho difuso) */

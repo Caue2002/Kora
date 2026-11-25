@@ -610,10 +610,15 @@ de entrega.
   componentes (z-index -1 dentro do stacking context do .layout via
   isolation:isolate; .chat ficou com background transparente para a
   luz aparecer — o body ja pinta a mesma cor) com 3 camadas de
-  gradiente radial que derivam (keyframes transform) E mudam de lugar
+  gradiente radial que derivam (keyframes transform), mudam de lugar
   aleatoriamente — a cada ~10s cada luz ganha left/top aleatorio e
-  desliza por transicao CSS de 10s (prefers-reduced-motion desliga
-  tudo). pointer-events:none, fade de 450ms, paletas claro/escuro via
+  desliza por transicao CSS de 10s — e REAGEM AO MOUSE sem contar como
+  atividade: pointermove alimenta so as CSS vars --aurora-mx/--aurora-my
+  via rAF com lerp (~0.06/frame, loop so roda com a aurora acesa),
+  gerando paralaxe de profundidade por camada (translate individual
+  10-38px) e um brilho radial que persegue o cursor (.aurora::after,
+  azul no claro / branco no escuro). prefers-reduced-motion desliga
+  tudo. pointer-events:none, fade de 450ms, paletas claro/escuro via
   data-theme. Regra do usuario: acende ao abrir e volta sempre que a
   tela passa 60s sem NENHUM sinal de vida — qualquer clique, toque,
   tecla ou scroll em qualquer lugar apaga na hora e rearma os 60s.
