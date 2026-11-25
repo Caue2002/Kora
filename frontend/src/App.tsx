@@ -685,7 +685,7 @@ export default function App() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const id = setInterval(() => {
       setAlvosAurora((atual) => atual.map((a) => ({ ...a, ...posicaoAleatoriaAurora() })));
-    }, 10_000);
+    }, 7000);
     return () => clearInterval(id);
   }, []);
 
