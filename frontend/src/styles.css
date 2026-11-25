@@ -2094,9 +2094,10 @@ body {
 .aurora-camada {
   position: absolute;
   border-radius: 50%;
-  /* deriva lenta com ping-pong (alternate); duracao e fase proprias por
-     camada para as luzes nunca ficarem sincronizadas */
-  animation: aurora-deriva 24s ease-in-out infinite alternate;
+  /* deriva pela tela inteira: cada camada cruza o fundo em direcao e
+     fase proprias (duracao/delay diferentes), com escala e leve rotacao
+     para o movimento nao parecer repetitivo */
+  animation: aurora-deriva 16s ease-in-out infinite alternate;
 }
 
 /* tema claro: azul muito claro -> azul medio -> branco/brilho azulado */
@@ -2114,8 +2115,8 @@ body {
   right: -20%;
   bottom: -25%;
   background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0) 68%);
-  animation-duration: 19s;
-  animation-delay: -6s;
+  animation-duration: 13s;
+  animation-delay: -5s;
 }
 
 .aurora-camada-3 {
@@ -2124,8 +2125,8 @@ body {
   left: 25%;
   top: 30%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 70%);
-  animation-duration: 28s;
-  animation-delay: -12s;
+  animation-duration: 20s;
+  animation-delay: -9s;
 }
 
 /* tema escuro: azul escuro -> azul medio -> branco suave (brilho difuso) */
@@ -2143,13 +2144,16 @@ body {
 
 @keyframes aurora-deriva {
   0% {
-    transform: translate(0, 0) scale(1);
+    transform: translate(0, 0) scale(1) rotate(0deg);
   }
-  50% {
-    transform: translate(6%, -4%) scale(1.08);
+  33% {
+    transform: translate(10%, -7%) scale(1.12) rotate(4deg);
+  }
+  66% {
+    transform: translate(-8%, 6%) scale(0.94) rotate(-3deg);
   }
   100% {
-    transform: translate(-5%, 5%) scale(0.96);
+    transform: translate(4%, 9%) scale(1.05) rotate(2deg);
   }
 }
 

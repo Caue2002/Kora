@@ -605,7 +605,8 @@ de entrega.
   capture/touchmove — cobre mouse, toque e caneta) e por qualquer
   processo visivel da Nori (mensagens/etapaStream/enviando/tocandoId/
   handoff). Efeito visual: overlay .aurora com 3 camadas de gradiente
-  radial derivando devagar atras do conteudo do chat (fade de 450ms,
+  radial derivando pela tela (translate+escala+rotacao, ciclos de
+  13-20s defasados) atras do conteudo do chat (fade de 450ms,
   pointer-events:none, paletas claro/escuro via data-theme,
   prefers-reduced-motion desliga a deriva) — SEMPRE aceso na tela
   inicial (mensagens vazias) e, dentro do chat, so apos 60s sem
