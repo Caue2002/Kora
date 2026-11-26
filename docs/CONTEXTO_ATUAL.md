@@ -752,6 +752,29 @@ de entrega.
   .github/workflows/evals.yml agora roda tambem tests/evals-retrieval
   .test.ts no loop e ganha o step "Baseline de evals" apos os testes.
   Verificado local: rubricas 9/9 e juiz 3/5 vs baseline — ok
+- Memoria persistente anonima (spec em
+  spec/SPEC-memoria-usuario.md, modulo memoria-usuario do
+  capability-map — fase 1, SEM login): frontend gera UUID por
+  dispositivo (localStorage kora-device-id, api.ts obterDispositivoId)
+  e envia como dispositivoId no POST /api/chat e no novo POST
+  /api/memoria (chamado fire-and-forget no encerramento do
+  atendimento — App.tsx encerrarAtendimento). api/memoria.ts resume a
+  conversa com modelo LLM (ate 2 frases de fatos do usuario; "NADA"
+  nao grava; historico <4 msgs nao chama LLM; rate limit 10/min) e
+  grava 1 linha na tabela `memorias` (migration
+  0021_memorias.sql APLICADA 26/11/2026 via MCP, aprovada pelo
+  usuario; verificado: colunas id/device_id/resumo/criado_em).
+  Smoke test real: POST /api/memoria gravou resumo ("Pedido A1B2C3
+  faltou 1 coca cola; usuario solicitou reembolso rapido...") lido de
+  volta via PostgREST e limpo em seguida. /api/chat aceita dispositivoId e,
+  SOMENTE no primeiro turno, injeta em paralelo as 5 memorias
+  recentes no prompt (bloco "Memorias de sessoes anteriores" via
+  shared/memoria.ts montarBlocoMemoria — uso natural, nunca recitar
+  como lista). Sem id ou sem memorias: comportamento identico.
+  Testes: tests/memoria.test.ts (bloco + validacoes do endpoint).
+  ATENCAO: evals-juiz "guardrail: injecao de prompt" reprovou 2/5 em
+  duas rodadas locais (drift de modelo/juiz LLM — nao relacionado a
+  memoria, que nao envia dispositivoId nos evals); monitorar no CI
 
 ## Em andamento
 

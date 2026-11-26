@@ -17,6 +17,7 @@ import { classificarSaida } from '../shared/guardrails.js';
 import { buscaHibrida } from '../rag/search.js';
 import { embedTexts } from '../rag/embeddings.js';
 import { inserir, rpc, upsert } from '../shared/supabase.js';
+import { buscarMemorias, montarBlocoMemoria } from '../shared/memoria.js';
 import { resolverFallback, ehFallback } from './fallback.js';
 import {
   carregarDiretrizes,
@@ -36,6 +37,7 @@ interface CorpoRequisicao {
   imagem?: unknown;
   perfil?: unknown;
   conversaId?: unknown;
+  dispositivoId?: unknown;
   turnstileToken?: unknown;
 }
 
@@ -462,6 +464,12 @@ async function webHandler(req: Request): Promise<Response> {
     typeof corpo.conversaId === 'string' && CONVERSA_ID_VALIDO.test(corpo.conversaId)
       ? corpo.conversaId
       : undefined;
+  // Identificador anonimo do dispositivo (UUID em localStorage): habilita a
+  // memoria persistente sem login (spec SPEC-memoria-usuario.md)
+  const dispositivoId =
+    typeof corpo.dispositivoId === 'string' && CONVERSA_ID_VALIDO.test(corpo.dispositivoId)
+      ? corpo.dispositivoId
+      : undefined;
   const perfil =
     typeof corpo.perfil === 'string' && PERFIS_VALIDOS.has(corpo.perfil) ? corpo.perfil : undefined;
   const perfilChave = perfil ?? '';
@@ -539,14 +547,23 @@ async function webHandler(req: Request): Promise<Response> {
   const pBusca = semContextoRAG
     ? Promise.resolve({ trechos: [] as Awaited<ReturnType<typeof buscaHibrida>>['trechos'], modo: 'lexical' as const })
     : pVetores.then((v) => buscaHibrida(mensagem, undefined, v?.[0]));
-  const [vetores, diretrizes, modeloPreferido, cache] = await Promise.all([
+  // Memoria do usuario (SPEC-memoria-usuario): so no primeiro turno —
+  // injetar fatos antigos no meio de um follow-up polui a janela. Roda em
+  // paralelo com as demais cargas de contexto; falha degrada para []
+  const pMemoria =
+    dispositivoId && historicoJanela.length === 0
+      ? buscarMemorias(dispositivoId)
+      : Promise.resolve([]);
+  const [vetores, diretrizes, modeloPreferido, cache, memorias] = await Promise.all([
     pVetores,
     carregarDiretrizes(),
     selecionarModelo(tokensEntradaPrev, prioridadeMinima),
     cacheElegivel
       ? pVetores.then((v) => (v?.[0] ? buscarCache(v[0], chaveCache) : null))
       : Promise.resolve(null),
+    pMemoria,
   ]);
+  const blocoMemoria = montarBlocoMemoria(memorias);
   const embedding = vetores?.[0];
   const busca = await pBusca;
 
@@ -655,6 +672,9 @@ async function webHandler(req: Request): Promise<Response> {
       ? 'Contexto do turno: esta e a PRIMEIRA mensagem desta conversa.'
       : 'Contexto do turno: ja existem mensagens anteriores nesta conversa.',
     perfil ? `Perfil do usuario: ${CONTEXTO_PERFIL[perfil]}` : '',
+    // Bloco de memoria so entra quando ha fatos gravados — sem linha vazia
+    // extra no prompt (SPEC-memoria-usuario)
+    ...(blocoMemoria ? [blocoMemoria] : []),
     dadosPedido,
     '',
     // Mensagens casuais e meta nao passam pelo RAG: instrui resposta leve

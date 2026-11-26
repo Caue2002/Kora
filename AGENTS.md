@@ -77,7 +77,8 @@ Skills builtin tambem relevantes: `devin-cli` (docs do Devin CLI, config MCP),
 Specs existentes (SDD): `SPEC-a2a-e-handoff`, `SPEC-evals-ci`,
 `SPEC-feedback-loop`, `SPEC-fluxo-kora-pagina`, `SPEC-function-calling`,
 `SPEC-guardrails-saida`, `SPEC-indicador-carregamento`, `SPEC-llm-judge-evals`,
-`SPEC-mcp-server` (Kora COMO servidor MCP), `SPEC-observabilidade-dashboard`,
+`SPEC-mcp-server` (Kora COMO servidor MCP), `SPEC-memoria-usuario`,
+`SPEC-observabilidade-dashboard`,
 `SPEC-observabilidade-v2`, `SPEC-readme-vendavel`, `SPEC-ui-indicador-tools`,
 `SPEC-voz-neural`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
 e `SPEC-eval-retrieval`, `SPEC-roteamento-modelos` e `SPEC-eval-baseline-ci`

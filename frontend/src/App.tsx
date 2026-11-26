@@ -13,6 +13,7 @@ import {
   gerarHandoff,
   listarConversas,
   salvarConversas,
+  salvarMemoria,
   tituloDe,
   type Conversa,
   type EstadoCaso,
@@ -1122,6 +1123,9 @@ export default function App() {
         return nova;
       });
     }
+    // Memoria persistente: envia a conversa encerrada para o backend
+    // resumir e gravar (fire-and-forget, antes de limpar a tela)
+    void salvarMemoria(mensagens);
     novaConversa();
     if (cid) void encerrarCaso(cid);
   }

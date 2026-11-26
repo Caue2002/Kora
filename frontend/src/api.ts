@@ -39,6 +39,25 @@ const CHAVE_LEGADO = 'kora-chat-v1';
 // Chave que versoes anteriores gravavam em localStorage; removida uma
 // vez para nao deixar conversas orfas acessiveis fora da sessao
 const CHAVE_LOCAL_LEGADO = 'kora-conversas-v1';
+// Identificador anonimo do dispositivo para a memoria persistente
+// (spec SPEC-memoria-usuario): UUID gerado uma vez e mantido em
+// localStorage — sobrevive ao fechamento da aba, sem login nem conta
+const CHAVE_DISPOSITIVO = 'kora-device-id';
+
+export function obterDispositivoId(): string {
+  try {
+    let id = localStorage.getItem(CHAVE_DISPOSITIVO);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(CHAVE_DISPOSITIVO, id);
+    }
+    return id;
+  } catch {
+    // storage indisponivel: id efemero por chamada nao persiste memoria,
+    // mas nao pode quebrar o chat
+    return crypto.randomUUID();
+  }
+}
 
 // Le as conversas salvas na sessao da aba atual
 export function listarConversas(): Conversa[] {
@@ -124,6 +143,7 @@ export async function enviarMensagemStream(
       imagem,
       perfil,
       conversaId,
+      dispositivoId: obterDispositivoId(),
       turnstileToken,
     }),
   });
@@ -224,6 +244,24 @@ export async function encerrarCaso(conversaId: string): Promise<EstadoCaso | nul
     return dados.caso ?? null;
   } catch {
     return null;
+  }
+}
+
+// Envia a conversa encerrada para a memoria persistente (POST /api/memoria).
+// O backend resume os fatos do usuario e grava na tabela `memorias`;
+// fire-and-forget — nunca deve atrasar ou quebrar o encerramento
+export async function salvarMemoria(mensagens: Mensagem[]): Promise<void> {
+  try {
+    await fetch('/api/memoria', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dispositivoId: obterDispositivoId(),
+        historico: mensagens.map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+  } catch {
+    // memoria e best-effort: falha de rede nao afeta o usuario
   }
 }
 
