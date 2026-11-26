@@ -21,6 +21,12 @@ Build order: metricas-qualidade → eval-retrieval → roteamento-modelos →
 eval-baseline-ci → memoria-usuario → voz-whisper → caso-estruturado →
 (auth-usuarios: fase 2, fora desta rodada)
 
+Status (26/11/2026): TODOS os modulos da fase 1 implementados e
+commitados em main — metricas-qualidade (1099b16), eval-retrieval
+(26df93c), roteamento-modelos (4a9552a), eval-baseline-ci (e5a44e1),
+memoria-usuario (d60b540), voz-whisper (ab67caf), caso-estruturado
+(e2a71af). Resta apenas auth-usuarios, fase 2 deferida.
+
 ## Decisoes do usuario (26/11/2026)
 
 - Auth completo (login obrigatorio) NAO entra agora; memoria funciona sem
