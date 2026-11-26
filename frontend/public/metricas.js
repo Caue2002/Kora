@@ -55,7 +55,59 @@ function formatarDiaCompleto(dia) {
   return s;
 }
 
-function render(m) {
+// Secao "Qualidade · evals": taxa de aprovacao do ultimo run de cada suite
+// (rubricas deterministic + juiz LLM) e historico das execucoes recentes —
+// vem do bloco `qualidade` do /api/metricas (tabela eval_runs)
+function renderQualidade(q) {
+  const el = document.getElementById('qualidade');
+  const runs = q && Array.isArray(q.runs) ? q.runs : [];
+  if (runs.length === 0) {
+    el.innerHTML =
+      '<div class="vazio">Sem execuções de eval registradas ainda — aparecem quando ' +
+      'tests/evals.test.ts e tests/evals-juiz.test.ts rodam com credenciais.</div>';
+    return;
+  }
+
+  // ultimo run de cada suite (runs ja vem ordenado por criado_em desc)
+  const ultimos = {};
+  for (const r of runs) if (!ultimos[r.suite]) ultimos[r.suite] = r;
+  const ROTULO_SUITE = { rubricas: 'Rubricas (determinístico)', juiz: 'Juiz LLM' };
+  const barras = ['rubricas', 'juiz']
+    .filter((s) => ultimos[s])
+    .map((s) => {
+      const r = ultimos[s];
+      const pctAprov = r.total > 0 ? (r.aprovados / r.total) * 100 : 0;
+      const nota = r.nota_media != null ? ` · nota média ${Number(r.nota_media).toFixed(1)}/5` : '';
+      return `<div class="trace-item">
+        <div class="topo"><b>${escapar(ROTULO_SUITE[s] ?? s)}</b><span>${pctAprov.toFixed(0)}% aprovados · ${fmt(r.aprovados)}/${fmt(r.total)}${escapar(nota)}</span></div>
+        <div class="barra"><div style="width:${Math.max(2, pctAprov)}%"></div></div>
+      </div>`;
+    })
+    .join('');
+
+  const historico = runs
+    .slice(0, 10)
+    .map(
+      (r) => `<tr>
+        <td>${escapar(new Date(r.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))}</td>
+        <td><span class="tag">${escapar(ROTULO_SUITE[r.suite] ?? r.suite)}</span></td>
+        <td>${fmt(r.aprovados)}/${fmt(r.total)}</td>
+        <td>${r.nota_media != null ? Number(r.nota_media).toFixed(1) : '—'}</td>
+        <td>${escapar(r.origem)}</td>
+      </tr>`,
+    )
+    .join('');
+
+  el.innerHTML =
+    barras +
+    `<div class="tabela-wrap" style="margin-top:10px"><table>
+      <thead><tr><th>Quando</th><th>Suite</th><th>Aprovados</th><th>Nota média</th><th>Origem</th></tr></thead>
+      <tbody>${historico}</tbody>
+    </table></div>`;
+}
+
+function render(m, qualidade) {
+  renderQualidade(qualidade);
   // Todos os agregados sao do dia corrente (fuso America/Sao_Paulo) — a RPC
   // devolve 'dia' para o painel deixar explicito qual dia esta sendo medido
   const sub = document.querySelector('.sub');
@@ -149,7 +201,7 @@ async function carregar() {
     const dados = await res.json().catch(() => null);
     const m = dados && dados.metricas;
     if (!m) throw new Error('API nao retornou metricas (banco indisponivel ou sem dados)');
-    render(m);
+    render(m, qualidade);
     document.getElementById('atualizado').textContent = 'atualizado ' + new Date().toLocaleTimeString('pt-BR');
   } catch (e) {
     kpis.innerHTML =

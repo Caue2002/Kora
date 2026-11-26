@@ -1,6 +1,6 @@
 # Spec: Metricas de Qualidade Consolidadas — V1
 
-Status: proposto
+Status: implementado
 
 Modulo `metricas-qualidade` do capability-map (`spec/capability-map.md`).
 

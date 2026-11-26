@@ -5,7 +5,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { tratarRequisicaoNode } from '../shared/http.js';
 import { verificarLimite } from '../shared/ratelimit.js';
-import { rpc } from '../shared/supabase.js';
+import { consultar, rpc } from '../shared/supabase.js';
 
 function json(status: number, corpo: unknown): Response {
   return new Response(JSON.stringify(corpo), {
@@ -23,11 +23,26 @@ async function webHandler(req: Request): Promise<Response> {
   }
 
   try {
-    const resumo = await rpc<unknown>('metricas_chat_resumo', {});
-    return json(200, { metricas: resumo ?? null });
+    // As duas leituras sao independentes: resumo agregado (RPC) e os
+    // ultimos runs de eval (tabela eval_runs, migration 0019) — o bloco
+    // `qualidade` alimenta a secao de evals do painel /metricas.html
+    const [resumo, runs] = await Promise.all([
+      rpc<unknown>('metricas_chat_resumo', {}),
+      consultar<Record<string, unknown>>(
+        'eval_runs',
+        'select=suite,total,aprovados,reprovados,nota_media,criado_em,origem&order=criado_em.desc&limit=12',
+      ).catch((erro) => {
+        console.warn('[metricas] eval_runs indisponivel:', erro);
+        return null;
+      }),
+    ]);
+    return json(200, {
+      metricas: resumo ?? null,
+      qualidade: runs ? { runs } : null,
+    });
   } catch (erro) {
     console.warn('[metricas] resumo falhou:', erro);
-    return json(200, { metricas: null });
+    return json(200, { metricas: null, qualidade: null });
   }
 }
 

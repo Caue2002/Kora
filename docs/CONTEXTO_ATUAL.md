@@ -703,6 +703,20 @@ de entrega.
   usuario; verificado: dia=2026-11-26, total do dia separado do total
   das ultimas 24h). A tool MCP resumo_metricas passa a devolver os
   mesmos agregados diarios
+- Metricas de qualidade consolidadas (spec em
+  spec/SPEC-metricas-qualidade.md, modulo metricas-qualidade do
+  capability-map): tabela eval_runs (migration 0019) persiste 1 linha
+  por execucao das suites de eval — tests/evals.test.ts (rubricas
+  deterministic) e tests/evals-juiz.test.ts (juiz LLM) gravam o
+  resultado via afterAll usando tests/eval_runs.ts (falha de
+  telemetria nunca reprova eval; origem 'local'/'ci' via env CI);
+  /api/metricas ganhou bloco `qualidade` (ultimos 12 runs) alem do
+  resumo de sempre; painel /metricas.html tem nova secao "Qualidade ·
+  evals" com taxa de aprovacao por suite e historico; script
+  scripts/relatorio_qualidade.mjs imprime relatorio texto unico
+  (producao do dia + fallback por camada + ultimos scores de eval)
+  para uso em entrevista. Migration 0019_eval_runs.sql APLICADA
+  26/11/2026 via MCP (aprovada pelo usuario; tabela verificada via SQL)
 
 ## Em andamento
 

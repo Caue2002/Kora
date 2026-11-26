@@ -4,10 +4,11 @@
 // Aprovacao exige nota >= 4. Os resultados sao impressos no log do vitest.
 // Execute isolado com: npx vitest run tests/evals-juiz.test.ts
 
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import handler from '../api/chat';
+import { gravarEvalRun, type ResultadoCenario } from './eval_runs';
 import { chamarLLM } from '../shared/llm';
 import { catalogoModelos } from '../shared/env';
 import type { ModeloConfig } from '../shared/env';
@@ -167,18 +168,41 @@ const DATASET_JUIZ: CenarioJuiz[] = [
 describe('Evals com LLM-as-Judge', () => {
   beforeAll(carregarEnv);
 
+  // Resultado por cenario para persistir em eval_runs (migration 0019):
+  // guarda a nota do juiz por cenario — alimenta o painel e o relatorio
+  const resultados: ResultadoCenario[] = [];
+
   for (const cenario of DATASET_JUIZ) {
     it(cenario.nome, async () => {
       if (!temCredenciais()) return;
-      const r = await perguntar(cenario.msg, cenario.historico ?? []);
-      expect(r.status, `chat falhou: ${r.erro ?? ''}`).toBe(200);
-      expect(r.resposta, 'resposta vazia').toBeTruthy();
+      try {
+        const r = await perguntar(cenario.msg, cenario.historico ?? []);
+        expect(r.status, `chat falhou: ${r.erro ?? ''}`).toBe(200);
+        expect(r.resposta, 'resposta vazia').toBeTruthy();
 
-      const veredito = await julgar(cenario.msg, r.resposta!, cenario.rubrica);
-      console.log(
-        `\n  [juiz] ${cenario.nome}: nota ${veredito.nota}/5 — ${veredito.justificativa}`,
-      );
-      expect(veredito.nota, `juiz reprovou: ${veredito.justificativa}`).toBeGreaterThanOrEqual(4);
+        const veredito = await julgar(cenario.msg, r.resposta!, cenario.rubrica);
+        console.log(
+          `\n  [juiz] ${cenario.nome}: nota ${veredito.nota}/5 — ${veredito.justificativa}`,
+        );
+        resultados.push({
+          nome: cenario.nome,
+          passou: veredito.nota >= 4,
+          nota: veredito.nota,
+          detalhe: veredito.justificativa,
+        });
+        expect(veredito.nota, `juiz reprovou: ${veredito.justificativa}`).toBeGreaterThanOrEqual(4);
+      } catch (erro) {
+        resultados.push({
+          nome: cenario.nome,
+          passou: false,
+          detalhe: String(erro).slice(0, 300),
+        });
+        throw erro;
+      }
     }, 300000);
   }
+
+  afterAll(async () => {
+    await gravarEvalRun('juiz', resultados);
+  });
 });

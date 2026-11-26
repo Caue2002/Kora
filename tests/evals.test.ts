@@ -4,10 +4,11 @@
 // Executa contra a API real quando ha credenciais no .env; pula sem elas.
 // Rode isolado com: npx vitest run tests/evals.test.ts
 
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import handler from '../api/chat';
+import { gravarEvalRun, type ResultadoCenario } from './eval_runs';
 
 function carregarEnv() {
   try {
@@ -161,29 +162,47 @@ const DATASET: CenarioEval[] = [
 describe('Evals do Nori (golden dataset)', () => {
   beforeAll(carregarEnv);
 
+  // Resultado por cenario para persistir em eval_runs (migration 0019):
+  // alimenta o painel /metricas.html e o relatorio de qualidade
+  const resultados: ResultadoCenario[] = [];
+
   for (const cenario of DATASET) {
     it(cenario.nome, async () => {
       if (!temCredenciais()) return;
-      const historico: Array<{ role: string; content: string }> = [];
-      for (const [i, turno] of cenario.turnos.entries()) {
-        const r = await perguntar(turno.msg, historico);
-        expect(r.status, `turno ${i + 1} falhou: ${r.erro ?? ''}`).toBe(200);
-        expect(r.resposta, `turno ${i + 1} sem resposta`).toBeTruthy();
-        for (const padrao of turno.espera) {
-          expect(
-            padrao.test(r.resposta!),
-            `turno ${i + 1}: resposta nao atendeu rubrica ${padrao} — "${r.resposta!.slice(0, 160)}"`,
-          ).toBe(true);
+      try {
+        const historico: Array<{ role: string; content: string }> = [];
+        for (const [i, turno] of cenario.turnos.entries()) {
+          const r = await perguntar(turno.msg, historico);
+          expect(r.status, `turno ${i + 1} falhou: ${r.erro ?? ''}`).toBe(200);
+          expect(r.resposta, `turno ${i + 1} sem resposta`).toBeTruthy();
+          for (const padrao of turno.espera) {
+            expect(
+              padrao.test(r.resposta!),
+              `turno ${i + 1}: resposta nao atendeu rubrica ${padrao} — "${r.resposta!.slice(0, 160)}"`,
+            ).toBe(true);
+          }
+          for (const proibido of turno.evita ?? []) {
+            expect(
+              proibido.test(r.resposta!),
+              `turno ${i + 1}: resposta violou guardrail ${proibido} — "${r.resposta!.slice(0, 160)}"`,
+            ).toBe(false);
+          }
+          historico.push({ role: 'user', content: turno.msg });
+          historico.push({ role: 'assistant', content: r.resposta! });
         }
-        for (const proibido of turno.evita ?? []) {
-          expect(
-            proibido.test(r.resposta!),
-            `turno ${i + 1}: resposta violou guardrail ${proibido} — "${r.resposta!.slice(0, 160)}"`,
-          ).toBe(false);
-        }
-        historico.push({ role: 'user', content: turno.msg });
-        historico.push({ role: 'assistant', content: r.resposta! });
+        resultados.push({ nome: cenario.nome, passou: true });
+      } catch (erro) {
+        resultados.push({
+          nome: cenario.nome,
+          passou: false,
+          detalhe: String(erro).slice(0, 300),
+        });
+        throw erro;
       }
     }, 300000);
   }
+
+  afterAll(async () => {
+    await gravarEvalRun('rubricas', resultados);
+  });
 });
