@@ -736,6 +736,9 @@ export default function App() {
         'expired-callback': () => {
           turnstileTokenRef.current = undefined;
         },
+        'error-callback': () => {
+          turnstileTokenRef.current = undefined;
+        },
         theme: 'auto',
       });
     };

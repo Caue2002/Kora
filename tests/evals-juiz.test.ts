@@ -23,6 +23,9 @@ function carregarEnv() {
   } catch {
     // sem .env: testes serao pulados
   }
+  // Turnstile fica desligado nos testes: sem token valido todo POST /api/chat
+  // tomaria 403 — a protecao e coberta por verificacao manual em producao
+  delete process.env.TURNSTILE_SECRET_KEY;
 }
 
 const temCredenciais = () =>

@@ -771,6 +771,16 @@ de entrega.
    site key); pendente lista de dominios permitidos no CORS se o site
    for embutido — a API nao emite Access-Control-Allow-Origin,
    leitura cross-origin ja e bloqueada pelo browser
+   CORRECAO 26/11/2026: todo envio em producao tomava 403 porque o
+   CSP do vercel.json tinha `script-src 'self'` — bloqueava o api.js
+   da Cloudflare, o widget nunca renderizava e nenhum token era
+   gerado. CSP agora libera challenges.cloudflare.com em script-src,
+   connect-src e frame-src; widget ganhou error-callback limpando
+   token velho. Testes de integracao passaram a dar 403 apos
+   TURNSTILE_SECRET_KEY entrar no .env local (chamam o handler sem
+   token): os 4 arquivos que batem no /api/chat (chat.smoke,
+   cenarios, evals, evals-juiz) fazem
+   `delete process.env.TURNSTILE_SECRET_KEY` no carregarEnv
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
    LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
    a heuristica flagra, o verificador LLM confirma se o problema e
