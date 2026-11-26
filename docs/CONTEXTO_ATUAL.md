@@ -566,7 +566,9 @@ de entrega.
   /api/chat, estado do caso, failover dos 12 modelos, qualidade/evals,
   capacidades, stack e protocolo de atualizacao
   (docs/fluxo-kora/README.md) e skill .devin/skills/fluxo-kora.
-  Spec em spec/SPEC-fluxo-kora-pagina.md
+  Spec em spec/SPEC-fluxo-kora-pagina.md. Secao "Aprendizado" (08)
+  adicionada em 26/11/2026 explicando o aprendizado controlado
+  adaptativo (feedback -> diretrizes no prompt) para iniciante
 - Indicador de orbita padronizado em TODO o app: spec em
   spec/SPEC-indicador-carregamento.md (V2) e skill
   .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
