@@ -568,7 +568,13 @@ de entrega.
   (docs/fluxo-kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md. Secao "Aprendizado" (08)
   adicionada em 26/11/2026 explicando o aprendizado controlado
-  adaptativo (feedback -> diretrizes no prompt) para iniciante
+  adaptativo (feedback -> diretrizes no prompt) para iniciante.
+  Em 26/11/2026 a secao "03 - Arquitetura em camadas" foi redesenhada:
+  o par redundante (mini-diagrama ida/volta + tabela req/res) virou um
+  unico diagrama "U-turn" em 5 colunas (trilha azul de ida no topo,
+  trilha verde de volta na base, curva na coluna Externos) + barra
+  transversal; adendo correspondente acrescentado ao Guia de Entrevista
+  em PDF (pagina 11)
 - Indicador de orbita padronizado em TODO o app: spec em
   spec/SPEC-indicador-carregamento.md (V2) e skill
   .devin/skills/indicador-carregamento-metaball (regra: qualquer UI nova
