@@ -797,6 +797,17 @@ de entrega.
   listaStrings removidos). parseEstadoExtraido faz a extracao
   tolerante do JSON + safeParse; comportamento externo identico.
   Testes tests/caso-schema.test.ts
+- Guardrail de injecao de prompt (spec em
+  spec/SPEC-guardrails-injecao.md): coherence/injecao.ts detecta
+  heuristicamente tentativas de extrair/revelar/manipular instrucoes
+  (regexes conservadoras — verbo de ataque + alvo; falsos positivos
+  zerados em testes com mensagens legitimas). /api/chat, ao detectar:
+  injeta diretiva explicita de recusa no prompt do sistema e exclui a
+  mensagem do cache semantico. Nasceu de um achado real: evals-juiz
+  "guardrail: injecao de prompt" reprovava 2/5 (modelo respondia
+  saudacao generica em vez de recusar). Com a diretiva, resposta virou
+  recusa educada + redirecionamento ate no modelo lite — juiz subiu
+  para 5/5, suite 4/4. Testes tests/injecao.test.ts (19 casos)
 
 ## Em andamento
 

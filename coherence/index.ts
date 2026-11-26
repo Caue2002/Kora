@@ -5,5 +5,6 @@ export { montarPromptSistema, montarContextoRAG, DIRETRIZES_PADRAO } from './pro
 export type { DiretrizesEstilo } from './prompt.js';
 export { carregarDiretrizes } from './adaptive.js';
 export { ehMensagemCasual, ehSaudacao, ehPerguntaMeta } from './intencao.js';
+export { detectarInjecaoPrompt } from './injecao.js';
 export { validarHeuristico, validarComLLM, ehRespostaDeRecusa } from './validacao.js';
 export type { ResultadoValidacao } from './validacao.js';
