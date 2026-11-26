@@ -1337,6 +1337,16 @@ function pararAudio() {
             >
               {escuro ? iconeSol : iconeLua}
             </button>
+            <a
+              className="btn-icon"
+              href="/metricas.html"
+              target="_blank"
+              rel="noreferrer"
+              title="Painel de métricas"
+              aria-label="Painel de métricas"
+            >
+              {iconeGrafico}
+            </a>
             {mensagens.length > 0 && (
               <button className="btn-icon" onClick={exportarResumo} title="Exportar resumo" aria-label="Exportar resumo" disabled={exportando}>
                 {iconeDownload}
@@ -1625,16 +1635,6 @@ function pararAudio() {
                     {iconeAtendente}
                     <span className="menu-item-label">Encaminhar p/ atendente</span>
                   </button>
-                  <a
-                    className="menu-item menu-item-link"
-                    href="/metricas.html"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setMenuAcoes(false)}
-                  >
-                    {iconeGrafico}
-                    <span className="menu-item-label">Painel de métricas</span>
-                  </a>
                   <button
                     className="menu-item"
                     onClick={() => {

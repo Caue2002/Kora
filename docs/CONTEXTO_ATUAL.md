@@ -342,8 +342,8 @@ de entrega.
   pela plataforma, pedido de outro cliente, verticais mercado/farmacia/pet)
   — ja ingeridas no Supabase com embeddings. Nova categoria "pagamento"
   alinhada em prompt.ts, api/caso.ts (enum + extracao) e labels do
-  frontend; migration 0010_categoria_pagamento.sql PENDENTE de aplicar no
-  Supabase (tabela legada categorias_divergencia). Prompt ganhou regra de
+  frontend; migration 0010_categoria_pagamento.sql APLICADA em 25/11/2026
+  via Supabase MCP. Prompt ganhou regra de
   economia de tokens de saida (respostas casuais/meta em ate 2 frases,
   triagem em 1-3 frases + 1 pergunta)
 - Regras de saudacao e auto-conhecimento: a Nori so cumprimenta na
@@ -618,7 +618,10 @@ de entrega.
   gradiente radial que derivam (keyframes transform) e mudam de lugar
   aleatoriamente — a cada ~7s cada luz ganha left/top aleatorio com
   faixa ampla para alcancar as QUATRO bordas da tela e desliza por
-  transicao CSS de 7s. A aurora e PURAMENTE AUTONOMA: nao ha nenhuma
+  transicao CSS de 7s. Cada camada tem keyframes proprios em direcoes
+  opostas (aurora-deriva/2/3) e os alvos aleatorios exigem distancia
+  minima entre as luzes — nao se agrupam mais num canto so. A aurora e
+  PURAMENTE AUTONOMA: nao ha nenhuma
   interacao com o cursor (sem paralaxe, brilhos de mouse ou particulas)
   — decisao do usuario apos iteracoes. prefers-reduced-motion desliga
   a animacao. pointer-events:none, fade de 450ms, paletas claro/escuro via
@@ -775,10 +778,8 @@ de entrega.
   `.env.example` com novas chaves de Supabase (service_role) e Gemini
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
-  migrations 0005-0009, 0011, 0013, 0014 e 0015 aplicadas; 0010 e 0012
-  pendentes (sem urgencia); 0016_fallback_em_camadas PENDENTE de
-  aprovacao do usuario (fallback em camadas — sem ela o sistema segue
-  funcionando, so sem a camada de cache relaxado e o banco canonico)
+  migrations 0005-0016 TODAS aplicadas (0010, 0012, 0015 e 0016 aplicadas
+  em 25/11/2026 via Supabase MCP com aprovacao do usuario)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
