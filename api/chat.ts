@@ -9,7 +9,7 @@ import { catalogoModelos, janelaHistorico, timeoutLlmMs } from '../shared/env.js
 import { chamarLLM, ErroLimiteModelo, streamLLM, type MensagemChat } from '../shared/llm.js';
 import type { ModeloConfig } from '../shared/env.js';
 import { estimarMensagens, estimarTokens } from '../shared/tokens.js';
-import { marcarEsgotado, registrarConsumo, selecionarModelo } from '../shared/models.js';
+import { marcarEsgotado, prioridadeModeloLite, registrarConsumo, selecionarModelo } from '../shared/models.js';
 import { verificarLimite } from '../shared/ratelimit.js';
 import { turnoLiberado } from '../shared/turnstile.js';
 import { extrairCodigoPedido, pedidoConfirmadoNaHistorico, pedidoFicticio } from '../shared/pedidos.js';
@@ -520,6 +520,14 @@ async function webHandler(req: Request): Promise<Response> {
   // de tools (mesmo criterio do RAG). O modelo decide quando chamar
   const comTools = !semContextoRAG;
 
+  // Roteamento por intencao (SPEC-roteamento-modelos): mensagem casual ou
+  // meta comeca a fila nos modelos lite — o modelo mais forte fica
+  // reservado para triagem de disputa, onde a qualidade importa mais.
+  // prioridadeModeloLite e derivada do catalogo (sem hardcode); sem lite
+  // configurado, tudo segue na classe forte (prioridadeMinima = 1)
+  const prioridadeLite = prioridadeModeloLite();
+  const prioridadeMinima = semContextoRAG && prioridadeLite !== null ? prioridadeLite : 1;
+
   // O embedding so e necessario para a busca RAG ou para o cache semantico.
   // Mensagem casual/meta no meio da conversa (sem historico vazio e sem
   // cache elegivel) nao usa nenhum dos dois: pula a chamada ao Gemini e
@@ -534,7 +542,7 @@ async function webHandler(req: Request): Promise<Response> {
   const [vetores, diretrizes, modeloPreferido, cache] = await Promise.all([
     pVetores,
     carregarDiretrizes(),
-    selecionarModelo(tokensEntradaPrev),
+    selecionarModelo(tokensEntradaPrev, prioridadeMinima),
     cacheElegivel
       ? pVetores.then((v) => (v?.[0] ? buscarCache(v[0], chaveCache) : null))
       : Promise.resolve(null),
@@ -548,6 +556,9 @@ async function webHandler(req: Request): Promise<Response> {
   // fallback em camadas se tudo falhar, em vez de um erro 429 para o usuario
   const modelo =
     modeloPreferido ??
+    catalogoModelos()
+      .filter((m) => m.apiKey && m.prioridade >= prioridadeMinima)
+      .sort((a, b) => a.prioridade - b.prioridade)[0] ??
     catalogoModelos()
       .filter((m) => m.apiKey)
       .sort((a, b) => a.prioridade - b.prioridade)[0];

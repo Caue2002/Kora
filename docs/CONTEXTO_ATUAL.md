@@ -730,6 +730,19 @@ de entrega.
   relatorio_qualidade.mjs rotulam a suite como "Retrieval (RAG)".
   Primeiro run gravado: 18/18 local; runs de rubricas/juiz ja chegam
   do CI (origem 'ci')
+- Roteamento de modelos por intencao (spec em
+  spec/SPEC-roteamento-modelos.md, modulo roteamento-modelos do
+  capability-map): selecionarModelo ganhou prioridadeMinima (default 1
+  = comportamento anterior) e shared/models.ts exporta
+  prioridadeModeloLite() — menor prioridade entre modelos 'lite' do
+  catalogo (hoje 7). /api/chat usa semContextoRAG (mesmo criterio que
+  pula RAG/tools: mensagem casual ou meta, sem imagem/pedido/codigo)
+  para comecar a fila nos lite; triagem segue no mais forte. O
+  fallback "sem folga" respeita a mesma minima. Filas de failover ja
+  desciam a partir do inicial — mensagem leve nunca sobe para modelo
+  forte. Verificado ao vivo: "muito obrigado" e pergunta meta
+  responderam com gemini-3.5-flash-lite (badge x-modelo); testes em
+  tests/models.test.ts
 
 ## Em andamento
 

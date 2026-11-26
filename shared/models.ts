@@ -136,18 +136,36 @@ export function temFolga(uso: UsoModelo, tokensEntrada: number): boolean {
   );
 }
 
-// Seleciona o primeiro modelo da fila (prioridade 1 a 4) com folga de cota
-export async function selecionarModelo(tokensEntradaEstimados: number): Promise<ModeloConfig | null> {
-  const catalogo = catalogoModelos().filter((m) => m.apiKey);
-  const ordenados = catalogo.sort((a, b) => a.prioridade - b.prioridade);
+// Prioridade do modelo lite mais forte do catalogo (menor numero entre os
+// 'lite'): base do roteamento por intencao — mensagens casuais/meta comecam
+// aqui em vez do modelo principal. null quando nao ha lite configurado
+export function prioridadeModeloLite(): number | null {
+  const prioridades = catalogoModelos()
+    .filter((m) => m.nomeModelo.includes('lite'))
+    .map((m) => m.prioridade);
+  return prioridades.length > 0 ? Math.min(...prioridades) : null;
+}
+
+// Seleciona o primeiro modelo da fila com folga de cota.
+// prioridadeMinima permite o roteamento por intencao (SPEC-roteamento-
+// modelos): mensagens casuais/meta comecam nos modelos lite (prioridade
+// alta = modelo mais fraco), triagem comeca no mais forte (padrao = 1).
+// O numero MAIOR de prioridade indica modelo mais fraco no catalogo
+export async function selecionarModelo(
+  tokensEntradaEstimados: number,
+  prioridadeMinima = 1,
+): Promise<ModeloConfig | null> {
+  const catalogo = catalogoModelos()
+    .filter((m) => m.apiKey && m.prioridade >= prioridadeMinima)
+    .sort((a, b) => a.prioridade - b.prioridade);
 
   let usos = cacheUsos && cacheUsos.expira > Date.now() ? cacheUsos.mapa : null;
   if (!usos) {
-    usos = await consumoBancoTodos(ordenados.map((m) => m.id));
+    usos = await consumoBancoTodos(catalogo.map((m) => m.id));
     cacheUsos = { mapa: usos, expira: Date.now() + TTL_CACHE_USOS_MS };
   }
 
-  for (const modelo of ordenados) {
+  for (const modelo of catalogo) {
     const base = usos.get(modelo.id) ?? consumoMemoria(modelo.id);
     // Esgotamento marcado nesta instancia (apos um 429) vale mesmo quando
     // o cache/DB ainda mostra o modelo como disponivel
