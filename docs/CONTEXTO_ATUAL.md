@@ -424,8 +424,9 @@ de entrega.
   conversa e devolve resumo estruturado do caso (fatos, evidencias,
   pendencias, proximo passo) via LLM em jsonMode; botao "Encaminhar p/
   atendente" no menu do chat (App.tsx) chama o endpoint com a mesma chave
-- Painel de observabilidade: frontend/public/metricas.html (link "Painel de
-  metricas" no menu do chat) — KPIs (total, cache hit rate, latencia media,
+- Painel de observabilidade: frontend/public/metricas.html (icone de grafico
+  no cabecalho do chat, ao lado do botao de tema — saiu do menu de "tres
+  pontinhos", que so aparece com mensagens) — KPIs (total, cache hit rate, latencia media,
   custo equivalente), grafico de mensagens/dia e tabela por modelo com
   latencia/tokens/custo estimado a preco de tabela (PRECOS_1M em
   public/metricas.js — script externo por causa da CSP script-src 'self')
