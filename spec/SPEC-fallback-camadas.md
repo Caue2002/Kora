@@ -1,7 +1,6 @@
 # Spec: Fallback em camadas com crescimento pelo uso — V1
 
-Status: implementado (migration 0016 pendente de aplicacao remota —
-codigo degrada silenciosamente sem ela)
+Status: implementado (migration 0016 aplicada no Supabase em 25/11/2026)
 
 ## Objetivo
 

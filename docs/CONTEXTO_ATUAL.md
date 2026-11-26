@@ -672,10 +672,12 @@ de entrega.
   fallback nunca sao regravadas no cache. Metricas registram a camada
   (cache-fallback/banco-fallback/generico-fallback) como modelo e
   headers x-fallback-camada; testes em tests/fallback.test.ts (11).
-  PENDENTE: aplicar migration 0016_fallback_em_camadas.sql no
-  Supabase (aguardando aprovacao do usuario — sem ela o fallback
-  cai direto no banco/variantes, pois buscar_cache_fallback nao
-  existe ainda e consultar falha silenciosamente)
+  Migration 0016 APLICADA 25/11/2026 via MCP (aprovada pelo usuario):
+  coluna escopo, buscar_cache_resposta filtrando 'geral',
+  buscar_cache_fallback e fallback_respostas com seeds. Obs.: o insert
+  de seeds rodou duplicado no apply (2 linhas por intencao, 'geral'
+  com 4) — funcionalmente inofensivo (textos identicos), dedupe de
+  DELETE foi recusado pelo usuario na hora
 
 ## Em andamento
 
