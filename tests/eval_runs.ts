@@ -14,7 +14,7 @@ export interface ResultadoCenario {
 // Grava 1 linha por execucao de suite. Suite sem resultados (ex.: testes
 // pulados por falta de credenciais) nao gera linha — evita runs zerados.
 export async function gravarEvalRun(
-  suite: 'rubricas' | 'juiz',
+  suite: 'rubricas' | 'juiz' | 'retrieval',
   resultados: ResultadoCenario[],
 ): Promise<void> {
   if (resultados.length === 0) return;

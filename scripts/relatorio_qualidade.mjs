@@ -91,7 +91,7 @@ if (runs.length === 0) {
   console.log('  Nenhum eval_run registrado ainda — rode tests/evals.test.ts e');
   console.log('  tests/evals-juiz.test.ts com credenciais (eles gravam sozinhos).');
 } else {
-  const ROTULO = { rubricas: 'rubricas', juiz: 'juiz LLM' };
+  const ROTULO = { rubricas: 'rubricas', juiz: 'juiz LLM', retrieval: 'retrieval RAG' };
   const ultimos = {};
   for (const r of runs) if (!ultimos[r.suite]) ultimos[r.suite] = r;
   for (const [suite, r] of Object.entries(ultimos)) {

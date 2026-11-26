@@ -71,7 +71,7 @@ function renderQualidade(q) {
   // ultimo run de cada suite (runs ja vem ordenado por criado_em desc)
   const ultimos = {};
   for (const r of runs) if (!ultimos[r.suite]) ultimos[r.suite] = r;
-  const ROTULO_SUITE = { rubricas: 'Rubricas (determinístico)', juiz: 'Juiz LLM' };
+  const ROTULO_SUITE = { rubricas: 'Rubricas (determinístico)', juiz: 'Juiz LLM', retrieval: 'Retrieval (RAG)' };
   const barras = ['rubricas', 'juiz']
     .filter((s) => ultimos[s])
     .map((s) => {

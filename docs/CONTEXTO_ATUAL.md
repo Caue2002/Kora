@@ -717,6 +717,19 @@ de entrega.
   (producao do dia + fallback por camada + ultimos scores de eval)
   para uso em entrevista. Migration 0019_eval_runs.sql APLICADA
   26/11/2026 via MCP (aprovada pelo usuario; tabela verificada via SQL)
+- Eval de retrieval do RAG (spec em spec/SPEC-eval-retrieval.md,
+  modulo eval-retrieval do capability-map): tests/evals-retrieval.test.ts
+  mede hit@4 da buscaHibrida — 18 consultas realistas de disputa
+  mapeadas para o titulo esperado do chunk em conhecimento_chunks.
+  Primeira execucao encontrou gap real (regra de verticais mercado/
+  farmacia/pet nao subia para "item errado" generico — dataset ajustado
+  para o caso que a regra cobre: produto vencido); resultado final
+  18/18. Persiste em eval_runs com suite 'retrieval' (tests/eval_runs.ts
+  aceita a nova suite; migration 0020_eval_runs_suite_retrieval.sql
+  APLICADA 26/11/2026 via MCP, aprovada pelo usuario). Painel e
+  relatorio_qualidade.mjs rotulam a suite como "Retrieval (RAG)".
+  Primeiro run gravado: 18/18 local; runs de rubricas/juiz ja chegam
+  do CI (origem 'ci')
 
 ## Em andamento
 
