@@ -645,10 +645,10 @@ de entrega.
   chat ja tem rate limit por IP). Frontend so renderiza o widget
   quando VITE_TURNSTILE_SITE_KEY existe no build (script da Cloudflare
   carregado sob demanda, token de uso unico consumido a cada envio e
-  resetado). Par de envs documentado em .env.example. Chaves reais
-  configuradas no .env local em 25/11/2026 (siteverify validado) e
-  vite.config.ts ganhou envDir:'..' para o frontend ler o .env da
-  raiz; para producao falta replicar as duas vars na Vercel + rebuild
+  resetado). Par de envs documentado em .env.example. ATIVO EM
+  PRODUCAO desde 25/11/2026: chaves na Vercel + rebuild (vite.config
+  tem envDir:'..' para o frontend ler o .env da raiz) — verificado:
+  /api/chat responde 403 sem token e o bundle contem a site key
 - Verificacao semantica de coerencia antes de regenerar: quando a
   heuristica (validarHeuristico) aponta problema numa resposta, o
   /api/chat agora chama validarComLLM — um modelo Gemini lite julga se
@@ -737,9 +737,10 @@ de entrega.
 - Painel /metricas.html reformulado no estilo visual do Fluxo Kora
   (25/11/2026): tema claro (cards brancos, gradiente laranja->ciano,
   fundo com brilhos radiais, logo no cabecalho), layout em tela cheia
-  (wrap flex column min-height 100vh, KPIs em cima e Trace medio +
-  Mensagens/dia lado a lado em grid de 2 colunas no desktop, empilhando
-  abaixo de 1100px), grafico de barras com altura fluida, tooltip com o
+  (wrap flex column min-height 100vh, KPIs compactos em cima e Trace
+  medio + Mensagens/dia lado a lado em grid de 2 colunas no desktop,
+  empilhando abaixo de 1100px), grafico de barras com altura fluida,
+  tooltip com o
   total no hover (data-v + ::after) e destaque do dia de pico, tabela de
   modelos em container com borda/hover como o Fluxo Kora. JS externo
   inalterado em contrato (mesmas classes/ids, novos nomes: trace-item,
@@ -764,11 +765,10 @@ de entrega.
    de disputa (item faltante com confirmacao de pedido) via failover
    Pollinations — Gemini e Groq seguiram sem cota. Segue valendo
    exercitar mais cenarios quando a cota renovar
-4. Endurecer abuso: ~~Cloudflare Turnstile~~ IMPLEMENTADO e ATIVO
-   localmente (spec/SPEC-turnstile.md; chaves no .env local, validadas
-   via siteverify); falta replicar TURNSTILE_SECRET_KEY +
-   VITE_TURNSTILE_SITE_KEY na Vercel e rebuild para ativar em
-   producao; pendente lista de dominios permitidos no CORS se o site
+4. Endurecer abuso: ~~Cloudflare Turnstile~~ ATIVO EM PRODUCAO
+   25/11/2026 (spec/SPEC-turnstile.md; chaves na Vercel + rebuild —
+   /api/chat responde 403 sem token e o bundle serve o widget com a
+   site key); pendente lista de dominios permitidos no CORS se o site
    for embutido — a API nao emite Access-Control-Allow-Origin,
    leitura cross-origin ja e bloqueada pelo browser
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
