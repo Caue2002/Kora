@@ -573,7 +573,7 @@ de entrega.
   solto (.msg-status-solto), sem .msg-balao.
   Aplicado tambem no modal de handoff ("Gerando resumo do caso..."), na
   tela "Encerrando..." (variante grande via custom properties de tamanho)
-  e no painel /metricas.html (versao escura, esferas claras). CSS morto de
+  e no painel /metricas.html (tema claro, esferas azul-escuro). CSS morto de
   indicadores antigos (.msg-digitando, .dot, pulsa, .encerrando-spinner)
   removido. Historico: V1 era metaball (blur+contrast, gotas fundidas)
   com movimento linear; substituida pela orbita por decisao de design
@@ -645,8 +645,10 @@ de entrega.
   chat ja tem rate limit por IP). Frontend so renderiza o widget
   quando VITE_TURNSTILE_SITE_KEY existe no build (script da Cloudflare
   carregado sob demanda, token de uso unico consumido a cada envio e
-  resetado). Par de envs documentado em .env.example; para ativar em
-  producao falta cadastrar as duas chaves (Vercel env + rebuild)
+  resetado). Par de envs documentado em .env.example. Chaves reais
+  configuradas no .env local em 25/11/2026 (siteverify validado) e
+  vite.config.ts ganhou envDir:'..' para o frontend ler o .env da
+  raiz; para producao falta replicar as duas vars na Vercel + rebuild
 - Verificacao semantica de coerencia antes de regenerar: quando a
   heuristica (validarHeuristico) aponta problema numa resposta, o
   /api/chat agora chama validarComLLM — um modelo Gemini lite julga se
@@ -732,6 +734,16 @@ de entrega.
   vars da Vercel~~ VERIFICADO 25/11/2026: a env ja esta configurada —
   /api/mcp e /api/a2a respondem 401 (auth exigida) e nao 503;
   /.well-known/agent-card.json responde 200
+- Painel /metricas.html reformulado no estilo visual do Fluxo Kora
+  (25/11/2026): tema claro (cards brancos, gradiente laranja->ciano,
+  fundo com brilhos radiais, logo no cabecalho), layout em tela cheia
+  (wrap flex column min-height 100vh, KPIs em cima e Trace medio +
+  Mensagens/dia lado a lado em grid de 2 colunas no desktop, empilhando
+  abaixo de 1100px), grafico de barras com altura fluida, tooltip com o
+  total no hover (data-v + ::after) e destaque do dia de pico, tabela de
+  modelos em container com borda/hover como o Fluxo Kora. JS externo
+  inalterado em contrato (mesmas classes/ids, novos nomes: trace-item,
+  barra-mini, col.mais)
 
 ## Decisoes tecnicas tomadas
 
@@ -752,12 +764,13 @@ de entrega.
    de disputa (item faltante com confirmacao de pedido) via failover
    Pollinations — Gemini e Groq seguiram sem cota. Segue valendo
    exercitar mais cenarios quando a cota renovar
-4. Endurecer abuso: ~~Cloudflare Turnstile~~ IMPLEMENTADO mas DORMENTE
-   (spec/SPEC-turnstile.md; falta cadastrar TURNSTILE_SECRET_KEY +
-   VITE_TURNSTILE_SITE_KEY na Vercel e rebuild); pendente lista de
-   dominios permitidos no CORS se o site for embutido — a API nao
-   emite Access-Control-Allow-Origin, leitura cross-origin ja e
-   bloqueada pelo browser
+4. Endurecer abuso: ~~Cloudflare Turnstile~~ IMPLEMENTADO e ATIVO
+   localmente (spec/SPEC-turnstile.md; chaves no .env local, validadas
+   via siteverify); falta replicar TURNSTILE_SECRET_KEY +
+   VITE_TURNSTILE_SITE_KEY na Vercel e rebuild para ativar em
+   producao; pendente lista de dominios permitidos no CORS se o site
+   for embutido — a API nao emite Access-Control-Allow-Origin,
+   leitura cross-origin ja e bloqueada pelo browser
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
    LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
    a heuristica flagra, o verificador LLM confirma se o problema e

@@ -4,89 +4,175 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nori — Observabilidade</title>
+<link rel="icon" href="/logo.png" />
 <style>
-  :root {
-    --bg: #0b1120; --card: #111a2e; --borda: #1e2b47;
-    --texto: #e6ecf7; --muted: #8b98b8; --azul: #2563eb; --ciano: #06b6d4;
-    --verde: #22c55e; --ambar: #f59e0b; --vermelho: #ef4444;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--texto); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; }
-  .wrap { max-width: 980px; margin: 0 auto; }
-  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 8px; }
-  h1 { font-size: 20px; font-weight: 700; }
-  h1 span { color: var(--ciano); }
-  .sub { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .kpi { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; min-width: 0; }
-  .kpi .rot { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-  .kpi .val { font-size: 24px; font-weight: 700; margin-top: 4px; overflow-wrap: anywhere; }
-  .kpi .det { font-size: 11px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
-  .card { background: var(--card); border: 1px solid var(--borda); border-radius: 12px; padding: 18px; margin-bottom: 16px; min-width: 0; }
-  .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .tabela-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 6px 8px; border-bottom: 1px solid var(--borda); white-space: nowrap; }
-  td { padding: 8px; border-bottom: 1px solid #16213a; vertical-align: top; }
-  .barra { height: 8px; border-radius: 4px; background: #1a2540; overflow: hidden; min-width: 90px; max-width: 100%; }
-  .barra > div { height: 100%; background: linear-gradient(90deg, var(--azul), var(--ciano)); }
-  /* grafo de barras rola na horizontal em telas estreitas em vez de
-     espremer as colunas ate os rotulos se sobrepoem */
-  .barras { display: flex; align-items: flex-end; gap: 6px; height: 140px; overflow-x: auto; padding-bottom: 4px; }
-  .barras .col { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; min-width: 0; }
-  .barras .v { background: linear-gradient(180deg, var(--ciano), var(--azul)); border-radius: 4px 4px 0 0; width: 70%; min-height: 2px; }
-  .barras .d { font-size: 10px; color: var(--muted); transform: rotate(-45deg); transform-origin: top left; margin-top: 26px; white-space: nowrap; }
-  .vazio { color: var(--muted); font-size: 13px; padding: 12px 0; }
-  .atualizado { font-size: 11px; color: var(--muted); }
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #16213a; color: var(--ciano); max-width: 100%; overflow-wrap: anywhere; }
-  .btn-atualizar {
-    background: none; border: 1px solid var(--borda); color: var(--ciano);
-    font-size: 12px; border-radius: 8px; padding: 6px 12px; cursor: pointer;
-  }
-  .btn-atualizar:hover { border-color: var(--ciano); }
-  .erro-caixa { background: #2a1418; border: 1px solid #7f1d1d; color: #fca5a5; }
-  /* indicador de orbita padrao do Kora — versao escura: esferas claras girando em circulo,
-     sem pilula, acompanhadas por uma luz suave na mesma orbita */
-  .orbita { display: none; align-items: center; justify-content: center; flex-shrink: 0; }
-  .orbita-palco { position: relative; width: 22px; height: 22px; }
-  .orbita-luz { position: absolute; top: 50%; left: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: radial-gradient(circle, rgba(59, 130, 246, 0.55), rgba(59, 130, 246, 0) 70%); filter: blur(2px); animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite; animation-delay: -0.666s; }
-  .orbita-ponto { position: absolute; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--texto); box-shadow: 0 0 4px rgba(59, 130, 246, 0.9), 0 0 10px rgba(59, 130, 246, 0.4); animation: orbita-agente 4s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-  /* feixe de luz azul atraves de cada bolinha, pulsando (expande e volta) */
-  .orbita-ponto::after { content: ''; position: absolute; top: 50%; left: 50%; width: 13px; height: 3px; margin: -1.5px 0 0 -6.5px; border-radius: 999px; background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.9), rgba(59, 130, 246, 0)); filter: blur(1px); z-index: -1; animation: feixe-onda 1.8s ease-in-out infinite; }
-  .orbita-ponto:nth-child(3)::after { animation-delay: -0.6s; }
-  .orbita-ponto:nth-child(4)::after { animation-delay: -1.2s; }
-  .orbita-ponto:nth-child(3) { animation-delay: -1.333s; }
-  .orbita-ponto:nth-child(4) { animation-delay: -2.667s; }
-  @keyframes feixe-onda {
-    0%, 100% { transform: scaleX(0.5); opacity: 0.4; }
-    50% { transform: scaleX(1.35); opacity: 1; }
-  }
-  @keyframes orbita-agente {
-    0%    { transform: translate(8px, 0) scale(0.78) rotate(90deg); opacity: 0.68; }
-    12.5% { transform: translate(5.7px, 5.7px) scale(0.93) rotate(135deg); opacity: 0.9; }
-    25%   { transform: translate(0, 8px) scale(1) rotate(180deg); opacity: 1; }
-    37.5% { transform: translate(-5.7px, 5.7px) scale(0.93) rotate(225deg); opacity: 0.9; }
-    50%   { transform: translate(-8px, 0) scale(0.78) rotate(270deg); opacity: 0.68; }
-    62.5% { transform: translate(-5.7px, -5.7px) scale(0.62) rotate(315deg); opacity: 0.45; }
-    75%   { transform: translate(0, -8px) scale(0.55) rotate(0deg); opacity: 0.35; }
-    87.5% { transform: translate(5.7px, -5.7px) scale(0.62) rotate(45deg); opacity: 0.45; }
-    100%  { transform: translate(8px, 0) scale(0.78) rotate(90deg); opacity: 0.68; }
-  }
-  @media (max-width: 560px) {
-    body { padding: 12px; }
-    .kpi .val { font-size: 20px; }
-    .card { padding: 14px; }
-  }
+/* ==========================================================================
+   KORA · METRICAS — painel de observabilidade do agente Nori
+   Mesmo estilo visual da pagina Fluxo Kora (tema claro, gradiente laranja->ciano).
+   ========================================================================== */
+:root{
+  --bg:#f4f6fa; --panel:#ffffff; --panel2:#f8fafc; --ink:#0f172a; --txt:#334155; --mut:#64748b; --mut2:#94a3b8;
+  --line:#e2e8f0; --line2:#cbd5e1;
+  --laranja:#f97316; --laranja2:#ea580c; --ciano:#06b6d4; --azul:#2563eb; --verde:#059669; --ambar:#d97706; --vermelho:#dc2626;
+  --grad:linear-gradient(135deg,#f97316,#ea580c 55%,#06b6d4);
+  --grad2:linear-gradient(135deg,#2563eb,#06b6d4);
+  --r:18px; --r2:12px;
+  --font:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--txt);font:15px/1.55 var(--font);
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(800px 420px at 90% -10%,rgba(249,115,22,.12),transparent 60%),
+  radial-gradient(700px 420px at -10% 30%,rgba(6,182,212,.10),transparent 60%),
+  radial-gradient(800px 500px at 60% 110%,rgba(124,58,237,.08),transparent 60%),var(--bg)}
+::selection{background:rgba(249,115,22,.2)}
+
+/* ---------- layout: preenche a tela toda ---------- */
+.wrap{max-width:1560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
+  padding:clamp(14px,2.2vw,30px) clamp(14px,3vw,44px) 26px;gap:16px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:13px;min-width:0}
+.brand img{width:44px;height:44px;border-radius:13px;object-fit:cover;box-shadow:0 4px 14px rgba(249,115,22,.35)}
+h1{font-size:clamp(19px,2vw,24px);font-weight:850;letter-spacing:-.4px;color:var(--ink);line-height:1.1}
+h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:12px;font-family:var(--mono);margin-top:2px}
+.acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.atualizado{font-size:11.5px;color:var(--mut);font-family:var(--mono)}
+.btn-atualizar{
+  display:inline-flex;align-items:center;gap:7px;background:var(--grad);color:#fff;border:0;
+  font:700 12.5px var(--font);border-radius:11px;padding:8px 15px;cursor:pointer;
+  box-shadow:0 6px 18px rgba(249,115,22,.35);transition:.2s;
+}
+.btn-atualizar:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(249,115,22,.45)}
+.btn-atualizar:disabled{opacity:.55;cursor:default;transform:none}
+
+/* ---------- KPIs ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.kpi{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);
+  padding:15px 17px;min-width:0;box-shadow:0 1px 3px rgba(15,23,42,.05);transition:.25s;position:relative;overflow:hidden;
+}
+.kpi::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--grad);opacity:0;transition:.25s}
+.kpi:hover{border-color:var(--line2);box-shadow:0 8px 22px rgba(15,23,42,.08);transform:translateY(-1px)}
+.kpi:hover::before{opacity:1}
+.kpi .rot{font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-weight:700;font-family:var(--mono)}
+.kpi .val{font-size:clamp(21px,1.9vw,28px);font-weight:850;letter-spacing:-.5px;color:var(--ink);margin-top:5px;line-height:1.05;overflow-wrap:anywhere}
+.kpi .det{font-size:11.5px;color:var(--mut);margin-top:4px;overflow-wrap:anywhere}
+
+/* ---------- area principal: 2 colunas no desktop ---------- */
+.meio{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;flex:1;min-height:0}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.05);transition:.25s;
+  display:flex;flex-direction:column;min-width:0;min-height:0;
+}
+.card:hover{border-color:var(--line2);box-shadow:0 8px 22px rgba(15,23,42,.07)}
+.card h2{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--mut);font-family:var(--mono);margin-bottom:14px;flex:none}
+.card .corpo{flex:1;min-height:0;display:flex;flex-direction:column}
+
+/* ---------- trace medio ---------- */
+.barra{height:9px;border-radius:999px;background:#eef2f7;border:1px solid var(--line);overflow:hidden;min-width:90px}
+.barra > div{height:100%;background:var(--grad);border-radius:999px;transition:width .6s ease}
+.trace-item{margin-bottom:14px}
+.trace-item:last-child{margin-bottom:0}
+.trace-item .topo{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;margin-bottom:5px;flex-wrap:wrap}
+.trace-item .topo b{color:var(--ink);font-weight:700}
+.trace-item .topo span{color:var(--mut);font-family:var(--mono);font-size:11px;white-space:nowrap}
+
+/* ---------- grafico de barras ---------- */
+.barras{display:flex;align-items:flex-end;gap:clamp(4px,1vw,10px);flex:1;min-height:230px;overflow-x:auto;padding:6px 2px 2px;scrollbar-width:thin}
+.barras .col{flex:1 0 38px;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end;min-width:0}
+.barras .v{
+  position:relative;background:var(--grad2);border-radius:7px 7px 3px 3px;width:min(72%,44px);
+  min-height:3px;transition:filter .2s,transform .2s;transform-origin:bottom;
+}
+.barras .col:hover .v{filter:brightness(1.12);transform:scaleY(1.02)}
+.barras .v::after{
+  content:attr(data-v);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  font:700 10.5px var(--mono);color:var(--ink);background:#fff;border:1px solid var(--line2);
+  border-radius:7px;padding:2px 7px;white-space:nowrap;opacity:0;pointer-events:none;transition:.18s;
+  box-shadow:0 4px 12px rgba(15,23,42,.12);
+}
+.barras .col:hover .v::after{opacity:1}
+.barras .d{font-size:10px;color:var(--mut);font-family:var(--mono);transform:rotate(-38deg);transform-origin:top left;margin-top:24px;white-space:nowrap}
+.barras .col.mais .v{background:var(--grad)}
+.barras .col.mais .d{color:var(--laranja2);font-weight:700}
+
+/* ---------- tabela ---------- */
+.tabela-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r2);background:#fff}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:520px}
+th{text-align:left;color:var(--mut);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;font-family:var(--mono);padding:9px 12px;border-bottom:1px solid var(--line);background:var(--panel2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle;color:var(--txt)}
+tr:last-child td{border-bottom:0}
+tr:hover td{background:#fafbfe}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;font-family:var(--mono);background:var(--panel2);border:1px solid var(--line2);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
+.barra-mini{height:6px;border-radius:999px;background:#eef2f7;overflow:hidden;min-width:70px}
+.barra-mini > div{height:100%;background:var(--grad2);border-radius:999px}
+
+/* ---------- estados ---------- */
+.vazio{color:var(--mut);font-size:13px;padding:14px 0}
+.erro-caixa{background:#fef2f2;border-color:#fecaca}
+.erro-caixa .val{color:var(--vermelho)!important}
+.nota{font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.5}
+
+/* ---------- indicador de orbita padrao do Kora ---------- */
+.orbita{display:none;align-items:center;justify-content:center;flex-shrink:0}
+.orbita-palco{position:relative;width:22px;height:22px}
+.orbita-luz{position:absolute;top:50%;left:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.45),rgba(59,130,246,0) 70%);filter:blur(2px);animation:orbita-agente 4s cubic-bezier(.45,0,.55,1) infinite;animation-delay:-.666s}
+.orbita-ponto{position:absolute;top:50%;left:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#1e3a8a;box-shadow:0 0 4px rgba(59,130,246,.9),0 0 10px rgba(59,130,246,.4);animation:orbita-agente 4s cubic-bezier(.45,0,.55,1) infinite}
+.orbita-ponto::after{content:'';position:absolute;top:50%;left:50%;width:13px;height:3px;margin:-1.5px 0 0 -6.5px;border-radius:999px;background:linear-gradient(90deg,rgba(59,130,246,0),rgba(59,130,246,.9),rgba(59,130,246,0));filter:blur(1px);z-index:-1;animation:feixe-onda 1.8s ease-in-out infinite}
+.orbita-ponto:nth-child(3)::after{animation-delay:-.6s}
+.orbita-ponto:nth-child(4)::after{animation-delay:-1.2s}
+.orbita-ponto:nth-child(3){animation-delay:-1.333s}
+.orbita-ponto:nth-child(4){animation-delay:-2.667s}
+@keyframes feixe-onda{0%,100%{transform:scaleX(.5);opacity:.4}50%{transform:scaleX(1.35);opacity:1}}
+@keyframes orbita-agente{
+  0%{transform:translate(8px,0) scale(.78) rotate(90deg);opacity:.68}
+  12.5%{transform:translate(5.7px,5.7px) scale(.93) rotate(135deg);opacity:.9}
+  25%{transform:translate(0,8px) scale(1) rotate(180deg);opacity:1}
+  37.5%{transform:translate(-5.7px,5.7px) scale(.93) rotate(225deg);opacity:.9}
+  50%{transform:translate(-8px,0) scale(.78) rotate(270deg);opacity:.68}
+  62.5%{transform:translate(-5.7px,-5.7px) scale(.62) rotate(315deg);opacity:.45}
+  75%{transform:translate(0,-8px) scale(.55) rotate(0deg);opacity:.35}
+  87.5%{transform:translate(5.7px,-5.7px) scale(.62) rotate(45deg);opacity:.45}
+  100%{transform:translate(8px,0) scale(.78) rotate(90deg);opacity:.68}
+}
+
+/* ---------- responsivo ---------- */
+@media (max-width:1100px){
+  .meio{grid-template-columns:1fr}
+  .barras{min-height:200px}
+}
+@media (max-width:640px){
+  .wrap{padding:12px;gap:12px}
+  .brand img{width:38px;height:38px}
+  h1{font-size:18px}
+  .sub{font-size:11px}
+  .kpi .val{font-size:20px}
+  .card{padding:15px}
+  .barras{min-height:180px}
+  .barras .d{font-size:9px;margin-top:20px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div>
-      <h1>Nori <span>·</span> Observabilidade</h1>
-      <div class="sub">Projeto Kora — métricas agregadas de produção (metricas_chat)</div>
+    <div class="brand">
+      <img src="/logo.png" alt="Kora" />
+      <div>
+        <h1>Nori <span class="grad">·</span> Observabilidade</h1>
+        <div class="sub">PROJETO KORA — METRICAS_CHAT</div>
+      </div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="acoes">
       <span class="orbita" id="orbita-status" hidden aria-hidden="true"><span class="orbita-palco"><span class="orbita-luz"></span><span class="orbita-ponto"></span><span class="orbita-ponto"></span><span class="orbita-ponto"></span></span></span>
       <span class="atualizado" id="atualizado">carregando…</span>
       <button class="btn-atualizar" id="btn-atualizar" type="button">Atualizar</button>
@@ -95,25 +181,31 @@
 
   <div class="grid" id="kpis"></div>
 
-  <div class="card">
-    <h2>Trace médio por etapa (últimas 200 requisições)</h2>
-    <div id="trace-medio"></div>
-  </div>
+  <div class="meio">
+    <div class="card">
+      <h2>Trace médio por etapa · últimas 200 requisições</h2>
+      <div class="corpo" id="trace-medio"></div>
+    </div>
 
-  <div class="card">
-    <h2>Mensagens por dia (últimos 14 dias)</h2>
-    <div class="barras" id="por-dia"></div>
+    <div class="card">
+      <h2>Mensagens por dia · últimos 14 dias</h2>
+      <div class="corpo">
+        <div class="barras" id="por-dia"></div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
     <h2>Consumo por modelo</h2>
-    <div class="tabela-wrap">
-      <table>
-        <thead><tr><th>Modelo</th><th>Mensagens</th><th>Latência média</th><th>Tokens totais</th><th>Custo equivalente*</th></tr></thead>
-        <tbody id="por-modelo"></tbody>
-      </table>
+    <div class="corpo">
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Modelo</th><th>Mensagens</th><th>Latência média</th><th>Tokens totais</th><th>Custo equivalente*</th></tr></thead>
+          <tbody id="por-modelo"></tbody>
+        </table>
+      </div>
+      <p class="nota">* custo estimado a preço de tabela dos provedores, por 1M de tokens mistos — os modelos atuais rodam em free tier, então o custo real é ~US$ 0.</p>
     </div>
-    <p class="vazio" style="margin-top:10px">* custo estimado a preço de tabela dos provedores, por 1M de tokens mistos — os modelos atuais rodam em free tier, então o custo real é ~US$ 0.</p>
   </div>
 </div>
 

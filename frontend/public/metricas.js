@@ -81,10 +81,8 @@ function render(m) {
     ? Object.entries(etapas)
         .map(([k, e]) => {
           const media = e.soma / e.n;
-          return `<div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;gap:8px;font-size:12px;margin-bottom:3px;flex-wrap:wrap">
-              <span>${escapar(ROTULOS[k] ?? k)}</span><span style="color:var(--muted)">${fmt(media)} ms médio · ${e.n} reqs</span>
-            </div>
+          return `<div class="trace-item">
+            <div class="topo"><b>${escapar(ROTULOS[k] ?? k)}</b><span>${fmt(media)} ms médio · ${e.n} reqs</span></div>
             <div class="barra"><div style="width:${Math.max(2, (media / maxEtapa) * 100)}%"></div></div>
           </div>`;
         })
@@ -94,11 +92,13 @@ function render(m) {
   // por dia (cronologico, do mais antigo ao mais recente)
   const dias = (Array.isArray(m.por_dia) ? m.por_dia : []).slice().reverse();
   const maxDia = Math.max(1, ...dias.map((d) => Number(d.total) || 0));
+  const pico = dias.find((d) => (Number(d.total) || 0) === maxDia && maxDia > 0);
   document.getElementById('por-dia').innerHTML = dias.length
     ? dias
         .map((d) => {
           const totalDia = Number(d.total) || 0;
-          return `<div class="col"><div class="v" style="height:${Math.max(2, (totalDia / maxDia) * 110)}px" title="${escapar(formatarDia(d.dia))}: ${totalDia}"></div><div class="d">${escapar(formatarDia(d.dia))}</div></div>`;
+          const ehPico = pico && d.dia === pico.dia && totalDia === maxDia;
+          return `<div class="col${ehPico ? ' mais' : ''}"><div class="v" data-v="${totalDia}" style="height:${Math.max(3, (totalDia / maxDia) * 100)}%" title="${escapar(formatarDia(d.dia))}: ${totalDia}"></div><div class="d">${escapar(formatarDia(d.dia))}</div></div>`;
         })
         .join('')
     : '<div class="vazio">Sem dados ainda.</div>';
@@ -117,7 +117,7 @@ function render(m) {
             <td><span class="tag">${escapar(x.modelo ?? '(sem modelo)')}</span></td>
             <td>${fmt(x.total)}</td>
             <td>${fmt(x.latencia_media_ms)} ms</td>
-            <td>${fmt(tokens)}<div class="barra" style="margin-top:5px"><div style="width:${pct}%"></div></div></td>
+            <td>${fmt(tokens)}<div class="barra-mini" style="margin-top:5px"><div style="width:${pct}%"></div></div></td>
             <td>${usd(custo)}</td>
           </tr>`;
         })
