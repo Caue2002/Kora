@@ -559,7 +559,7 @@ de entrega.
   fora do git via .gitignore `fluxo-kora/`): material visual para
   entrevistas com a dor do projeto, jornada de disputa em 6 passos
   (diagrama + chat animado), arquitetura em camadas, fluxograma do
-  /api/chat, estado do caso, failover dos 15 modelos, qualidade/evals,
+  /api/chat, estado do caso, failover dos 12 modelos, qualidade/evals,
   capacidades, stack e protocolo de atualizacao
   (docs/fluxo-kora/README.md) e skill .devin/skills/fluxo-kora.
   Spec em spec/SPEC-fluxo-kora-pagina.md
@@ -592,15 +592,14 @@ de entrega.
   (antes so perfil|periodo), entao a primeira mensagem que ja informa um
   codigo de pedido passa a ser cacheavel sem risco de colisao entre
   pedidos diferentes. Entradas antigas expiram em 72h
-- Catalogo fechado em 15 slots: alem dos 2 candidatos anteriores,
-  entraram gemini-flash-latest (id 13, prioridade 12),
-  gemini-3.1-pro-preview (id 14, prioridade 13) e gemini-pro-latest
-  (id 15, prioridade 14); pollinations desceu para prioridade 15
-  mantendo id 10. Os 3 novos sao candidatos fracos — flash-latest e
-  pro-latest sao aliases moveis e os "pro" provavelmente nao tem free
-  tier; ficam antes do pollinations porque mesmo sem cota so gastam
-  uma tentativa rapida de failover. gemini-4-neon e gemini-4-carbon
-  foram descartados: a documentacao confirma que exigem tier pago;
+- Catalogo fechado em 15 slots e depois saneado para 12 (ver bullet do
+  reteste de cota abaixo): alem dos 2 candidatos anteriores, entraram
+  gemini-flash-latest (id 13), gemini-3.1-pro-preview (id 14) e
+  gemini-pro-latest (id 15); pollinations manteve id 10. Em 26/11/2026
+  os 3 slots com 429 persistente (argon, 3.1-pro-preview, pro-latest)
+  foram removidos por migration 0017 — flash-latest ficou na prioridade
+  11 e pollinations desceu para 12. gemini-4-neon e gemini-4-carbon
+  foram descartados antes: a documentacao confirma que exigem tier pago;
   gemini-2.5-* retornaram 404 (descontinuados para contas novas)
 
 - Aurora de inatividade + encerramento automatico por inatividade
@@ -720,11 +719,25 @@ de entrega.
   (flash-latest prio 12, 3.1-pro-preview prio 13, pro-latest prio 14) e
   pollinations (id 10) desceu para prioridade 15. Verificado via SQL:
   as 15 linhas estao corretas
-- Re-teste pendente: quando a cota diaria do Gemini renovar, rodar
+- ~~Re-teste pendente: quando a cota diaria do Gemini renovar, rodar
   scripts/testar_modelos_gemini.mjs para confirmar quais candidatos
-  tem free tier de verdade. Re-teste em 25/11/2026: TODOS os slots
-  Gemini seguiram 429 (cota ainda esgotada) e gemini-2.5-* seguem 404
-  (descontinuados). Nada mudou — continua pendente
+  tem free tier de verdade.~~ FEITO em 26/11/2026 (cota renovada,
+  2 rodadas + teste manual): responderam 200 com texto real
+  gemini-3-flash-preview, gemini-3.5-flash-lite (o 400 do script e
+  esperado — rejeita thinkingConfig; shared/llm.ts ja repete sem o
+  campo e o modelo responde), gemini-3.1-flash-lite e
+  gemini-3.1-flash-lite-preview. 429 persistente (sem free tier):
+  gemini-4-argon, gemini-3.1-pro-preview, gemini-pro-latest — e os
+  probes gemini-4-carbon/4-neon. 404: gemini-2.5-*. 503 "high demand"
+  em TODAS as verificacoes: hydrogen, 3.8/3.6/3.5-flash, 3.7-flash e
+  flash-latest — saturacao temporaria de capacidade (nao e cota),
+  slots MANTIDOS porque ja responderam 200 antes; o failover tolera
+  (503 volta em ~1-7s). Catalogo saneado para 12 slots via migration
+  0017 (PENDENTE de aplicar): ids 12/14/15 removidos de modelos_ia,
+  flash-latest (id 13) prioridade 11, pollinations (id 10) prioridade
+  12. ATENCAO Vercel: GEMINI_MODEL_10 passou a ser flash-latest (era
+  argon) — se existirem envs GEMINI_MODEL_10..13 antigas na Vercel,
+  remover ou alinhar para nao injetar modelo morto na fila
 - Flake conhecido: tests/evals-juiz.test.ts > "guardrail: injecao de
   prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
   pedido de revelar o prompt de forma explicita). O eval deterministico
@@ -784,12 +797,21 @@ de entrega.
    MODO OBSERVACAO 26/11/2026: o widget nunca emitia token em
    producao (diagnosticado via Playwright — script carrega, widget
    renderiza, mas o challenge da Cloudflare nao conclui nem em Chrome
-   real; provavel hostname fora da lista do widget ou par
-   sitekey/secret divergente no painel). turnoLiberado() agora SEMPRE
-   libera e so loga o veredito do siteverify — /api/chat nao toma
-   mais 403; o branch de bloqueio permanece em api/chat.ts para
-   reativar quando a config da Cloudflare for revista. Rate limit por
-   IP segue como protecao principal
+   real). CAUSA RAIZ encontrada 26/11/2026 via console do navegador:
+   o service worker (frontend/public/sw.js) interceptava TODAS as
+   requisicoes — inclusive a cross-origin do api.js do Turnstile — e o
+   fetch dentro do SW obedecia a CSP ANTIGA com que o worker foi
+   instalado (connect-src 'self'), bloqueando o script mesmo com o
+   vercel.json correto. sw.js agora ignora origens diferentes da
+   propria (url.origin !== self.location.origin) e o CACHE subiu para
+   kora-v18. Hostnames do widget conferidos no painel: corretos
+   (koradelivery.vercel.app, localhost, 127.0.0.1). PENDENTE: apos o
+   deploy, verificar no console se api.js carrega e se tokens voltam a
+   ser emitidos; entao reativar o bloqueio no turnoLiberado().
+   Ate la turnoLiberado() segue sempre liberando e so logando o
+   veredito do siteverify — /api/chat nao toma mais 403; o branch de
+   bloqueio permanece em api/chat.ts. Rate limit por IP segue como
+   protecao principal
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
    LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
    a heuristica flagra, o verificador LLM confirma se o problema e
@@ -814,7 +836,9 @@ de entrega.
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
   migrations 0005-0016 TODAS aplicadas (0010, 0012, 0015 e 0016 aplicadas
-  em 25/11/2026 via Supabase MCP com aprovacao do usuario)
+  em 25/11/2026 via Supabase MCP com aprovacao do usuario);
+  migration 0017 (limpeza dos slots 429: ids 12/14/15 removidos,
+  prioridades renumeradas) PENDENTE de aplicar
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
