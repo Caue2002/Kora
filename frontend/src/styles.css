@@ -2194,6 +2194,17 @@ body {
   }
 }
 
+/* no mobile (telas estreitas) as camadas ficam mais arredondadas:
+   width e height vem em % de eixos diferentes (largura x altura da
+   tela), o que alongava a luz na vertical em celulares altos —
+   aspect-ratio 1:1 com height auto devolve o formato circular */
+@media (max-width: 640px) {
+  .aurora-camada {
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+  }
+}
+
 /* sem movimento para quem pede reducao de animacao: camadas estaticas */
 @media (prefers-reduced-motion: reduce) {
   .aurora {
