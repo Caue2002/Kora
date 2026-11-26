@@ -1,6 +1,6 @@
 // Service worker minimo para tornar o app instalavel (PWA)
 // Estrategia: network-first para navegacao, cache-first para assets estaticos
-const CACHE = 'kora-v17';
+const CACHE = 'kora-v18';
 const ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/logo.png'];
 
 self.addEventListener('install', (e) => {
@@ -15,8 +15,10 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  // nunca cacheia chamadas de API
-  if (url.pathname.startsWith('/api/')) return;
+  // nunca intercepta chamadas de API nem recursos de outras origens
+  // (ex.: challenges.cloudflare.com do Turnstile) — o fetch dentro do SW
+  // obedece a CSP com que o worker foi instalado e pode bloquear terceiros
+  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) return;
   if (e.request.mode === 'navigate') {
     e.respondWith(fetch(e.request).catch(() => caches.match('/index.html')));
     return;

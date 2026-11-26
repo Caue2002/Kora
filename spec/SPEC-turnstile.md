@@ -5,9 +5,11 @@ Status: implementado — MODO OBSERVACAO desde 26/11/2026
 > **Suspensao do bloqueio (26/11/2026):** o widget parou de emitir
 > tokens em producao — o challenge da Cloudflare nunca concluia (nem em
 > Chrome real, testado via Playwright) e todo POST /api/chat tomava 403.
-> Causa provavel: dominio `koradelivery.vercel.app` fora da lista de
-> hostnames do widget ou par sitekey/secret divergente — ambos no
-> painel Cloudflare, fora do codigo. `turnoLiberado()` agora sempre
+> Causa raiz confirmada via console: o service worker (sw.js)
+> interceptava a requisicao cross-origin do api.js do Turnstile e o
+> fetch interno obedecia a CSP antiga do worker (connect-src 'self').
+> sw.js agora ignora origens externas (kora-v18). Hostnames e chaves do
+> widget conferidos no painel Cloudflare: corretos. `turnoLiberado()` agora sempre
 > libera e apenas LOGA o veredito do siteverify (success/error-codes),
 > preservando observabilidade para reativar o bloqueio quando a
 > configuracao for revista. O branch de 403 em api/chat.ts permanece.
