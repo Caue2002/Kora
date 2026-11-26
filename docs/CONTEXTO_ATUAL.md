@@ -691,9 +691,10 @@ de entrega.
   (agora agrupado pela data local de SP) e a RPC devolve o campo `dia`
   para o painel exibir "METRICAS DE dd/mm/aaaa - RESET DIARIO" no
   subtitulo; rotulos dos KPIs/cartoes ajustados para "hoje". Migration
-  0018_metricas_diarias.sql criada — PENDENTE de aplicar no Supabase
-  (ate la o painel segue mostrando o acumulado geral). A tool MCP
-  resumo_metricas passa a devolver os mesmos agregados diarios
+  0018_metricas_diarias.sql APLICADA 26/11/2026 via MCP (aprovada pelo
+  usuario; verificado: dia=2026-11-26, total do dia separado do total
+  das ultimas 24h). A tool MCP resumo_metricas passa a devolver os
+  mesmos agregados diarios
 
 ## Em andamento
 
@@ -864,7 +865,8 @@ de entrega.
   em 25/11/2026 via Supabase MCP com aprovacao do usuario) e
   0017_limpeza_catalogo_429 APLICADA em 26/11/2026 via SQL Editor
   (12 linhas em modelos_ia verificadas via MCP);
-  0018_metricas_diarias PENDENTE (reset diario do painel /metricas.html)
+  0018_metricas_diarias APLICADA 26/11/2026 via MCP (reset diario do
+  painel /metricas.html — RPC verificada retornando dia corrente)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
