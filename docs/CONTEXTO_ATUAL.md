@@ -806,9 +806,15 @@ de entrega.
    vercel.json correto. sw.js agora ignora origens diferentes da
    propria (url.origin !== self.location.origin) e o CACHE subiu para
    kora-v18. Hostnames do widget conferidos no painel: corretos
-   (koradelivery.vercel.app, localhost, 127.0.0.1). PENDENTE: apos o
-   deploy, verificar no console se api.js carrega e se tokens voltam a
-   ser emitidos; entao reativar o bloqueio no turnoLiberado().
+   (koradelivery.vercel.app, localhost, 127.0.0.1). VERIFICADO
+   26/11/2026 apos deploy: sw.js v18 em producao, CSP ok, api.js e
+   challenge-platform carregam e o widget aparece/conclui no Chrome
+   real do usuario (confirmado manualmente). Playwright/automacao
+   segue sem emitir token (deteccao de bot da Cloudflare — falso
+   negativo dos testes automaticos; o challenge trava apos um 401
+   no endpoint /pat/ do challenge-platform). PENDENTE: reativar o
+   bloqueio no turnoLiberado() quando o usuario confirmar que os
+   logs do siteverify mostram "token valido" na Vercel.
    Ate la turnoLiberado() segue sempre liberando e so logando o
    veredito do siteverify — /api/chat nao toma mais 403; o branch de
    bloqueio permanece em api/chat.ts. Rate limit por IP segue como
