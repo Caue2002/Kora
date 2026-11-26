@@ -11,6 +11,7 @@ import { catalogoModelos } from '../shared/env.js';
 import { chamarLLM, ErroLimiteModelo, type MensagemChat } from '../shared/llm.js';
 import { verificarLimite } from '../shared/ratelimit.js';
 import { consultar, upsert } from '../shared/supabase.js';
+import { parseEstadoExtraido, type EstadoExtraido } from '../shared/caso.js';
 
 interface CorpoRequisicao {
   conversaId?: unknown;
@@ -29,10 +30,6 @@ interface EstadoCaso {
   resumo: string | null;
   atualizado_em: string;
 }
-
-const ETAPAS = ['triagem', 'coleta_evidencias', 'analise', 'parecer', 'encerrado'] as const;
-const CATEGORIAS = ['quantidade', 'troca_item', 'qualidade', 'prazo_roteamento', 'pagamento', 'outro'] as const;
-const STATUS = ['em_andamento', 'resolvido', 'encerrado'] as const;
 
 const MAX_MENSAGENS = 16;
 const MAX_CHARS_MENSAGEM = 1500;
@@ -80,7 +77,7 @@ Regras:
 - Se a conversa for apenas saudacao/pergunta casual sem caso de disputa, use etapa "triagem", categoria null, status "em_andamento" e listas vazias`;
 
 // Chama o primeiro modelo disponivel com chave; tenta o proximo em limite de cota
-async function extrairEstado(mensagens: MensagemChat[]): Promise<Record<string, unknown> | null> {
+async function extrairEstado(mensagens: MensagemChat[]): Promise<EstadoExtraido | null> {
   const catalogo = catalogoModelos()
     .filter((m) => m.apiKey)
     .sort((a, b) => a.prioridade - b.prioridade);
@@ -101,53 +98,15 @@ async function extrairEstado(mensagens: MensagemChat[]): Promise<Record<string, 
         // response_format); parseEstado continua como fallback tolerante
         { temperatura: 0, maxTokens: 900, jsonMode: true },
       );
-      return parseEstado(r.texto);
+      // Schema zod (shared/caso.ts): enums, listas limitadas e defaults
+      // tolerantes — validacao estruturada em vez de parsing de texto
+      return parseEstadoExtraido(r.texto);
     } catch (erro) {
       if (erro instanceof ErroLimiteModelo) continue;
       console.warn(`[caso] extracao falhou no modelo ${modelo.provedor}:`, erro);
     }
   }
   return null;
-}
-
-// Extrai o objeto JSON da resposta do modelo de forma tolerante
-function parseEstado(texto: string): Record<string, unknown> | null {
-  const inicio = texto.indexOf('{');
-  const fim = texto.lastIndexOf('}');
-  if (inicio < 0 || fim <= inicio) return null;
-  try {
-    const bruto = JSON.parse(texto.slice(inicio, fim + 1)) as Record<string, unknown>;
-    return sanitizarEstado(bruto);
-  } catch {
-    return null;
-  }
-}
-
-function listaStrings(valor: unknown): string[] {
-  if (!Array.isArray(valor)) return [];
-  return valor.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).slice(0, 12);
-}
-
-// Garante que o estado retornado pelo modelo esteja dentro do dominio esperado
-function sanitizarEstado(bruto: Record<string, unknown>): Record<string, unknown> {
-  const etapa = typeof bruto.etapa === 'string' && (ETAPAS as readonly string[]).includes(bruto.etapa)
-    ? bruto.etapa
-    : 'triagem';
-  const categoria = typeof bruto.categoria === 'string' && (CATEGORIAS as readonly string[]).includes(bruto.categoria)
-    ? bruto.categoria
-    : null;
-  const status = typeof bruto.status === 'string' && (STATUS as readonly string[]).includes(bruto.status)
-    ? bruto.status
-    : 'em_andamento';
-  return {
-    etapa,
-    categoria,
-    status,
-    resumo: typeof bruto.resumo === 'string' ? bruto.resumo.slice(0, 300) : '',
-    fatos: listaStrings(bruto.fatos),
-    evidencias: listaStrings(bruto.evidencias),
-    pendencias: listaStrings(bruto.pendencias),
-  };
 }
 
 async function buscarCaso(conversaId: string): Promise<EstadoCaso | null> {

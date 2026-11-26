@@ -788,6 +788,15 @@ de entrega.
   andamento (pararDitadoSilencioso). Rota registrada no dev-server;
   testes tests/stt.test.ts (validacoes). Voz agora e neural nos dois
   sentidos: STT Whisper + TTS Edge
+- Extracao do caso estruturada (spec em
+  spec/SPEC-caso-estruturado.md, modulo caso-estruturado do
+  capability-map): shared/caso.ts concentra EstadoCasoSchema (zod) —
+  enums de etapa/categoria/status, listas limitadas a 12 itens e
+  defaults tolerantes via .catch (mesmos defaults do sanitizador
+  manual que saiu de api/caso.ts: parseEstado/sanitizarEstado/
+  listaStrings removidos). parseEstadoExtraido faz a extracao
+  tolerante do JSON + safeParse; comportamento externo identico.
+  Testes tests/caso-schema.test.ts
 
 ## Em andamento
 
