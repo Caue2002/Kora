@@ -1,5 +1,6 @@
-// Cliente da API do chat e persistencia das conversas no navegador (localStorage)
-// Permite historico de chats estilo Gemini: varias conversas salvas localmente
+// Cliente da API do chat e persistencia das conversas no navegador (sessionStorage)
+// Historico de chats estilo Gemini: varias conversas salvas apenas na sessao
+// da aba — fechar/excluir a aba apaga tudo e a proxima abertura comeca do zero
 
 export interface Fonte {
   titulo: string;
@@ -29,13 +30,26 @@ export interface Conversa {
   encerrada?: boolean;
 }
 
+// sessionStorage: o historico vive so enquanto a aba estiver aberta.
+// Ao fechar/excluir a aba o navegador descarta tudo — o chat nao e
+// recuperavel depois (diferente do localStorage, que sobrevivia ao
+// fechamento do navegador e reabria a ultima conversa)
 const CHAVE_CONVERSAS = 'kora-conversas-v1';
 const CHAVE_LEGADO = 'kora-chat-v1';
+// Chave que versoes anteriores gravavam em localStorage; removida uma
+// vez para nao deixar conversas orfas acessiveis fora da sessao
+const CHAVE_LOCAL_LEGADO = 'kora-conversas-v1';
 
-// Le as conversas salvas; na primeira vez migra o chat unico da versao anterior
+// Le as conversas salvas na sessao da aba atual
 export function listarConversas(): Conversa[] {
+  // Limpa resquicios da persistencia antiga em localStorage (fora da sessao)
   try {
-    const bruto = localStorage.getItem(CHAVE_CONVERSAS);
+    localStorage.removeItem(CHAVE_LOCAL_LEGADO);
+  } catch {
+    // storage indisponivel
+  }
+  try {
+    const bruto = sessionStorage.getItem(CHAVE_CONVERSAS);
     if (bruto) {
       const dados = JSON.parse(bruto) as Conversa[];
       return Array.isArray(dados) ? dados : [];
@@ -69,7 +83,7 @@ export function listarConversas(): Conversa[] {
 
 export function salvarConversas(conversas: Conversa[]): void {
   try {
-    localStorage.setItem(CHAVE_CONVERSAS, JSON.stringify(conversas));
+    sessionStorage.setItem(CHAVE_CONVERSAS, JSON.stringify(conversas));
   } catch {
     // armazenamento cheio ou indisponivel
   }

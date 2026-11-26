@@ -55,7 +55,9 @@ de entrega.
 - Tema escuro com toggle, animacao de entrada, icones SVG nas acoes,
   contador de ocorrencias, ditado por voz (Web Speech API) e PWA instalavel
 - Historico estilo Gemini: sidebar fixa no desktop/overlay no mobile,
-  persistencia em localStorage, titulo automatico, busca e renomear conversa;
+  persistencia em sessionStorage (o historico morre com a aba — fechar ou
+  excluir a aba apaga tudo e a proxima abertura comeca na tela inicial),
+  titulo automatico, busca e renomear conversa;
   cabecalho exibe apenas "Nori" (sem nome da empresa)
 - Streaming de respostas token a token: shared/llm.ts (streamLLM + parser SSE
   Gemini/OpenAI), /api/chat aceita { stream: true }, frontend preenche a bolha
@@ -167,8 +169,10 @@ de entrega.
   mensagem e calculado UMA vez e reutilizado pela busca RAG e pelo cache
   (buscar_cache_resposta, score >= 0.95, validade 72h, perfil igual);
   tabela conversas espelha o historico no servidor (upsert por conversa_id
-  a cada resposta; GET /api/conversa devolve as mensagens) — backup do
-  localStorage, base para sync futura; GET /api/conversa e /api/metricas
+  a cada resposta; GET /api/conversa devolve as mensagens) — backup da
+  sessao da aba (o frontend nao expoe esse endpoint; o chat nao e
+  recuperavel depois que a aba fecha), base para sync futura; GET
+  /api/conversa e /api/metricas
   registradas no dev-server
 - Acao real da conciliacao: quando o caso chega a etapa parecer/encerrado,
   /api/caso faz upsert em conciliacoes (conversa_id, categoria, status,
