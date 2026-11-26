@@ -861,9 +861,13 @@ de entrega.
   /api/tts e /api/stt identicas; dev-server e tests/stt.test.ts
   atualizados; urls publicas nao mudaram. Decisao registrada em
   DECISOES.md D16 — NOVO endpoint em api/ exige consolidar outro par
-  ou plano Pro. Deploy do commit ainda pendente de verificacao
-  (apos o push, conferir status Vercel no GitHub e testar
-  /api/chat sem token -> esperado 403)
+  ou plano Pro. Deploy eec5920 VERIFICADO em producao (26/11):
+  /api/chat sem token -> 403 (Turnstile bloqueando de verdade),
+  /api/tts e /api/stt respondem via rewrites p/ api/voz.ts. Pendente
+  so o teste humano: mandar mensagem no chat real p/ confirmar que
+  o widget emite token (se aparecer 403 no uso normal, reverter
+  shared/turnstile.ts p/ modo observacao — git show
+  e0e448b:shared/turnstile.ts)
 
 ## Em andamento
 
