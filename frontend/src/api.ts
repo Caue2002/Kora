@@ -295,6 +295,23 @@ export async function gerarHandoff(mensagens: Mensagem[]): Promise<string | null
   }
 }
 
+// Transcreve um audio gravado pelo MediaRecorder via /api/stt (Whisper).
+// Retorna o texto ou null em caso de falha — o chamador decide o fallback
+export async function transcreverAudio(blob: Blob): Promise<string | null> {
+  try {
+    const res = await fetch('/api/stt', {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'audio/webm' },
+      body: blob,
+    });
+    if (!res.ok) return null;
+    const dados = (await res.json()) as { texto?: string };
+    return dados.texto?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 // Gera audio MP3 da resposta via /api/tts (voz neural Edge). Retorna blob URL
 // ou null em caso de falha — o chamador decide o fallback
 export async function gerarAudioFala(texto: string): Promise<string | null> {

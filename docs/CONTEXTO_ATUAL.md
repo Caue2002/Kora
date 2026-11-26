@@ -775,6 +775,19 @@ de entrega.
   ATENCAO: evals-juiz "guardrail: injecao de prompt" reprovou 2/5 em
   duas rodadas locais (drift de modelo/juiz LLM — nao relacionado a
   memoria, que nao envia dispositivoId nos evals); monitorar no CI
+- Ditado neural via Whisper (spec em spec/SPEC-voz-whisper.md,
+  modulo voz-whisper do capability-map): novo endpoint POST /api/stt
+  recebe audio bruto (Content-Type audio/*, teto 4.5MB, rate limit
+  20/min) e repassa a Groq audio/transcriptions (whisper-large-v3,
+  language=pt) — mesma GROQ_API_KEY do chat; shared/env.ts ganhou
+  groqApiKey(). Frontend: botao de microfone grava com MediaRecorder
+  (auto-stop 60s) e transcreve ao parar — durante a transcricao o
+  botao mostra o IndicadorCarregando; sem MediaRecorder/getUserMedia
+  cai na Web Speech API (fluxo antigo preservado em
+  iniciarDitadoWebSpeech). processarEnvio descarta gravacao em
+  andamento (pararDitadoSilencioso). Rota registrada no dev-server;
+  testes tests/stt.test.ts (validacoes). Voz agora e neural nos dois
+  sentidos: STT Whisper + TTS Edge
 
 ## Em andamento
 

@@ -80,7 +80,7 @@ Specs existentes (SDD): `SPEC-a2a-e-handoff`, `SPEC-evals-ci`,
 `SPEC-mcp-server` (Kora COMO servidor MCP), `SPEC-memoria-usuario`,
 `SPEC-observabilidade-dashboard`,
 `SPEC-observabilidade-v2`, `SPEC-readme-vendavel`, `SPEC-ui-indicador-tools`,
-`SPEC-voz-neural`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
+`SPEC-voz-neural`, `SPEC-voz-whisper`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
 e `SPEC-eval-retrieval`, `SPEC-roteamento-modelos` e `SPEC-eval-baseline-ci`
 (implementadas).
 

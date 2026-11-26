@@ -14,6 +14,7 @@ import {
   listarConversas,
   salvarConversas,
   salvarMemoria,
+  transcreverAudio,
   tituloDe,
   type Conversa,
   type EstadoCaso,
@@ -435,6 +436,8 @@ export default function App() {
   const [exportando, setExportando] = useState(false);
   const [escuro, setEscuro] = useState<boolean>(() => localStorage.getItem(CHAVE_TEMA) === 'escuro');
   const [ouvindo, setOuvindo] = useState(false);
+  // Gravando audio para o Whisper (/api/stt) ou aguardando a transcricao
+  const [transcrevendo, setTranscrevendo] = useState(false);
   const [sidebarAberta, setSidebarAberta] = useState(false);
   const [avaliacaoPendente, setAvaliacaoPendente] = useState<{ msgId: string; avaliacao: string } | null>(null);
   const [comentario, setComentario] = useState('');
@@ -470,6 +473,11 @@ export default function App() {
   const fileRef = useRef<HTMLInputElement>(null);
   const comentarioRef = useRef<HTMLInputElement>(null);
   const reconhecimentoRef = useRef<ReconhecimentoVoz | null>(null);
+  // Ditado neural (SPEC-voz-whisper): MediaRecorder + POST /api/stt
+  const gravadorRef = useRef<MediaRecorder | null>(null);
+  const chunksAudioRef = useRef<Blob[]>([]);
+  const ditadoBaseRef = useRef('');
+  const ditadoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversasRef = useRef(conversas);
   conversasRef.current = conversas;
   const encerrarRef = useRef<() => void>(() => {});
@@ -810,8 +818,46 @@ export default function App() {
     if (podeFocarInput()) inputRef.current?.focus();
   }
 
-  // Inicia ou para o ditado por voz usando a Web Speech API do navegador
-  function alternarDitado() {
+  // Para a gravacao/transcricao em andamento sem transcrever (usado antes
+  // de enviar a mensagem: o audio parcial e descartado, como no fluxo antigo)
+  function pararDitadoSilencioso() {
+    if (ditadoTimerRef.current) {
+      clearTimeout(ditadoTimerRef.current);
+      ditadoTimerRef.current = null;
+    }
+    const rec = gravadorRef.current;
+    if (rec) {
+      rec.onstop = null;
+      rec.stream.getTracks().forEach((t) => t.stop());
+      if (rec.state !== 'inactive') rec.stop();
+      gravadorRef.current = null;
+      chunksAudioRef.current = [];
+    }
+    reconhecimentoRef.current?.stop();
+    setOuvindo(false);
+    setTranscrevendo(false);
+  }
+
+  // Transcreve o audio gravado via /api/stt (Whisper) e insere no campo.
+  // Falha do servico mostra erro — nao ha fallback para Web Speech aqui
+  // porque a gravacao ja aconteceu (o fallback e so na hora de gravar)
+  async function finalizarDitadoWhisper(blob: Blob) {
+    setTranscrevendo(true);
+    const texto = await transcreverAudio(blob);
+    setTranscrevendo(false);
+    if (!texto) {
+      setErro({ mensagem: 'Nao consegui transcrever o audio agora. Tente de novo ou digite.', retryTexto: '' });
+      return;
+    }
+    const combinado = `${ditadoBaseRef.current} ${texto}`.trim();
+    setEntrada(combinado);
+    inputRef.current?.focus();
+  }
+
+  // Fallback de ditado: Web Speech API do navegador (qualidade varia por
+  // dispositivo). So entra quando MediaRecorder/getUserMedia nao existem
+  // ou a permissao de microfone falha — o caminho principal e o Whisper
+  function iniciarDitadoWebSpeech() {
     const w = window as unknown as {
       SpeechRecognition?: new () => ReconhecimentoVoz;
       webkitSpeechRecognition?: new () => ReconhecimentoVoz;
@@ -819,10 +865,6 @@ export default function App() {
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!Ctor) {
       setErro({ mensagem: 'Ditado por voz nao suportado neste navegador.', retryTexto: '' });
-      return;
-    }
-    if (ouvindo) {
-      reconhecimentoRef.current?.stop();
       return;
     }
     const rec = new Ctor();
@@ -849,6 +891,51 @@ export default function App() {
     reconhecimentoRef.current = rec;
     setOuvindo(true);
     rec.start();
+  }
+
+  // Inicia ou para o ditado por voz. Caminho principal: grava com
+  // MediaRecorder e transcreve via Whisper no servidor (/api/stt);
+  // fallback: Web Speech API do navegador quando a gravacao nao existe
+  async function alternarDitado() {
+    if (ouvindo || transcrevendo) {
+      // Para a gravacao: o onstop do MediaRecorder dispara a transcricao;
+      // no Web Speech, stop encerra o reconhecimento na hora
+      gravadorRef.current?.stop();
+      reconhecimentoRef.current?.stop();
+      return;
+    }
+    // Ditado neural: MediaRecorder + Whisper (SPEC-voz-whisper)
+    if (navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== 'undefined') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const rec = new MediaRecorder(stream);
+        chunksAudioRef.current = [];
+        ditadoBaseRef.current = entrada;
+        rec.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksAudioRef.current.push(e.data);
+        };
+        rec.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          gravadorRef.current = null;
+          setOuvindo(false);
+          const blob = new Blob(chunksAudioRef.current, { type: rec.mimeType || 'audio/webm' });
+          chunksAudioRef.current = [];
+          if (blob.size > 0) void finalizarDitadoWhisper(blob);
+        };
+        gravadorRef.current = rec;
+        rec.start();
+        setOuvindo(true);
+        // Auto-stop em 60s: limita o tamanho do audio e o custo do STT
+        ditadoTimerRef.current = setTimeout(() => {
+          ditadoTimerRef.current = null;
+          if (gravadorRef.current?.state === 'recording') gravadorRef.current.stop();
+        }, 60_000);
+        return;
+      } catch {
+        // Permissao negada ou MediaRecorder falhou: tenta o fallback Web Speech
+      }
+    }
+    iniciarDitadoWebSpeech();
   }
 
   // Gera uma miniatura da imagem (max ~520px, JPEG) para exibir na bolha do chat
@@ -899,8 +986,7 @@ export default function App() {
   // Aceita envio so com foto (sem texto): a mensagem vira "Enviei uma foto como evidencia."
   async function processarEnvio(texto: string) {
     if ((!texto && !anexo) || enviando) return;
-    reconhecimentoRef.current?.stop();
-    setOuvindo(false);
+    pararDitadoSilencioso();
     setErro(null);
     setEntrada('');
     if (inputRef.current) inputRef.current.style.height = 'auto';
@@ -1714,12 +1800,13 @@ function pararAudio() {
           </button>
           <button
             type="button"
-            className={`btn-mic ${ouvindo ? 'ouvindo' : ''}`}
+            className={`btn-mic ${ouvindo || transcrevendo ? 'ouvindo' : ''}`}
             onClick={alternarDitado}
-            title="Ditar mensagem"
+            disabled={transcrevendo}
+            title={transcrevendo ? 'Transcrevendo audio...' : 'Ditar mensagem'}
             aria-label="Ditar mensagem"
           >
-            {iconeMicrofone}
+            {transcrevendo ? <IndicadorCarregando /> : iconeMicrofone}
           </button>
           <div className="chat-input-bloco">
             <textarea

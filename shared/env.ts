@@ -150,6 +150,12 @@ export function mcpApiKey(): string | undefined {
   return env('MCP_API_KEY');
 }
 
+// Chave Groq (chat + Whisper STT do /api/stt): sem ela o endpoint de
+// ditado neural fica desabilitado e o frontend cai na Web Speech API
+export function groqApiKey(): string | undefined {
+  return env('GROQ_API_KEY');
+}
+
 // Cloudflare Turnstile (anti-abuso do /api/chat): so ativa quando
 // TURNSTILE_SECRET_KEY esta definida — sem ela a checagem e no-op
 export function turnstileSecretKey(): string | undefined {
