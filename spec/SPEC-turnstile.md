@@ -1,6 +1,17 @@
 # Spec: Cloudflare Turnstile anti-abuso no /api/chat — V1
 
-Status: implementado
+Status: implementado — MODO OBSERVACAO desde 26/11/2026
+
+> **Suspensao do bloqueio (26/11/2026):** o widget parou de emitir
+> tokens em producao — o challenge da Cloudflare nunca concluia (nem em
+> Chrome real, testado via Playwright) e todo POST /api/chat tomava 403.
+> Causa provavel: dominio `koradelivery.vercel.app` fora da lista de
+> hostnames do widget ou par sitekey/secret divergente — ambos no
+> painel Cloudflare, fora do codigo. `turnoLiberado()` agora sempre
+> libera e apenas LOGA o veredito do siteverify (success/error-codes),
+> preservando observabilidade para reativar o bloqueio quando a
+> configuracao for revista. O branch de 403 em api/chat.ts permanece.
+> Producao segue protegida pelo rate limit por IP (20 req/min).
 
 ## Objetivo
 

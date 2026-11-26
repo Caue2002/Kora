@@ -781,6 +781,15 @@ de entrega.
    token): os 4 arquivos que batem no /api/chat (chat.smoke,
    cenarios, evals, evals-juiz) fazem
    `delete process.env.TURNSTILE_SECRET_KEY` no carregarEnv
+   MODO OBSERVACAO 26/11/2026: o widget nunca emitia token em
+   producao (diagnosticado via Playwright — script carrega, widget
+   renderiza, mas o challenge da Cloudflare nao conclui nem em Chrome
+   real; provavel hostname fora da lista do widget ou par
+   sitekey/secret divergente no painel). turnoLiberado() agora SEMPRE
+   libera e so loga o veredito do siteverify — /api/chat nao toma
+   mais 403; o branch de bloqueio permanece em api/chat.ts para
+   reativar quando a config da Cloudflare for revista. Rate limit por
+   IP segue como protecao principal
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
    LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
    a heuristica flagra, o verificador LLM confirma se o problema e

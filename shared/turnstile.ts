@@ -1,20 +1,31 @@
 // Verificacao de token Cloudflare Turnstile para o /api/chat.
-// DORMENTE por padrao: sem TURNSTILE_SECRET_KEY no ambiente, tudo passa.
-// Com a chave configurada, todo POST /api/chat precisa de um token
-// valido emitido pelo widget no frontend (siteverify e a chamada
-// oficial da Cloudflare; tokens sao de uso unico e expiram em ~5min).
+//
+// MODO OBSERVACAO (26/11/2026): a checagem NAO bloqueia mais requisicoes.
+// Motivo: o widget parou de emitir tokens em producao (challenge da
+// Cloudflare nunca concluia — provavel dominio nao liberado ou par
+// sitekey/secret divergente no painel, fora do alcance do codigo) e
+// todo POST /api/chat tomava 403. Ate a configuracao ser revista no
+// dashboard da Cloudflare, o siteverify roda apenas para LOGAR o
+// resultado (success/error-codes) — quando o widget voltar a emitir
+// tokens, os logs mostram se a validacao esta saudavel e o bloqueio
+// pode ser reativado.
+//
+// Protecao ativa nesse periodo: rate limit por IP no Postgres
+// (shared/ratelimit.ts) + demais guardrails do /api/chat.
+// DORMENTE por padrao: sem TURNSTILE_SECRET_KEY no ambiente, nem a
+// chamada de observacao acontece.
 
 import { turnstileSecretKey } from './env.js';
 
-// Devolve true quando o turno esta liberado: sem secret configurado
-// (protecao desligada) ou com token validado pela Cloudflare.
-// Se o siteverify estiver inacessivel, falha ABERTA com warn — o chat
-// ja tem rate limit por IP e nao pode cair por indisponibilidade da
-// Cloudflare; a janela de abuso sem verificacao e aceita e registrada.
+// Sempre devolve true (nunca bloqueia). Quando ha secret + token,
+// valida na Cloudflare so para registrar o veredito no log.
 export async function turnoLiberado(token: string | undefined, ip: string): Promise<boolean> {
   const secret = turnstileSecretKey();
   if (!secret) return true;
-  if (!token) return false;
+  if (!token) {
+    console.warn('[turnstile] observacao: requisicao sem token (widget nao emitiu)');
+    return true;
+  }
   try {
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
@@ -22,14 +33,16 @@ export async function turnoLiberado(token: string | undefined, ip: string): Prom
       body: new URLSearchParams({ secret, response: token, remoteip: ip }),
     });
     const dados = (await res.json()) as { success?: boolean; 'error-codes'?: string[] };
-    if (dados.success !== true) {
-      // error-codes da Cloudflare (token-expired, invalid-input-secret etc.)
-      // sao a unica pista de por que o siteverify reprovou — vai para o log
-      console.warn('[turnstile] siteverify reprovou:', dados['error-codes'] ?? 'sem detalhe');
+    if (dados.success === true) {
+      console.log('[turnstile] observacao: token valido');
+    } else {
+      // error-codes (token-expired, invalid-input-secret, timeout-or-duplicate
+      // etc.) sao a pista de por que o siteverify reprovaria
+      console.warn('[turnstile] observacao: siteverify reprovaria:', dados['error-codes'] ?? 'sem detalhe');
     }
-    return dados.success === true;
+    return true;
   } catch (erro) {
-    console.warn('[turnstile] siteverify falhou, liberando sem verificacao:', erro);
+    console.warn('[turnstile] observacao: siteverify inacessivel:', erro);
     return true;
   }
 }
