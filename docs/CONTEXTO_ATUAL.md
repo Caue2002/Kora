@@ -863,11 +863,10 @@ de entrega.
   DECISOES.md D16 — NOVO endpoint em api/ exige consolidar outro par
   ou plano Pro. Deploy eec5920 VERIFICADO em producao (26/11):
   /api/chat sem token -> 403 (Turnstile bloqueando de verdade),
-  /api/tts e /api/stt respondem via rewrites p/ api/voz.ts. Pendente
-  so o teste humano: mandar mensagem no chat real p/ confirmar que
-  o widget emite token (se aparecer 403 no uso normal, reverter
-  shared/turnstile.ts p/ modo observacao — git show
-  e0e448b:shared/turnstile.ts)
+  /api/tts e /api/stt respondem via rewrites p/ api/voz.ts. TESTE
+  HUMANO CONFIRMADO 26/11: chat em producao responde normal (widget
+  emite token e siteverify aprova — total do dia subiu de ~790 para
+  ~1060 metricas_chat). Turnstile 100% ativo e funcional
 
 ## Em andamento
 
