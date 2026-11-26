@@ -848,7 +848,22 @@ de entrega.
   a lista real de modelos e "~62 testes"->~131. Guia PDF foi
   renomeado pelo usuario para
   "Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf" —
-  referencias atualizadas em AGENTS.md, SKILL.md e capability-map
+  referencias atualizadas em AGENTS.md, SKILL.md e capability-map.
+  INCIDENTE DE DEPLOY descoberto na mesma varredura: todos os deploys
+  Vercel falhavam desde ab67caf (voz-whisper) com "No more than 12
+  Serverless Functions can be added to a Deployment on the Hobby
+  plan" — api/ chegou a 13 arquivos (memoria.ts + stt.ts) e o limite
+  do Hobby e 12. Producao ficou presa no build de d60b540 (sem STT,
+  caso-estruturado, guardrails-injecao, fixes de itens/aurora e as
+  correcoes do Turnstile/RAG). Correcao: api/tts.ts e api/stt.ts
+  fundidos em api/voz.ts (dispatcher por ?rota= ou pathname; 12
+  functions de novo) + rewrites no vercel.json mantendo as URLs
+  /api/tts e /api/stt identicas; dev-server e tests/stt.test.ts
+  atualizados; urls publicas nao mudaram. Decisao registrada em
+  DECISOES.md D16 — NOVO endpoint em api/ exige consolidar outro par
+  ou plano Pro. Deploy do commit ainda pendente de verificacao
+  (apos o push, conferir status Vercel no GitHub e testar
+  /api/chat sem token -> esperado 403)
 
 ## Em andamento
 

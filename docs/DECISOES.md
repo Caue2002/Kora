@@ -130,3 +130,17 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
   seguranca crescer organicamente sem poluir o cache normal.
 - Ressalva: depende da migration 0016 (pendente de aprovacao); sem ela o
   resolverFallback degrada para banco/variantes silenciosamente.
+
+## D16 - Functions de voz unificadas (limite Hobby da Vercel)
+
+- Decisao: `api/tts.ts` e `api/stt.ts` viraram uma unica function
+  `api/voz.ts` com dispatcher interno (`?rota=tts|stt` ou sufixo do
+  pathname); vercel.json reescreve `/api/tts` e `/api/stt` para ela,
+  mantendo as URLs publicas identicas.
+- Motivo: o plano Hobby limita a 12 Serverless Functions por deploy; com
+  13 arquivos em api/ (apos a entrada de memoria.ts e stt.ts) TODO deploy
+  passou a falhar com "No more than 12 Serverless Functions" — a
+  producao ficou presa numa versao antiga por varios commits ate a
+  causa ser identificada via `vercel inspect --logs`.
+- Ressalva: qualquer NOVO endpoint em api/ exige consolidar outro par
+  ou migrar para Pro; contar `ls api/*.ts` antes de adicionar rotas.

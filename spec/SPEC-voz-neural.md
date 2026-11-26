@@ -10,7 +10,10 @@ via pacote msedge-tts, exposto num endpoint /api/tts que devolve MP3.
 
 ## Decisoes
 
-- Backend: `api/tts.ts` POST { texto } -> audio/mpeg stream. Rate limit por
+- Backend: `api/voz.ts` (function unificada — o plano Hobby limita a 12
+  Serverless Functions; rewrites do vercel.json mapeiam /api/tts e
+  /api/stt para ela com ?rota=) POST { texto } -> audio/mpeg stream.
+  Rate limit por
   IP (30/min), tamanho max do texto (~1200 chars; frontend fatia respostas
   longas em paragrafos e toca em sequencia ou so o primeiro paragrafo —
   decidir: V1 toca a resposta INTEIRA em paragrafos sequenciais).

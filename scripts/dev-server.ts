@@ -16,9 +16,8 @@ import metricasHandler from '../api/metricas';
 import mcpHandler from '../api/mcp';
 import a2aHandler from '../api/a2a';
 import handoffHandler from '../api/handoff';
-import ttsHandler from '../api/tts';
+import vozHandler from '../api/voz';
 import memoriaHandler from '../api/memoria';
-import sttHandler from '../api/stt';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -43,9 +42,9 @@ const rotas: Record<string, (req: Request) => Promise<Response>> = {
   '/api/mcp': mcpHandler,
   '/api/a2a': a2aHandler,
   '/api/handoff': handoffHandler,
-  '/api/tts': ttsHandler,
+  '/api/tts': vozHandler,
   '/api/memoria': memoriaHandler,
-  '/api/stt': sttHandler,
+  '/api/stt': vozHandler,
 };
 
 const servidor = createServer(async (req, res) => {

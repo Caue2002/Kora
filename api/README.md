@@ -19,12 +19,22 @@ Nori pelo agent card publico em `/.well-known/agent-card.json`
 (frontend/public) e conversam via `message/send`. Pipeline enxuto (um turno,
 sem historico/estado). Mesma auth `MCP_API_KEY`.
 
-## /api/tts — texto para fala
+## /api/voz — voz neural (TTS + STT)
 
-POST `{ texto }` -> `audio/mpeg` com voz neural Microsoft Edge
-(`pt-BR-FranciscaNeural`, gratuita via msedge-tts). Sem auth; rate limit
-30/min por IP; texto limpo de markdown e limitado a 1200 chars. O botao
-"ouvir" do chat usa este endpoint com fallback para a voz do navegador.
+Function unica que atende DOIS endpoints via rewrites do vercel.json
+(`/api/tts` -> `/api/voz?rota=tts`, `/api/stt` -> `/api/voz?rota=stt`) —
+necessario porque o plano Hobby da Vercel limita a 12 Serverless
+Functions por deploy e api/ chegou a 13 arquivos.
+
+- **TTS** — POST `{ texto }` -> `audio/mpeg` com voz neural Microsoft
+  Edge (`pt-BR-FranciscaNeural`, gratuita via msedge-tts). Sem auth;
+  rate limit 30/min por IP; texto limpo de markdown e limitado a 1200
+  chars. O botao "ouvir" do chat usa este endpoint com fallback para a
+  voz do navegador.
+- **STT** — POST com audio bruto no body (`Content-Type audio/*`) ->
+  `{ texto }` via Whisper large-v3 da Groq (mesma GROQ_API_KEY do chat).
+  Ditado neural do chat (spec SPEC-voz-whisper). Rate limit 20/min por
+  IP; audio limitado a ~4.5MB.
 
 ## /api/handoff — encaminhamento humano
 

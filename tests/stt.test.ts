@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import handler from '../api/stt';
+import handler from '../api/voz';
 
 // Ditado neural (SPEC-voz-whisper): validacoes do /api/stt que nao
-// dependem da Groq — caminho feliz e coberto por uso real
+// dependem da Groq — caminho feliz e coberto por uso real.
+// O handler mora em api/voz.ts (function unificada p/ o limite de 12
+// do plano Hobby); o dispatcher resolve a rota pelo pathname.
 
 describe('POST /api/stt — validacoes', () => {
   it('rejeita metodo GET', async () => {

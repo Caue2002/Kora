@@ -14,7 +14,9 @@ neural Edge na mesma arquitetura de endpoints.
 
 ## Decisoes
 
-- **Novo endpoint `POST /api/stt`**: recebe o audio bruto (body binario,
+- **Endpoint `POST /api/stt`** (hoje servido por `api/voz.ts`, function
+  unificada com o TTS por causa do limite de 12 functions do Hobby —
+  vercel.json reescreve /api/stt -> /api/voz?rota=stt): recebe o audio bruto (body binario,
   Content-Type audio/*) e repassa ao Groq
   `audio/transcriptions` (modelo whisper-large-v3, language=pt,
   response_format=json). Devolve `{ texto }`. Sem auth; rate limit
