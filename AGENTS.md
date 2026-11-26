@@ -79,7 +79,14 @@ Specs existentes (SDD): `SPEC-a2a-e-handoff`, `SPEC-evals-ci`,
 `SPEC-guardrails-saida`, `SPEC-indicador-carregamento`, `SPEC-llm-judge-evals`,
 `SPEC-mcp-server` (Kora COMO servidor MCP), `SPEC-observabilidade-dashboard`,
 `SPEC-observabilidade-v2`, `SPEC-readme-vendavel`, `SPEC-ui-indicador-tools`,
-`SPEC-voz-neural`, `SPEC-supabase-mcp-governanca`.
+`SPEC-voz-neural`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
+(proposto).
+
+`capability-map.md` — iniciativa "impressionar na entrevista" (26/11/2026):
+7 modulos em fila de build (metricas-qualidade, eval-retrieval,
+roteamento-modelos, eval-baseline-ci, memoria-usuario, voz-whisper,
+caso-estruturado); auth-usuarios e fase 2. Um modulo por vez, com
+aprovacao do usuario entre fases.
 
 Ao mudar comportamento coberto por uma spec, atualizar a spec correspondente
 (Status/Boundaries) no mesmo commit.
