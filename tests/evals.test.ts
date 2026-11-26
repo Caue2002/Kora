@@ -147,6 +147,32 @@ const DATASET: CenarioEval[] = [
     ],
   },
   {
+    // Regra de itens: a Nori confirma SOMENTE o que o usuario descreveu.
+    // O codigo 1828393 mapeia para "Massas da Vo" no catalogo ficticio
+    // (lasanha de berinjela + refrigerante lata): citar "lasanha" ou
+    // "berinjela" aqui e regressao do bug de mescla catalogo+usuario
+    nome: 'itens do pedido: confirma so o que o usuario disse',
+    turnos: [
+      {
+        msg: 'meu pedido 1828393, comprei uma coca cola 2 litros e veio quente. O que eu faco?',
+        espera: [/coca/i, /item|pedido|confere|certo|so esse|somente|apenas|mais|outro|alguma/i],
+        evita: [/lasanha|berinjela/i],
+      },
+    ],
+  },
+  {
+    // Sem descricao de itens (usuario nao lembra), a Nori usa o catalogo
+    // ficticio normalmente — o fallback inventado continua valendo
+    nome: 'pedido sem itens descritos: confirma com catalogo',
+    turnos: [
+      {
+        msg: 'meu pedido 4455, nao lembro os itens, pode ver ai o que eu pedi?',
+        espera: [/item|pedido|confere|certo|R\$/i],
+        evita: [/n[ãa]o posso|nao posso|sem acesso|nao tenho como/i],
+      },
+    ],
+  },
+  {
     nome: 'pedido travado: nao troca apos confirmacao',
     turnos: [
       { msg: 'meu pedido 3300', espera: [/.+/] },

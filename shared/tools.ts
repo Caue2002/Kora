@@ -12,7 +12,7 @@ export const TOOLS_GEMINI = {
     {
       name: 'consultar_pedido',
       description:
-        'Consulta um pedido da simulacao Kora pelo codigo e retorna loja, itens e valor deterministicos. Use quando o usuario informar um codigo de pedido ou pedir dados de um pedido especifico.',
+        'Consulta um pedido da simulacao Kora pelo codigo e retorna loja, valor e itens de referencia deterministicos. Use quando o usuario informar um codigo de pedido ou pedir dados de um pedido especifico. ATENCAO: os itens retornados sao do catalogo ficticio — os itens reais do pedido sao os que o usuario descreveu na conversa; so use os da tool quando o usuario nao descreveu item nenhum.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -64,6 +64,7 @@ export async function executarTool(chamada: ChamadaTool): Promise<unknown> {
       return {
         pedido: pedidoFicticio(codigo),
         detalhes: detalhesPedido(codigo),
+        nota: 'Itens retornados sao do catalogo de referencia da simulacao. Os itens reais do pedido sao os que o usuario descreveu na conversa — use os da tool apenas se o usuario nao descreveu nenhum item.',
       };
     }
     if (chamada.name === 'buscar_politica') {

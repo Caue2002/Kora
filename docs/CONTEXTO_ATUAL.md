@@ -322,7 +322,15 @@ de entrega.
   NUNCA listar itens do catalogo junto dos do usuario, confirmar somente
   o que o usuario mencionou e perguntar "foi so esse item que voce
   pediu?"; se o usuario acrescentar itens, a lista completa e tudo que
-  ele mencionou ate ali
+  ele mencionou ate ali. Complementos (26/11, 2a rodada): quando o
+  usuario diz que NAO LEMBRA os itens, a Nori confirma normalmente com
+  os itens do catalogo (fallback inventado preservado); no pedido
+  TRAVADO, os itens citados passam a ser os confirmados na conversa,
+  nao os do catalogo; a tool consultar_pedido (function calling) agora
+  declara na descricao e no resultado que seus itens sao referencia do
+  catalogo — os reais sao os que o usuario descreveu; golden dataset de
+  evals ganhou 2 cenarios cobrindo os dois lados (so itens do usuario /
+  fallback de catalogo quando nada e descrito)
 - Segunda rodada de latencia: LLM_TIMEOUT_MS padrao 25s -> 15s por
   tentativa (modelo saudavel responde em <10s); timeout do PostgREST
   10s -> 5s; buscaHibrida agora dispara em paralelo com selecao de
