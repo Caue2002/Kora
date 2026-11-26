@@ -821,6 +821,27 @@ de entrega.
   saudacao generica em vez de recusar). Com a diretiva, resposta virou
   recusa educada + redirecionamento ate no modelo lite — juiz subiu
   para 5/5, suite 4/4. Testes tests/injecao.test.ts (19 casos)
+- Varredura geral de saude (26/11/2026): git limpo e sincronizado com
+  origin/main; typecheck e vite build limpos; producao
+  (koradelivery.vercel.app) respondendo — /, /metricas.html,
+  agent-card.json 200, /api/mcp 401 sem key, /api/chat 200 via
+  failover (gemini-3.1-flash-lite-preview), /api/metricas ok.
+  Suite local: 111/131 testes ok — as 20 falhas sao AMBIENTAIS:
+  cota diaria free-tier de embeddings do Gemini (1000/dia) esgotada
+  fez embedTexts devolver null e a buscaHibrida degradar p/ lexical,
+  zerando os 18 cenarios de evals-retrieval (gravou eval_run
+  'retrieval 0/18' origem local — nao e regressao, renova com a
+  cota; limpar ou ignorar no painel); evals-juiz teve 2 flakes do
+  juiz (triagem nota 3, injecao nota 2 — drift conhecido ja
+  documentado). CI verde na main (Testes e Validacao + Evals do
+  Nori). Fluxo Kora corrigido: contagem de testes 62->131, nomes de
+  tabelas reais (casos, conhecimento_chunks, metricas_chat), chip do
+  evals-retrieval. Guia PDF foi renomeado pelo usuario para
+  "Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf" —
+  referencias atualizadas em AGENTS.md, SKILL.md e capability-map;
+  paginas 1-19 cobrem todos os modulos (unico ponto datado: p.7 diz
+  "15 slots" — o catalogo saneado tem 12; correcao do PDF depende de
+  pedido explicito do usuario)
 
 ## Em andamento
 

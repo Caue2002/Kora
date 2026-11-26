@@ -21,7 +21,7 @@ protocolo, metrica).
    (ou "Em andamento" se depender de config externa) e pendencias novas.
 5. **README.md** — atualizar se a feature muda a descricao do produto,
    a cadeia de failover ou a lista de funcionalidades/tecnologias.
-6. **Guia de entrevista** — `Guia Kora iFood.pdf`
+6. **Guia de entrevista** — `Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf`
    em `C:\Users\caue\Downloads\`: adicionar pagina/seção nova no MESMO
    estilo (Helvetica, titulos hebo 12pt cor 0x0f172a, corpo helv ~9.8pt
    cor 0x1e293b, rodape cinza 8.5pt "...Kora / Nori    Page N of M").
@@ -30,11 +30,11 @@ protocolo, metrica).
    PyMuPDF (ja instalado) para editar; atualizar numeracao "of M" em
    todos os rodapes e numeracao de secoes.
    **IMPORTANTE: o PDF e de uso pessoal, NUNCA commitar no repo.**
-   Antes de editar, fazer backup (`Guia Kora iFood - backup.pdf`).
+   Antes de editar, fazer backup (`Guia Tecnico Entrevista Kora Nori - BACKUP <data>.pdf`).
 
 ### REGRA CRITICA — nunca mexer no guia sem pedido explicito
 
-- **NAO editar o `Guia Kora iFood.pdf` a menos que o usuario peca
+- **NAO editar o `Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf` a menos que o usuario peca
   explicitamente.** O usuario edita o guia por conta propria; qualquer
   alteracao (secao nova, correcao, formatacao) so com solicitacao
   direta na conversa.

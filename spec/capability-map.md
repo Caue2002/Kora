@@ -37,6 +37,6 @@ auth-usuarios, fase 2 deferida.
   chave — auth futuro apenas associa dados ao usuario logado.
 - Um modulo por vez: capability-map aprovado → spec do modulo → aprovacao
   → implementacao → docs (CONTEXTO_ATUAL, fluxo-kora, Guia PDF) → commit.
-- Guia Kora iFood.pdf sera atualizado ao final de cada modulo (autorizado
+- Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf sera atualizado ao final de cada modulo (autorizado
   explicitamente nesta rodada): backup antes, edicao incremental via
   PyMuPDF, somente acrescimo de secoes novas.

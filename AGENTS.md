@@ -20,8 +20,10 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
 - **Nunca commitar segredos**: `.env`, `MCP_API_KEY`, service role keys,
   tokens. `.env.example` documenta nomes, nunca valores.
 - **Nunca commitar `docs/fluxo-kora/`** (material local de entrevista,
-  gitignored) nem o **`Guia Kora iFood.pdf`** (`C:\Users\caue\Downloads\`).
-- **Nunca editar o `Guia Kora iFood.pdf` sem pedido explicito do usuario**;
+  gitignored) nem o guia de entrevista em PDF
+  (`C:\Users\caue\Downloads\Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf`;
+  backups no mesmo padrao `Guia Tecnico Entrevista Kora Nori - BACKUP *.pdf`).
+- **Nunca editar o guia de entrevista em PDF sem pedido explicito do usuario**;
   quando autorizado, somente acrescentar secoes novas ou corrigir
   formatacao — nunca alterar/resumir/reescrever texto existente. Fazer
   backup antes de editar; edicao incremental via PyMuPDF, nunca rebuild
@@ -47,7 +49,7 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
   2. `docs/fluxo-kora/index.html` — pagina de entrevista (ver skill);
   3. painel de metricas (`frontend/public/metricas.html`/`.js`) — se o
      que ele exibe mudou (KPIs, modelos, colunas, RPC);
-  4. `Guia Kora iFood.pdf` (`C:\Users\caue\Downloads\`) — **somente
+  4. Guia de entrevista em PDF (`C:\Users\caue\Downloads\Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf`) — **somente
      quando o usuario pedir** (regra acima): backup + acrescimo
      incremental via PyMuPDF;
   5. `docs/DECISOES.md` so para decisoes tecnicas duraveis; README de
