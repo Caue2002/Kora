@@ -447,11 +447,9 @@ async function webHandler(req: Request): Promise<Response> {
   const mensagem =
     mensagemBruta.length > 0 ? mensagemBruta : '(o usuario enviou somente uma foto como evidencia)';
 
-  // Anti-abuso (Cloudflare Turnstile): MODO OBSERVACAO desde 26/11/2026 —
-  // turnoLiberado sempre libera e so loga o veredito do siteverify (o
-  // widget parou de emitir tokens em producao; ver shared/turnstile.ts).
-  // O branch de 403 fica pronto para reativar o bloqueio quando a
-  // configuracao da Cloudflare for revista
+  // Anti-abuso (Cloudflare Turnstile): ATIVO desde 26/11/2026 — apos as
+  // correcoes de SW e CSP o widget voltou a emitir tokens em producao;
+  // sem token valido o /api/chat responde 403 (ver shared/turnstile.ts)
   const tokenTurnstile = typeof corpo.turnstileToken === 'string' ? corpo.turnstileToken : undefined;
   if (!(await turnoLiberado(tokenTurnstile, ip))) {
     return json(403, { erro: 'Verificacao de seguranca falhou. Recarregue a pagina e tente novamente.' });

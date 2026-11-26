@@ -831,17 +831,24 @@ de entrega.
   fez embedTexts devolver null e a buscaHibrida degradar p/ lexical,
   zerando os 18 cenarios de evals-retrieval (gravou eval_run
   'retrieval 0/18' origem local — nao e regressao, renova com a
-  cota; limpar ou ignorar no painel); evals-juiz teve 2 flakes do
+  cota; PENDENTE limpar a linha de eval_runs (MCP Supabase estava
+  offline na hora — executar DELETE quando voltar ou pedir ao
+  usuario); evals-juiz teve 2 flakes do
   juiz (triagem nota 3, injecao nota 2 — drift conhecido ja
   documentado). CI verde na main (Testes e Validacao + Evals do
-  Nori). Fluxo Kora corrigido: contagem de testes 62->131, nomes de
+  Nori). Correcos da mesma varredura: (a) Turnstile saiu do modo
+  observacao — bloqueio reativado em shared/turnstile.ts + api/chat.ts
+  e spec/SPEC-turnstile.md atualizada; (b) rag/search.ts ganhou
+  fallback ILIKE quando a RPC devolve vazio sem embedding (antes a
+  busca zerava em degradacao — foi o que zerou os 18 retrievals);
+  (c) Fluxo Kora corrigido: contagem de testes 62->131, nomes de
   tabelas reais (casos, conhecimento_chunks, metricas_chat), chip do
-  evals-retrieval. Guia PDF foi renomeado pelo usuario para
+  evals-retrieval e texto do Turnstile "bloqueio ativo"; (d) Guia PDF
+  corrigido na p.7 (backup pre-correcao-numeros): "15 slots"->12 com
+  a lista real de modelos e "~62 testes"->~131. Guia PDF foi
+  renomeado pelo usuario para
   "Guia Técnico de Entrevista — Projeto Kora & Agente Nori.pdf" —
-  referencias atualizadas em AGENTS.md, SKILL.md e capability-map;
-  paginas 1-19 cobrem todos os modulos (unico ponto datado: p.7 diz
-  "15 slots" — o catalogo saneado tem 12; correcao do PDF depende de
-  pedido explicito do usuario)
+  referencias atualizadas em AGENTS.md, SKILL.md e capability-map
 
 ## Em andamento
 
@@ -978,13 +985,15 @@ de entrega.
    no endpoint /pat/ do challenge-platform). Widget tornado OCULTO
    26/11/2026: render do Turnstile ganhou appearance
    'interaction-only' (so aparece se a Cloudflare exigir interacao;
-   token segue sendo gerado sem UI visivel). PENDENTE: reativar o
-   bloqueio no turnoLiberado() quando o usuario confirmar que os
-   logs do siteverify mostram "token valido" na Vercel.
-   Ate la turnoLiberado() segue sempre liberando e so logando o
-   veredito do siteverify — /api/chat nao toma mais 403; o branch de
-   bloqueio permanece em api/chat.ts. Rate limit por IP segue como
-   protecao principal
+   token segue sendo gerado sem UI visivel). BLOQUEIO REATIVADO
+   26/11/2026 (na varredura de saude, a pedido do usuario): com o SW
+   corrigido (kora-v18) e a CSP liberando challenges.cloudflare.com,
+   o widget voltou a emitir tokens — turnoLiberado() exige token
+   valido de novo (sem token/invalido = 403; siteverify inacessivel
+   segue falhando ABERTA com warn). Se aparecer 403 em massa em
+   producao, reverter shared/turnstile.ts para o modo observacao
+   (git show e0e448b:shared/turnstile.ts). POS-DEPLOY: validar que
+   o chat em producao continua respondendo (token fluindo do widget)
 5. ~~Validacao de coerencia via LLM so quando a heuristica falha~~
    LIGADA 25/11/2026: validarComLLM agora e chamada em api/chat.ts —
    a heuristica flagra, o verificador LLM confirma se o problema e

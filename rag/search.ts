@@ -45,6 +45,11 @@ export async function buscaHibrida(
       p_embedding: embedding ? vetorParaTexto(embedding) : null,
       p_limite: limite,
     });
+    // RPC respondeu vazio (ex.: embedding indisponivel e ranking lexical
+    // sem match exato): tenta o fallback ILIKE antes de desistir
+    if ((!linhas || linhas.length === 0) && !embedding) {
+      return { trechos: await buscaLexical(consultaLimpa, limite), modo: 'lexical' };
+    }
     return { trechos: linhas ?? [], modo: embedding ? 'hibrido' : 'lexical' };
   } catch {
     // Fallback: busca lexical simples via ILIKE nos termos da consulta
