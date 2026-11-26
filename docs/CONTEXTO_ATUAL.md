@@ -743,6 +743,15 @@ de entrega.
   forte. Verificado ao vivo: "muito obrigado" e pergunta meta
   responderam com gemini-3.5-flash-lite (badge x-modelo); testes em
   tests/models.test.ts
+- Baseline de evals no CI (spec em spec/SPEC-eval-baseline-ci.md,
+  modulo eval-baseline-ci do capability-map):
+  scripts/check_eval_baseline.mjs compara o run 'ci' mais recente de
+  cada suite em eval_runs com o MELHOR run 'ci' anterior — queda >10pp
+  na taxa de aprovacao reprova o pipeline (exit 1). Sem runs 'ci'
+  previos ou banco fora: passa com aviso (telemetria nunca derruba CI).
+  .github/workflows/evals.yml agora roda tambem tests/evals-retrieval
+  .test.ts no loop e ganha o step "Baseline de evals" apos os testes.
+  Verificado local: rubricas 9/9 e juiz 3/5 vs baseline — ok
 
 ## Em andamento
 

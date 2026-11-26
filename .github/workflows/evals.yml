@@ -33,14 +33,21 @@ jobs:
             echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"
           } > .env
 
-      - name: Rodar evals (golden dataset + LLM-as-judge)
+      - name: Rodar evals (golden dataset + LLM-as-judge + retrieval)
         # Arquivos rodam em sequencia: em paralelo dobravam a carga na API
         # free-tier e causavam 503/429 em cascata. Cota satura por janelas:
         # ate 3 tentativas com 4min de espera absorvem os flakes
         run: |
           for tentativa in 1 2 3; do
-            npx vitest run tests/evals.test.ts && npx vitest run tests/evals-juiz.test.ts && exit 0
+            npx vitest run tests/evals.test.ts && npx vitest run tests/evals-juiz.test.ts && npx vitest run tests/evals-retrieval.test.ts && exit 0
             echo "Tentativa $tentativa falhou (provavel saturacao de cota)"
             [ "$tentativa" -lt 3 ] && sleep 240
           done
           exit 1
+
+      - name: Baseline de evals (regressao de qualidade)
+        # Compara o run de CI mais recente de cada suite com o melhor run
+        # anterior em eval_runs; reprova se a taxa cair >10pp
+        # (spec/SPEC-eval-baseline-ci.md)
+        if: success()
+        run: node scripts/check_eval_baseline.mjs

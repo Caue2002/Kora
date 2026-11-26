@@ -80,7 +80,8 @@ Specs existentes (SDD): `SPEC-a2a-e-handoff`, `SPEC-evals-ci`,
 `SPEC-mcp-server` (Kora COMO servidor MCP), `SPEC-observabilidade-dashboard`,
 `SPEC-observabilidade-v2`, `SPEC-readme-vendavel`, `SPEC-ui-indicador-tools`,
 `SPEC-voz-neural`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
-e `SPEC-eval-retrieval` e `SPEC-roteamento-modelos` (implementadas).
+e `SPEC-eval-retrieval`, `SPEC-roteamento-modelos` e `SPEC-eval-baseline-ci`
+(implementadas).
 
 `capability-map.md` — iniciativa "impressionar na entrevista" (26/11/2026):
 7 modulos em fila de build (metricas-qualidade, eval-retrieval,
