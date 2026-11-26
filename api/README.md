@@ -37,7 +37,9 @@ chat. Mesma auth `MCP_API_KEY`.
 
 Pagina estatica (frontend/public) com KPIs, mensagens/dia e consumo por
 modelo (latencia, tokens, custo equivalente) alimentada por GET /api/metricas.
-Link no menu de acoes do chat.
+Todos os agregados sao DO DIA (reset a meia-noite, fuso America/Sao_Paulo);
+o grafico "mensagens por dia" mantem os ultimos 14 dias como visao
+historica. Link no menu de acoes do chat.
 
 ## /api/mcp — servidor MCP
 
@@ -50,7 +52,7 @@ Tools disponiveis (somente leitura):
 - `consultar_pedido(codigo)` — dados deterministicos do pedido ficticio
 - `buscar_politica(pergunta)` — trechos do RAG de politicas de disputa
 - `listar_conciliacoes(limite?)` — conciliacoes registradas pelo agente
-- `resumo_metricas()` — agregados de uso do chat
+- `resumo_metricas()` — agregados de uso do chat do dia corrente
 
 Exemplo de conexao (Claude Desktop / Cursor): URL
 `https://<deploy>/api/mcp` com header de autorizacao contendo a chave.

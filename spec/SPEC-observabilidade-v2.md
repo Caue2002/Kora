@@ -31,3 +31,12 @@ Aprofundar o painel /metricas.html e a telemetria por request:
 
 - Trace individual por request consultavel (endpoint de detalhe)
 - Alertas automaticos
+
+## Atualizacao (26/11/2026) — metricas do dia
+
+Todos os agregados da RPC `metricas_chat_resumo()` passaram a filtrar o
+dia corrente no fuso America/Sao_Paulo (migration 0018): total, cache,
+latencias, tools, consumo por modelo e traces recentes. O grafico
+`por_dia` segue com os ultimos 14 dias como visao historica e a RPC
+devolve `dia` para o painel exibir a data de referencia. O painel
+/metricas.html rotula KPIs e cartoes como "hoje".

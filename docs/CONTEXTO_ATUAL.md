@@ -683,6 +683,17 @@ de entrega.
   de seeds rodou duplicado no apply (2 linhas por intencao, 'geral'
   com 4) — funcionalmente inofensivo (textos identicos), dedupe de
   DELETE foi recusado pelo usuario na hora
+- Metricas do painel /metricas.html agora sao DO DIA (reset diario,
+  26/11/2026): a RPC metricas_chat_resumo passou a agregar apenas o dia
+  corrente no fuso America/Sao_Paulo — total, cache hits, latencias
+  (media/p50/p95), tools_total, consumo por modelo e traces recentes.
+  O grafico "Mensagens por dia" segue mostrando os ultimos 14 dias
+  (agora agrupado pela data local de SP) e a RPC devolve o campo `dia`
+  para o painel exibir "METRICAS DE dd/mm/aaaa - RESET DIARIO" no
+  subtitulo; rotulos dos KPIs/cartoes ajustados para "hoje". Migration
+  0018_metricas_diarias.sql criada — PENDENTE de aplicar no Supabase
+  (ate la o painel segue mostrando o acumulado geral). A tool MCP
+  resumo_metricas passa a devolver os mesmos agregados diarios
 
 ## Em andamento
 
@@ -852,7 +863,8 @@ de entrega.
   migrations 0005-0016 TODAS aplicadas (0010, 0012, 0015 e 0016 aplicadas
   em 25/11/2026 via Supabase MCP com aprovacao do usuario) e
   0017_limpeza_catalogo_429 APLICADA em 26/11/2026 via SQL Editor
-  (12 linhas em modelos_ia verificadas via MCP)
+  (12 linhas em modelos_ia verificadas via MCP);
+  0018_metricas_diarias PENDENTE (reset diario do painel /metricas.html)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)

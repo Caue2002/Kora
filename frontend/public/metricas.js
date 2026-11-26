@@ -48,7 +48,19 @@ function formatarDia(dia) {
   return s.slice(5) || s;
 }
 
+// "2026-11-25" -> "25/11/2026" (data completa para o subtitulo do painel)
+function formatarDiaCompleto(dia) {
+  const s = String(dia ?? '');
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return `${s.slice(8, 10)}/${s.slice(5, 7)}/${s.slice(0, 4)}`;
+  return s;
+}
+
 function render(m) {
+  // Todos os agregados sao do dia corrente (fuso America/Sao_Paulo) — a RPC
+  // devolve 'dia' para o painel deixar explicito qual dia esta sendo medido
+  const sub = document.querySelector('.sub');
+  if (sub) sub.textContent = `PROJETO KORA — MÉTRICAS DE ${formatarDiaCompleto(m.dia)} · RESET DIÁRIO`;
+
   const total = m.total_geral ?? 0;
   const cacheHits = m.cache_hits ?? 0;
   const hitRate = total > 0 ? (cacheHits / total) * 100 : 0;
@@ -57,7 +69,7 @@ function render(m) {
   const p95 = m.latencia_p95_ms ?? 0;
 
   document.getElementById('kpis').innerHTML = [
-    kpi('Mensagens totais', fmt(total), `${fmt(m.ultimas_24h)} nas últimas 24h`),
+    kpi('Mensagens hoje', fmt(total), `${fmt(m.ultimas_24h)} nas últimas 24h`),
     kpi('Cache hit rate', hitRate.toFixed(1) + '%', `${fmt(cacheHits)} respostas reutilizadas`),
     kpi('Latência média', fmt(lat) + ' ms', `p50 ${fmt(p50)} ms · p95 ${fmt(p95)} ms`),
     kpi('Function calls', fmt(m.tools_total ?? 0), 'tools executadas pelo agente'),
