@@ -316,8 +316,13 @@ de entrega.
   que o USUARIO descreveu na conversa — prompt.ts e a instrucao injetada
   em dadosPedido agora dizem explicitamente que a descricao do usuario
   prevalece na confirmacao e que correcoes pre-confirmacao valem ate o
-  fim da conversa (antes a Nori podia "inventar" itens do catalogo ao
-  confirmar um pedido que o usuario descreveu com outros itens)
+  fim da conversa. Reforco pos-bug (26/11): a Nori chegou a MESCLAR um
+  item do catalogo ("lasanha de berinjela" do pedido 1828393) com o item
+  que o usuario citou ("coca cola 2 litros"); a regra agora e categorica —
+  NUNCA listar itens do catalogo junto dos do usuario, confirmar somente
+  o que o usuario mencionou e perguntar "foi so esse item que voce
+  pediu?"; se o usuario acrescentar itens, a lista completa e tudo que
+  ele mencionou ate ali
 - Segunda rodada de latencia: LLM_TIMEOUT_MS padrao 25s -> 15s por
   tentativa (modelo saudavel responde em <10s); timeout do PostgREST
   10s -> 5s; buscaHibrida agora dispara em paralelo com selecao de

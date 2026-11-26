@@ -667,7 +667,7 @@ async function webHandler(req: Request): Promise<Response> {
       dadosPedido += `\nATENCAO: a mensagem atual informou o codigo ${codigoPedido}, que NAO substitui o pedido confirmado ${codigoTravado}. Recuse a troca de forma educada e mantenha o pedido ${codigoTravado}.`;
     }
   } else if (codigoPedido) {
-    dadosPedido = `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. REGRA DE CONFIRMACAO: os itens que o USUARIO descreveu na conversa (ex.: "uma coca cola", "2 burgers") sao os itens reais do pedido dele e DEVEM aparecer na confirmacao — o catalogo acima e apenas um modelo de loja/valor; se os itens do catalogo divergirem do que o usuario falou, use os do usuario. Se o usuario corrigir os itens antes de confirmar ("na verdade era X"), a ultima descricao dele vale ate o fim da conversa.`;
+    dadosPedido = `\nPedido localizado no sistema (dados da simulacao): ${pedidoFicticio(codigoPedido)}. REGRA DE CONFIRMACAO: os itens do catalogo acima sao APENAS referencia de loja e valor — NUNCA os liste junto com os do usuario. Os itens do pedido sao SOMENTE os que o USUARIO descreveu na conversa (ex.: "uma coca cola", "2 burgers"): cite somente eles na confirmacao e pergunte se era so isso ("foi so esse item que voce pediu?"). Se o usuario disser que sim, esses sao os itens do pedido; se ele acrescentar itens, todos os mencionados ate ali passam a ser o pedido completo. So use os itens do catalogo se o usuario nao tiver descrito item nenhum. Se o usuario corrigir os itens antes de confirmar ("na verdade era X"), a ultima descricao dele vale ate o fim da conversa.`;
   }
 
   const promptSistema = [
