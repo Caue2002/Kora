@@ -21,7 +21,12 @@ export async function turnoLiberado(token: string | undefined, ip: string): Prom
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ secret, response: token, remoteip: ip }),
     });
-    const dados = (await res.json()) as { success?: boolean };
+    const dados = (await res.json()) as { success?: boolean; 'error-codes'?: string[] };
+    if (dados.success !== true) {
+      // error-codes da Cloudflare (token-expired, invalid-input-secret etc.)
+      // sao a unica pista de por que o siteverify reprovou — vai para o log
+      console.warn('[turnstile] siteverify reprovou:', dados['error-codes'] ?? 'sem detalhe');
+    }
     return dados.success === true;
   } catch (erro) {
     console.warn('[turnstile] siteverify falhou, liberando sem verificacao:', erro);
