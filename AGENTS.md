@@ -17,6 +17,20 @@ pendencias e o protocolo de handoff (inclui remote git e regras de commit).
   arquivo versionado em `database/migrations/`. Nunca contornar a regra por
   outra via (script com service role key etc.). Spec completa:
   `spec/SPEC-supabase-mcp-governanca.md`.
+- **Vercel MCP/CLI — acoes com efeito colateral proibidas sem aprovacao
+  explicita.** O MCP da Vercel (`vercel`, endpoint compartilhado
+  `https://mcp.vercel.com`, escopo de usuario em
+  `%APPDATA%\devin\mcp_config.json`) e o CLI (`vercel`, logado como
+  caue2002) podem ser usados livremente para **acoes de leitura**
+  (listar deployments/projetos, logs, status de build, docs). E
+  estritamente proibido, sem aprovacao explicita do usuario na
+  conversa, executar acoes que alteram o projeto ou o deploy:
+  `create_deployment`, `promote`, `rollback`, `redeploy`, env vars,
+  dominios, firewall, deletes e qualquer tool MCP com `readOnlyHint:
+  false`/`destructiveHint`. O deploy normal acontece pelo push na
+  `main` (integracao Git) — nao disparar deploy manual por conta
+  propria. Nunca contornar a regra por outra via. Operacoes de
+  diagnostico que so leem (ex.: `vercel inspect --logs`) sao livres.
 - **Nunca commitar segredos**: `.env`, `MCP_API_KEY`, service role keys,
   tokens. `.env.example` documenta nomes, nunca valores.
 - **Nunca commitar `docs/fluxo-kora/`** (material local de entrevista,
@@ -115,6 +129,13 @@ Ao mudar comportamento coberto por uma spec, atualizar a spec correspondente
   `devin mcp login supabase`. **Leitura livre; escrita SOMENTE com
   aprovacao explicita do usuario** — ver regra inviolavel acima e
   `spec/SPEC-supabase-mcp-governanca.md`.
+- **Vercel** (`vercel`): servidor compartilhado `https://mcp.vercel.com`
+  em `%APPDATA%\devin\mcp_config.json` (escopo de usuario, vale para
+  todos os projetos). OAuth ja feito. **Leitura livre; qualquer tool
+  de escrita/deploy/env/domains SOMENTE com aprovacao explicita** —
+  ver regra inviolavel acima. CLI global instalado e autenticado
+  (`vercel whoami` = caue2002); projeto linkado localmente em
+  `.vercel/` (gitignored).
 
 ## Dominio
 
