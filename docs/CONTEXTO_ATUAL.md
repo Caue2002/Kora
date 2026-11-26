@@ -733,7 +733,8 @@ de entrega.
   flash-latest — saturacao temporaria de capacidade (nao e cota),
   slots MANTIDOS porque ja responderam 200 antes; o failover tolera
   (503 volta em ~1-7s). Catalogo saneado para 12 slots via migration
-  0017 (PENDENTE de aplicar): ids 12/14/15 removidos de modelos_ia,
+  0017 (APLICADA em 26/11/2026 via SQL Editor, verificada via MCP):
+  ids 12/14/15 removidos de modelos_ia e cotas_modelos limpo,
   flash-latest (id 13) prioridade 11, pollinations (id 10) prioridade
   12. ATENCAO Vercel: GEMINI_MODEL_10 passou a ser flash-latest (era
   argon) — se existirem envs GEMINI_MODEL_10..13 antigas na Vercel,
@@ -836,9 +837,9 @@ de entrega.
 - Estado do banco: tabelas/modelos/cotas/feedback/casos/rate_limits ok;
   9 politicas de disputa ingeridas (politicas_disputa_exemplo);
   migrations 0005-0016 TODAS aplicadas (0010, 0012, 0015 e 0016 aplicadas
-  em 25/11/2026 via Supabase MCP com aprovacao do usuario);
-  migration 0017 (limpeza dos slots 429: ids 12/14/15 removidos,
-  prioridades renumeradas) PENDENTE de aplicar
+  em 25/11/2026 via Supabase MCP com aprovacao do usuario) e
+  0017_limpeza_catalogo_429 APLICADA em 26/11/2026 via SQL Editor
+  (12 linhas em modelos_ia verificadas via MCP)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)
