@@ -740,6 +740,10 @@ export default function App() {
           turnstileTokenRef.current = undefined;
         },
         theme: 'auto',
+        // 'interaction-only': widget fica oculto e so aparece se a
+        // Cloudflare exigir interacao do usuario — o token continua
+        // sendo gerado normalmente sem UI visivel
+        appearance: 'interaction-only',
       });
     };
     const w = (window as { turnstile?: TurnstileApi }).turnstile;

@@ -812,7 +812,10 @@ de entrega.
    real do usuario (confirmado manualmente). Playwright/automacao
    segue sem emitir token (deteccao de bot da Cloudflare — falso
    negativo dos testes automaticos; o challenge trava apos um 401
-   no endpoint /pat/ do challenge-platform). PENDENTE: reativar o
+   no endpoint /pat/ do challenge-platform). Widget tornado OCULTO
+   26/11/2026: render do Turnstile ganhou appearance
+   'interaction-only' (so aparece se a Cloudflare exigir interacao;
+   token segue sendo gerado sem UI visivel). PENDENTE: reativar o
    bloqueio no turnoLiberado() quando o usuario confirmar que os
    logs do siteverify mostram "token valido" na Vercel.
    Ate la turnoLiberado() segue sempre liberando e so logando o

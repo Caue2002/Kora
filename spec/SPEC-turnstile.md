@@ -38,7 +38,9 @@ existente (20 req/min).
   - Token e de uso unico: cada tentativa de envio consome o token e o
     widget e resetado para emitir um novo (retry automatico tambem
     recebe token fresco)
-  - Script carregado sob demanda (`render=explicit`), tema `auto`
+  - Script carregado sob demanda (`render=explicit`), tema `auto`,
+    `appearance: 'interaction-only'` (widget oculto; so aparece se a
+    Cloudflare exigir interacao — token segue sendo gerado)
 
 ## Fora de escopo
 
