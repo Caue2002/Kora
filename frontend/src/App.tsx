@@ -137,6 +137,10 @@ const PERFIS = [
 ] as const;
 
 type PerfilId = (typeof PERFIS)[number]['id'];
+// Perfil vive no sessionStorage (mesma vida util das conversas): F5 e
+// recarregamento dentro da aba restauram o contexto; fechar/excluir a
+// aba zera tudo e a proxima entrada abre no menu de perfis
+const CHAVE_PERFIL = 'kora-perfil';
 
 const CHAVE_TEMA = 'kora-tema';
 
@@ -458,10 +462,12 @@ export default function App() {
   // Anexo de evidencia: guardamos so a miniatura (dataURL) para exibir na bolha;
   // a imagem nao e enviada ao modelo — o agente apenas confirma o recebimento
   const [anexo, setAnexo] = useState<{ nome: string; preview: string } | null>(null);
-  // Perfil NAO persiste entre cargas (decisao do usuario, 27/11/2026):
-  // toda entrada — refresh, nova aba, PWA — abre sempre no menu de
-  // escolha de perfil, mesmo com historico de conversas na sessao
-  const [perfil, setPerfil] = useState<PerfilId | null>(null);
+  // Perfil restaurado do sessionStorage: refresh na mesma aba mantem o
+  // contexto; aba fechada zera a chave e a entrada abre no menu
+  const [perfil, setPerfil] = useState<PerfilId | null>(() => {
+    const salvo = sessionStorage.getItem(CHAVE_PERFIL);
+    return PERFIS.some((p) => p.id === salvo) ? (salvo as PerfilId) : null;
+  });
   // Instalacao do PWA: o evento beforeinstallprompt fica guardado para o
   // item "Baixar app" do menu disparar o prompt nativo do navegador
   const installPromptRef = useRef<EventoInstalacaoPwa | null>(null);
@@ -531,6 +537,24 @@ export default function App() {
   // do encerramento automatico (5min sem atividade com chat em andamento)
   const mostrarAvisoInatividade = temChat && !processando && segundosInativo >= 240;
   const segundosParaEncerrar = Math.max(1, 300 - segundosInativo);
+
+  // Na recarga dentro da mesma aba, reabre a conversa ativa (a mais
+  // recente nao encerrada): o sessionStorage sobrevive ao F5 e morre
+  // com a aba — aba fechada sempre entra no menu, sem restaurar nada
+  useEffect(() => {
+    // So reabre se ha perfil ativo na sessao: sem perfil a tela e o menu
+    // de qualquer forma, e nao faz sentido carregar a conversa antiga
+    if (perfil !== null && conversaId === null && conversas.length > 0) {
+      const maisRecente = [...conversas]
+        .filter((c) => !c.encerrada)
+        .sort((a, b) => b.atualizadoEm - a.atualizadoEm)[0];
+      if (maisRecente) {
+        setConversaId(maisRecente.id);
+        setMensagens(maisRecente.mensagens);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Aplica o tema escuro/claro no elemento raiz e persiste a escolha
   useEffect(() => {
@@ -813,11 +837,19 @@ export default function App() {
     return () => clearInterval(id);
   }, [temChat, processando]);
 
-  // Define o perfil do usuario (cliente, parceiro ou entregador)
-  // Sem persistencia: a proxima carga sempre volta ao menu de perfis
+  // Define o perfil do usuario (cliente, parceiro ou entregador) e
+  // persiste na sessao da aba (sessionStorage — nao sobrevive ao
+  // fechamento da aba, que e o gatilho do menu inicial)
   function escolherPerfil(p: PerfilId) {
     setPerfil(p);
+    sessionStorage.setItem(CHAVE_PERFIL, p);
     if (podeFocarInput()) inputRef.current?.focus();
+  }
+
+  // Volta ao menu de perfis esquecendo a escolha da sessao
+  function limparPerfil() {
+    sessionStorage.removeItem(CHAVE_PERFIL);
+    setPerfil(null);
   }
 
   // Para a gravacao/transcricao em andamento sem transcrever (usado antes
@@ -1200,6 +1232,7 @@ export default function App() {
     setPerguntaEncerramentoId(null);
     setErro(null);
     const cid = conversaId;
+    sessionStorage.removeItem(CHAVE_PERFIL);
     setPerfil(null);
     // Marca a conversa como encerrada ANTES de limpar a tela: o refresh nao
     // pode reabri-la sozinho (ela continua acessivel pelo historico)
@@ -1485,7 +1518,7 @@ function pararAudio() {
                 </div>
               ) : (
                 <>
-                  <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
+                  <button className="perfil-chip" onClick={limparPerfil} title="Trocar perfil">
                     {PERFIS.find((p) => p.id === perfil)?.label} · trocar
                   </button>
                   <div className="chat-sugestoes">
