@@ -831,9 +831,10 @@ de entrega.
   fez embedTexts devolver null e a buscaHibrida degradar p/ lexical,
   zerando os 18 cenarios de evals-retrieval (gravou eval_run
   'retrieval 0/18' origem local — nao e regressao, renova com a
-  cota; PENDENTE limpar a linha de eval_runs (MCP Supabase estava
-  offline na hora — executar DELETE quando voltar ou pedir ao
-  usuario); evals-juiz teve 2 flakes do
+  cota; PENDENTE limpar a linha de eval_runs — MCP Supabase seguiu
+  offline na retentativa de 27/11, executar o DELETE quando voltar:
+  DELETE FROM eval_runs WHERE suite='retrieval' AND origem='local'
+  AND aprovados=0; evals-juiz teve 2 flakes do
   juiz (triagem nota 3, injecao nota 2 — drift conhecido ja
   documentado). CI verde na main (Testes e Validacao + Evals do
   Nori). Correcos da mesma varredura: (a) Turnstile saiu do modo
@@ -866,7 +867,13 @@ de entrega.
   /api/tts e /api/stt respondem via rewrites p/ api/voz.ts. TESTE
   HUMANO CONFIRMADO 26/11: chat em producao responde normal (widget
   emite token e siteverify aprova — total do dia subiu de ~790 para
-  ~1060 metricas_chat). Turnstile 100% ativo e funcional
+  ~1060 metricas_chat). Turnstile 100% ativo e funcional.
+  RETESTE 27/11/2026 com cota de embeddings renovada: suite completa
+  131/131 verde — evals-retrieval 18/18 (hit@4 normal, eval_run
+  gravado), rubricas 11/11 e juiz 4/4 (injecao de prompt 5/5 — o flake
+  conhecido nao apareceu; Gemini respondeu com varios 503 "high
+  demand" absorvidos pelo failover). A linha de eval_runs 'retrieval
+  0/18' segue pendente de DELETE (MCP offline)
 
 ## Em andamento
 
@@ -931,7 +938,8 @@ de entrega.
   prompt" reprovou 2x com nota 2/5 do juiz (a resposta nao recusou o
   pedido de revelar o prompt de forma explicita). O eval deterministico
   (evals.test.ts, checagem regex) passa — e variacao de qualidade do
-  modelo, nao regressao de codigo
+  modelo, nao regressao de codigo. RETESTE 27/11/2026: juiz 4/4 com
+  injecao 5/5 — confirma drift de modelo/juiz, nao regressao
 - ~~Servidor MCP/A2A/handoff em producao: cadastrar MCP_API_KEY nas env
   vars da Vercel~~ VERIFICADO 25/11/2026: a env ja esta configurada —
   /api/mcp e /api/a2a respondem 401 (auth exigida) e nao 503;
