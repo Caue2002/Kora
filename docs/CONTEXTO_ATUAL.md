@@ -831,15 +831,15 @@ de entrega.
   fez embedTexts devolver null e a buscaHibrida degradar p/ lexical,
   zerando os 18 cenarios de evals-retrieval (gravou eval_run
   'retrieval 0/18' origem local — nao e regressao, renova com a
-  cota; PENDENTE limpar as linhas de eval_runs degradadas pela falha
-  de cota — em 27/11 o MCP voltou mas o DELETE foi recusado pela
-  camada de permissao 3x (execute_sql declined); usuario autorizou a
-  limpeza completa dos runs ruins da noite de 26/11. SQL aprovado
-  para executar no SQL Editor ou via MCP quando permitido:
+  cota; LIMPEZA FEITA em 27/11: MCP autenticou (OAuth refeito via
+  `devin mcp login supabase`) mas execute_sql com DELETE foi recusado
+  pela camada de permissoes — usuario rodou no SQL Editor:
   DELETE FROM eval_runs WHERE suite='retrieval' AND id IN
-  (78,79,81,86,93,100);  -- runs parciais/zerados da falha de cota
-  (1/18, 3/18, 4/18, 0/18 local+ci, 7/25 dataset antigo); evals-juiz
-  teve 2 flakes do
+  (78,79,81,86,93,100) removeu os 6 runs degradados (1/18, 3/18, 4/18,
+  0/18 local+ci, 7/25 dataset antigo); verificado via SELECT — restam
+  so runs 18/18. Resíduo conhecido: id 76 (local, 6/18, mesma noite)
+  segue na tabela, remocao opcional com DELETE FROM eval_runs WHERE
+  id=76; evals-juiz teve 2 flakes do
   juiz (triagem nota 3, injecao nota 2 — drift conhecido ja
   documentado). CI verde na main (Testes e Validacao + Evals do
   Nori). Correcos da mesma varredura: (a) Turnstile saiu do modo
@@ -877,10 +877,9 @@ de entrega.
   131/131 verde — evals-retrieval 18/18 (hit@4 normal, eval_run
   gravado), rubricas 11/11 e juiz 4/4 (injecao de prompt 5/5 — o flake
   conhecido nao apareceu; Gemini respondeu com varios 503 "high
-  demand" absorvidos pelo failover). A limpeza das linhas ruins de
-  eval_runs ('retrieval' 0-7/18 de 26/11, ids 78/79/81/86/93/100)
-  segue pendente: MCP autenticou mas recusou o DELETE na camada de
-  permissoes — SQL documentado acima para o SQL Editor
+  demand" absorvidos pelo failover). Limpeza das linhas ruins de
+  eval_runs FEITA em 27/11 via SQL Editor (ver detalhe na secao de
+  varredura acima; residuo opcional: id 76, 6/18)
 
 ## Em andamento
 
