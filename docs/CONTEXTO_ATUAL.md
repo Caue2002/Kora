@@ -1042,6 +1042,14 @@ de entrega.
    real antes da regeneracao (recusa generica sempre regenera; falha
    do verificador nao bloqueia). Custo raro: 1 chamada pequena so em
    respostas flagradas
+6. SPEC PROPOSTA 27/11/2026: spec/SPEC-cota-reset-pacifico.md — a
+   janela "dia" de cotas_modelos zera a 00:00 UTC (fuso do servidor),
+   que nao e o reset real de nenhum provedor: Gemini renova a meia-noite
+   de America/Los_Angeles (doc oficial: RPD reseta midnight Pacific) e
+   Groq a meia-noite UTC. Plano: janela dia por provedor (Gemini=PT,
+   Groq=UTC, Pollinations=UTC bookkeeping), RPC de metricas ganha
+   reset_cota_em (proximo reset PT) exibido no painel. Aguardando
+   aprovacao do usuario para implementar
 
 ## Handoff para outra conta/sessao
 
