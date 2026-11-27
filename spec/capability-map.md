@@ -15,7 +15,7 @@ entre fases do workflow SDD).
 | memoria-usuario | Nori lembra contexto/preferencias ENTRE conversas via identificador anonimo persistente no dispositivo (sem login — decisao do usuario) | — |
 | voz-whisper | Ditado por voz via Groq Whisper (pt-BR) como alternativa/complemento ao Web Speech API | — |
 | caso-estruturado | Extracao do estado do caso (/api/caso) via saida estruturada (JSON schema + validacao zod) em vez de parsing de texto | — |
-| auth-usuarios | Supabase Auth (e-mail/senha) + dados por usuario + RLS. FASE 2 — opcional/deferido; spec SPEC-auth-usuarios.md escrita em 27/11/2026, aguardando aprovacao do usuario | memoria-usuario |
+| auth-usuarios | Supabase Auth (e-mail/senha) + dados por usuario + RLS. FORA DE ESCOPO — decisao do usuario 27/11/2026: projeto de entrevista, sem opcao de login; spec SPEC-auth-usuarios.md mantida so como registro | memoria-usuario |
 
 Build order: metricas-qualidade → eval-retrieval → roteamento-modelos →
 eval-baseline-ci → memoria-usuario → voz-whisper → caso-estruturado →

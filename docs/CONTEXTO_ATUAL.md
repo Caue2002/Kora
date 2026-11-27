@@ -926,10 +926,11 @@ de entrega.
   135 testes (models.test ganhou 4 — fluxo-kora atualizado);
   AGENTS.md ganhou as 4 specs que faltavam na lista. UNICA
   pendencia estrutural restante: auth-usuarios (fase 2) — spec
-  SPEC-auth-usuarios.md escrita neste dia, Status proposto,
-  aguardando aprovacao do usuario (padrao BFF: anon key no
-  frontend, JWT validado nas functions, user_id nas tabelas
-  pessoais, RLS como defesa em profundidade, login opcional)
+  SPEC-auth-usuarios.md escrita neste dia. DEPOIS, ainda em
+  27/11/2026, o usuario decidiu NAO ter opcao de login ("projeto
+  para entrevista, nao precisamos ir tao longe") — spec marcada
+  como ADIADO/fora de escopo, capability-map idem. Com isso NAO
+  resta nenhuma pendencia conhecida no projeto
 
 ## Em andamento
 

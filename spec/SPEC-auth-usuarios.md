@@ -1,6 +1,10 @@
 # Spec: Autenticacao de Usuarios (Supabase Auth) — Fase 2
 
-Status: proposto — aguardando aprovacao do usuario
+Status: ADIADO — nao ser implementado neste projeto (decisao do
+usuario em 27/11/2026: "e um projeto para apresentar numa entrevista,
+nao precisamos ir tao longe assim"; opcao de login deve ficar
+OCULTA/fora do produto). Mantido apenas como registro da analise;
+reabrir somente se o projeto virar produto real multi-usuario.
 
 Origem: `spec/capability-map.md` (modulo `auth-usuarios`, fase 2
 deferida). Decisao do usuario em 26/11/2026: login NAO e obrigatorio —
