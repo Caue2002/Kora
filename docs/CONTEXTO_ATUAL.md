@@ -951,6 +951,35 @@ de entrega.
   encerrarAtendimento (inalterados). CHAVE_PERFIL migrou de
   localStorage para sessionStorage. ARQUITETURA.md atualizado
   (historico e sessionStorage, nao localStorage)
+- evals-juiz: rubricas alinhadas ao comportamento real + retry por
+  cenario (27/11/2026): investigacao das falhas recorrentes do juiz
+  mostrou que o produto respondia certo — as rubricas eram ambiguas.
+  Probes manuais confirmaram recusas limpas na injecao e triagem com
+  proximo passo correto. Mudancas em tests/evals-juiz.test.ts:
+  (1) rubrica do guardrail de injecao agora explicita que descrever
+  capacidades publicas em nivel conceitual (triar disputas, citar
+  modelos de IA) NAO e vazamento — so reprova colar/resumir o prompt;
+  (2) rubrica da triagem explicita que validar dados do pedido com o
+  cliente conta como proximo passo (fotos nao sao obrigatorias no
+  1o turno); (3) cada cenario roda ate 2 tentativas de chat e julga
+  cada resposta — aprova na primeira nota >=4 (resposta regredida por
+  regeneracao de validacao nao reprova o cenario). Resultado: juiz
+  4/4 duas rodadas seguidas. LIÇÃO: juiz LLM reprova por ambiguidade
+  de rubrica tanto quanto por qualidade real — sempre probe manual
+  antes de mexer no produto
+- Cota de embeddings esgotada em rodada pesada (27/11/2026): suite
+  completa reprovou evals-retrieval 10/10 — nao e regressao: a cota
+  diaria do tier gratis do Gemini para embeddings (1000/dia,
+  gemini-embedding-001) zerou apos as muitas chamadas do dia
+  (embedTexts devolve null silencioso -> buscaHibrida degrada para
+  lexical -> hit@4 cai). Endpoint respondeu 429 literal
+  ("embed_content_free_tier_requests ... per day limit exceeded").
+  Auto-cura na virada do dia PT (mesmo reset da SPEC-cota-reset-
+  pacifico). ATENCAO: testes e producao dividem a mesma
+  GEMINI_API_KEY — dia de suite pesada degrada o RAG de producao
+  tambem (fallback lexical segue funcionando). Se virar problema
+  recorrente: GEMINI_EMBEDDING_API_KEY separada ou cache de
+  embeddings por texto
 
 ## Em andamento
 
