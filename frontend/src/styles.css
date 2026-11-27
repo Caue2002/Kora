@@ -434,6 +434,16 @@ body {
   padding: 0 12px 8px;
 }
 
+/* Faixa recolhida: some da tela mas o widget continua montado e
+   renderizado (nada de display:none — a Cloudflare pode invalidar o
+   desafio se o container ficar sem caixa). O before-interactive do
+ * Turnstile reacende a faixa so quando a verificacao humana e exigida */
+.turnstile-faixa.oculta {
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 /* markdown leve dentro das respostas do agente */
 .md p {
   margin: 0 0 6px;

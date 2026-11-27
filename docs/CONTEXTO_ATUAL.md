@@ -1075,7 +1075,12 @@ de entrega.
    no endpoint /pat/ do challenge-platform). Widget tornado OCULTO
    26/11/2026: render do Turnstile ganhou appearance
    'interaction-only' (so aparece se a Cloudflare exigir interacao;
-   token segue sendo gerado sem UI visivel). BLOQUEIO REATIVADO
+   token segue sendo gerado sem UI visivel). A partir de 27/11/2026 a
+   faixa do widget fica recolhida por padrao e so expande quando o
+   callback before-interactive-callback avisa que a verificacao humana
+   vai aparecer — callback/after-interactive/expired/error/timeout
+   recolhem de novo (altura 0 + overflow hidden, nunca display:none).
+   BLOQUEIO REATIVADO
    26/11/2026 (na varredura de saude, a pedido do usuario): com o SW
    corrigido (kora-v18) e a CSP liberando challenges.cloudflare.com,
    o widget voltou a emitir tokens — turnoLiberado() exige token

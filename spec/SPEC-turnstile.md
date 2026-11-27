@@ -40,6 +40,12 @@ existente (20 req/min).
   - Script carregado sob demanda (`render=explicit`), tema `auto`,
     `appearance: 'interaction-only'` (widget oculto; so aparece se a
     Cloudflare exigir interacao — token segue sendo gerado)
+  - Faixa do widget fica recolhida por padrao (`.turnstile-faixa.oculta`
+    com height 0 + overflow hidden — nunca `display:none`, que pode
+    invalidar o desafio) e so expande quando o callback
+    `before-interactive-callback` avisa que a verificacao humana vai
+    aparecer; `callback`/`after-interactive`/`expired`/`error`/
+    `timeout` recolhem de novo (27/11/2026)
 
 ## Fora de escopo
 

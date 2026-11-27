@@ -512,6 +512,10 @@ export default function App() {
   const turnstileWidgetId = useRef<string | null>(null);
   const turnstileTokenRef = useRef<string | undefined>(undefined);
   const turnstileEsperaRef = useRef<((token?: string) => void) | null>(null);
+  // Visibilidade da faixa do widget: so acende quando a Cloudflare avisa
+  // que vai exigir interacao humana (before-interactive) e apaga assim
+  // que o desafio termina — o widget segue montado e executando oculto
+  const [turnstileInterativo, setTurnstileInterativo] = useState(false);
 
   // Processamento visivel na interface: stream da Nori, geracao de
   // handoff, TTS tocando ou a tela "Encerrando..." — congela a contagem
@@ -741,12 +745,26 @@ export default function App() {
           turnstileTokenRef.current = token;
           turnstileEsperaRef.current?.(token);
           turnstileEsperaRef.current = null;
+          setTurnstileInterativo(false);
+        },
+        'before-interactive-callback': () => {
+          // Cloudflare vai mostrar o desafio humano: revela a faixa
+          setTurnstileInterativo(true);
+        },
+        'after-interactive-callback': () => {
+          setTurnstileInterativo(false);
         },
         'expired-callback': () => {
           turnstileTokenRef.current = undefined;
+          setTurnstileInterativo(false);
         },
         'error-callback': () => {
           turnstileTokenRef.current = undefined;
+          setTurnstileInterativo(false);
+        },
+        'timeout-callback': () => {
+          turnstileTokenRef.current = undefined;
+          setTurnstileInterativo(false);
         },
         theme: 'auto',
         // 'interaction-only': widget fica oculto e so aparece se a
@@ -1863,7 +1881,7 @@ function pararAudio() {
             esta definida no build — o backend exige o token enquanto
             TURNSTILE_SECRET_KEY estiver configurada */}
         {TURNSTILE_SITE_KEY && (
-          <div className="turnstile-faixa">
+          <div className={turnstileInterativo ? 'turnstile-faixa' : 'turnstile-faixa oculta'}>
             <div ref={turnstileRef} />
           </div>
         )}
