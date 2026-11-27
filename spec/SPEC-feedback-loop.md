@@ -1,6 +1,6 @@
 # Spec: Feedback loop documentado — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

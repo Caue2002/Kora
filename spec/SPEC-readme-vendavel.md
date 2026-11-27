@@ -1,6 +1,6 @@
 # Spec: README vendavel — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

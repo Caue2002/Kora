@@ -1,6 +1,6 @@
 # Spec: Guardrails de saida — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

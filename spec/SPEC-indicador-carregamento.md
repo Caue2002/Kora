@@ -1,6 +1,6 @@
 # Spec: Indicador de carregamento orbita padrao — V2
 
-Status: aprovado (substitui o metaball da V1)
+Status: implementado (substitui o metaball da V1)
 
 ## Objetivo
 

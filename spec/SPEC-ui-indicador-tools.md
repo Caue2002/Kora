@@ -1,6 +1,6 @@
 # Spec: Indicadores de tool no streaming — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

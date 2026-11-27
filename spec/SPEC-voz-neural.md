@@ -1,6 +1,6 @@
 # Spec: Voz neural da Nori (TTS) — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

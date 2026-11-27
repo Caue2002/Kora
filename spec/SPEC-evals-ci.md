@@ -1,6 +1,6 @@
 # Spec: Evals em CI — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 

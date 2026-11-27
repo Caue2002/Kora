@@ -880,6 +880,16 @@ de entrega.
   eval_runs FEITA em 27/11 via SQL Editor (ver detalhe na secao de
   varredura acima — todos os runs degradados removidos, incluindo o
   residuo id 76)
+- Nova varredura de saude (27/11/2026): typecheck limpo, vite build
+  limpo, suite 131/131 verde (evals-retrieval 18/18, rubricas 11/11,
+  juiz 4/4, cenarios/casos ok), git limpo e sincronizado com
+  origin/main, producao saudavel (/, /metricas.html e agent-card 200;
+  /api/mcp 401 sem key; /api/chat 403 sem token Turnstile). Rotas do
+  dev-server cobrem todos os handlers de api/ e todas as specs em
+  spec/ estao marcadas "implementado" (8 specs estavam com status
+  "aprovado" defasado — corrigido nesta rodada). api/ segue no limite
+  do plano Hobby da Vercel (12 functions): novo endpoint exige
+  consolidar outro par (ver DECISOES.md D16)
 
 ## Em andamento
 

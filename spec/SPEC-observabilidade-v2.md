@@ -1,6 +1,6 @@
 # Spec: Observabilidade v2 — V1
 
-Status: aprovado
+Status: implementado
 
 ## Objetivo
 
