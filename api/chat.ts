@@ -18,7 +18,7 @@ import { buscaHibrida } from '../rag/search.js';
 import { embedTexts } from '../rag/embeddings.js';
 import { inserir, rpc, upsert } from '../shared/supabase.js';
 import { buscarMemorias, montarBlocoMemoria } from '../shared/memoria.js';
-import { resolverFallback, ehFallback } from './fallback.js';
+import { resolverFallback, ehFallback } from '../coherence/fallback.js';
 import {
   carregarDiretrizes,
   montarContextoRAG,
@@ -66,7 +66,7 @@ const TAMANHO_MAX_IMAGEM_B64 = 4_200_000; // ~3MB em base64 (body total fica aba
 // A ultima instancia quando o modelo nao consegue formular resposta
 // nenhuma NAO e mais uma string fixa: resolverFallback tenta o cache
 // semantico relaxado, depois o banco canonico por intencao e por fim as
-// variantes genericas (api/fallback.ts — spec SPEC-fallback-camadas)
+// variantes genericas (coherence/fallback.ts — spec SPEC-fallback-camadas)
 
 // Ids de conversa gerados no frontend como `${timestamp}-${aleatorio}`
 const CONVERSA_ID_VALIDO = /^[A-Za-z0-9_-]{10,80}$/;

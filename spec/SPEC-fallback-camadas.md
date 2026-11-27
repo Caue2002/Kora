@@ -98,8 +98,9 @@ verdade e o `aplicar_migration` so roda com OK do usuario.
 
 ## Contrato de codigo
 
-- Novo modulo `api/fallback.ts` (ou `shared/fallback.ts` se a heuristica
-  de intencao for reutilizavel): `resolverFallback(...)`,
+- Novo modulo `coherence/fallback.ts` (movido de `api/fallback.ts` em
+  27/11/2026 para liberar slot de function na Vercel Hobby — biblioteca
+  nao e endpoint): `resolverFallback(...)`,
   `detectarIntencaoFallback(mensagem, contexto)`, `escolherVariante(...)`.
 - `RESPOSTA_FALLBACK` sai de `api/chat.ts` e vira `VARIANTES_FALLBACK`
   no modulo novo; `ehRespostaDeRecusa` e as comparacoes

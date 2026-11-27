@@ -9,7 +9,7 @@ import {
   ehFallback,
   resolverFallback,
   VARIANTES_FALLBACK,
-} from '../api/fallback';
+} from '../coherence/fallback';
 
 // Supabase mockado: cada teste define o que rpc/consultar devolvem
 const rpcMock = vi.fn();

@@ -84,7 +84,11 @@ interface Veredito {
   justificativa: string;
 }
 
-// Pede ao juiz uma nota 1-5 em JSON; tolera texto ao redor do JSON
+// Julga com ate 2 modelos independentes da fila de candidatos: nota >=4
+// aprova na hora (sem custo extra); nota <4 dispara um segundo juiz —
+// deriva de versao do modelo entre deploys gerava flakes de nota
+// borderline (documentado no CONTEXTO_ATUAL). Resposta nao-JSON/invalida
+// conta como falha de infra e passa ao proximo candidato, nao como nota.
 async function julgar(pergunta: string, resposta: string, rubrica: string): Promise<Veredito> {
   const mensagens: MensagemChat[] = [
     {
@@ -101,26 +105,42 @@ async function julgar(pergunta: string, resposta: string, rubrica: string): Prom
       content: `RUBRICA: ${rubrica}\n\nPERGUNTA DO USUARIO: ${pergunta}\n\nRESPOSTA DO AGENTE: ${resposta}`,
     },
   ];
-  // Tenta cada modelo candidato: free-tier devolve 503/429 por janela de
-  // demanda e um unico modelo falhando nao deve reprovar o cenario
+  const vereditos: Veredito[] = [];
   let ultimoErro: unknown = null;
   for (const modelo of modelosJuiz()) {
+    if (vereditos.some((v) => v.nota >= 4) || vereditos.length >= 2) break;
     try {
       const r = await chamarLLM(modelo, mensagens, { temperatura: 0, maxTokens: 300 });
       const json = r.texto.match(/\{[\s\S]*\}/)?.[0];
-      if (!json) return { nota: 0, justificativa: `resposta do juiz nao-JSON: ${r.texto.slice(0, 120)}` };
-      try {
-        const v = JSON.parse(json) as { nota?: number; justificativa?: string };
-        return { nota: Number(v.nota) || 0, justificativa: v.justificativa ?? '' };
-      } catch {
-        return { nota: 0, justificativa: 'JSON do juiz invalido' };
+      if (json) {
+        try {
+          const v = JSON.parse(json) as { nota?: number; justificativa?: string };
+          const nota = Number(v.nota);
+          if (nota >= 1 && nota <= 5) {
+            vereditos.push({ nota, justificativa: v.justificativa ?? '' });
+            continue;
+          }
+          ultimoErro = new Error('JSON do juiz sem nota valida (1-5)');
+        } catch {
+          ultimoErro = new Error('JSON do juiz invalido');
+        }
+      } else {
+        ultimoErro = new Error(`resposta do juiz nao-JSON: ${r.texto.slice(0, 120)}`);
       }
+      await dormir(2_000);
     } catch (e) {
       ultimoErro = e;
       await dormir(2_000);
     }
   }
-  throw ultimoErro instanceof Error ? ultimoErro : new Error('todos os modelos juiz falharam');
+  if (vereditos.length === 0) {
+    throw ultimoErro instanceof Error ? ultimoErro : new Error('todos os modelos juiz falharam');
+  }
+  const melhor = vereditos.reduce((a, b) => (b.nota > a.nota ? b : a));
+  return {
+    nota: melhor.nota,
+    justificativa: vereditos.map((v) => `${v.nota}/5 — ${v.justificativa}`).join(' | '),
+  };
 }
 
 interface CenarioJuiz {

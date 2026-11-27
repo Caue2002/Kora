@@ -118,7 +118,9 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
 ## D15 - Fallback em camadas com crescimento organico pelo cache
 
 - Decisao: quando a fila de modelos falha por completo, a resposta de
-  emergencia e resolvida em cascata sem LLM (api/fallback.ts): cache
+  emergencia e resolvida em cascata sem LLM (coherence/fallback.ts —
+  movido de api/ em 27/11/2026 para liberar slot de function na Vercel
+  Hobby): cache
   semantico relaxado (score >= 0.80, qualquer escopo) -> banco canonico
   por intencao (tabela fallback_respostas, deteccao heuristica) -> pool
   de variantes genericas estaveis por conversa. cache_respostas ganhou

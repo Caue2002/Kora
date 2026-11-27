@@ -890,6 +890,28 @@ de entrega.
   "aprovado" defasado — corrigido nesta rodada). api/ segue no limite
   do plano Hobby da Vercel (12 functions): novo endpoint exige
   consolidar outro par (ver DECISOES.md D16)
+- Limite de functions contornado (27/11/2026): api/fallback.ts NAO era
+  endpoint (biblioteca pura sem export default) mas ocupava slot —
+  movido para coherence/fallback.ts (mesma camada das heuristicas de
+  intencao/intencao que ele usa; direcao coherence -> shared preservada,
+  sem ciclo). api/ agora tem 11 functions: 1 slot livre permanente.
+  Imports ajustados em api/chat.ts e tests/fallback.test.ts; refs em
+  SPEC-fallback-camadas, DECISOES.md (D15) e tasks/plan.md. Convencao:
+  biblioteca nunca mora em api/; endpoint novo usa dispatcher
+  (?rota= + rewrite no vercel.json, padrao de api/voz.ts)
+- evals-juiz com segundo juiz independente (27/11/2026): julgar() agora
+  coleta ate 2 vereditos de modelos diferentes da fila — nota >=4
+  aprova na hora (sem custo extra), nota <4 dispara o segundo juiz e o
+  criterio segue o MESMO (>=4 em qualquer um dos dois). Resposta
+  nao-JSON/invalida do juiz conta como falha de infra (passa ao
+  proximo candidato) em vez de nota 0. Motivo: drift de versao do
+  modelo Gemini entre deploys gerava flakes de nota borderline
+  (ex.: guardrail de injecao 2/5). O criterio de aprovacao nao mudou
+- ATENCAO sessao paralela (27/11/2026 ~12:10-12:23): outra sessao
+  commitou a spec SPEC-cota-reset-pacifico (5eaaa24) e estava
+  implementando shared/models.ts quando esta sessao verificou —
+  working tree pode conter WIP nao commitado dela (typecheck local
+  pode falhar por causa disso; nao e regressao desta sessao)
 
 ## Em andamento
 

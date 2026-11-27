@@ -6,7 +6,7 @@
    em `cache_respostas`, `buscar_cache_resposta` filtrando `geral`, nova
    `buscar_cache_fallback` (score>=0.80 via codigo, qualquer escopo),
    tabela `fallback_respostas` + seeds, grants.
-2. `api/fallback.ts` — `VARIANTES_FALLBACK`, `ehFallback`,
+2. `coherence/fallback.ts` (na epoca `api/fallback.ts`) — `VARIANTES_FALLBACK`, `ehFallback`,
    `detectarIntencaoFallback`, `escolherVarianteFallback`,
    `resolverFallback` (cache relaxado -> banco por intencao -> variante).
 3. `api/chat.ts` — substituir emissões de `RESPOSTA_FALLBACK` pelo

@@ -9,8 +9,8 @@
 
 import { consultar, rpc } from '../shared/supabase.js';
 import { extrairCodigoPedido } from '../shared/pedidos.js';
-import { ehMensagemCasual, ehPerguntaMeta } from '../coherence/index.js';
-import { ehRespostaDeRecusa } from '../coherence/validacao.js';
+import { ehMensagemCasual, ehPerguntaMeta } from './intencao.js';
+import { ehRespostaDeRecusa } from './validacao.js';
 
 // Variantes genericas da ultima instancia: mesma mensagem de hoje,
 // reescritas com ritmos diferentes para nao soar repetitiva
