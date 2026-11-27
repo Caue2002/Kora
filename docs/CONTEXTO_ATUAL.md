@@ -907,11 +907,17 @@ de entrega.
   proximo candidato) em vez de nota 0. Motivo: drift de versao do
   modelo Gemini entre deploys gerava flakes de nota borderline
   (ex.: guardrail de injecao 2/5). O criterio de aprovacao nao mudou
-- ATENCAO sessao paralela (27/11/2026 ~12:10-12:23): outra sessao
-  commitou a spec SPEC-cota-reset-pacifico (5eaaa24) e estava
-  implementando shared/models.ts quando esta sessao verificou —
-  working tree pode conter WIP nao commitado dela (typecheck local
-  pode falhar por causa disso; nao e regressao desta sessao)
+- ATENCAO sessao paralela (27/11/2026 ~12:10-12:32): outra sessao
+  implementou SPEC-cota-reset-pacifico em paralelo — spec 5eaaa24,
+  codigo+docs a0d1ed5 (janela "dia" por fuso de reset do provedor:
+  Gemini America/Los_Angeles, Groq UTC; RPC metricas_chat_resumo com
+  reset_cota_em; painel /metricas exibe "COTA GEMINI RENOVA HH:MM";
+  migration 0022 APLICADA via MCP). Durante a implementacao o
+  typecheck local quebrou ~10min (WIP nao commitado) — nao era
+  regressao. Estado final verificado nesta sessao: suite 134/135 com
+  1 flake do juiz (triagem 3/5 durante saturacao do Gemini — sem
+  segundo juiz disponivel na hora; retry isolado deu 4/4), typecheck
+  e build limpos, tudo commitado e sincronizado
 
 ## Em andamento
 
