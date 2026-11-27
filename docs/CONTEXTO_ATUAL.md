@@ -1064,14 +1064,19 @@ de entrega.
    real antes da regeneracao (recusa generica sempre regenera; falha
    do verificador nao bloqueia). Custo raro: 1 chamada pequena so em
    respostas flagradas
-6. SPEC PROPOSTA 27/11/2026: spec/SPEC-cota-reset-pacifico.md — a
-   janela "dia" de cotas_modelos zera a 00:00 UTC (fuso do servidor),
-   que nao e o reset real de nenhum provedor: Gemini renova a meia-noite
-   de America/Los_Angeles (doc oficial: RPD reseta midnight Pacific) e
-   Groq a meia-noite UTC. Plano: janela dia por provedor (Gemini=PT,
-   Groq=UTC, Pollinations=UTC bookkeeping), RPC de metricas ganha
-   reset_cota_em (proximo reset PT) exibido no painel. Aguardando
-   aprovacao do usuario para implementar
+6. ~~SPEC: spec/SPEC-cota-reset-pacifico.md~~ IMPLEMENTADA 27/11/2026:
+   a janela "dia" de cotas_modelos (e do fallback em memoria) zerava as
+   00:00 UTC (fuso do servidor), que nao e o reset real de nenhum
+   provedor — Gemini renova a meia-noite de America/Los_Angeles (doc
+   oficial: RPD reseta midnight Pacific) e Groq a meia-noite UTC. Agora
+   inicioJanelas/inicioDiaEmFuso calculam o inicio do dia no fuso do
+   provedor de cada modelo (gemini->PT com DST, demais->UTC);
+   consumoBancoTodos pede os janela_inicio candidatos e so soma a linha
+   que bate com o fuso do modelo (linhas orfas do dia-UTC antigo sao
+   ignoradas = reset unico). Painel /metricas exibe reset_cota_em (RPC
+   metricas_chat_resumo recriada na migration 0022_metricas_reset_cota
+   com o proximo reset PT no subtitulo). Decisao registrada em
+   DECISOES.md D17; 4 testes novos de fuso em tests/models.test.ts
 
 ## Handoff para outra conta/sessao
 
@@ -1094,7 +1099,10 @@ de entrega.
   0017_limpeza_catalogo_429 APLICADA em 26/11/2026 via SQL Editor
   (12 linhas em modelos_ia verificadas via MCP);
   0018_metricas_diarias APLICADA 26/11/2026 via MCP (reset diario do
-  painel /metricas.html — RPC verificada retornando dia corrente)
+  painel /metricas.html — RPC verificada retornando dia corrente);
+  0022_metricas_reset_cota APLICADA 27/11/2026 via MCP com aprovacao do
+  usuario (RPC recriada com reset_cota_em; verificado retornando
+  2026-11-28T08:00Z = meia-noite PST)
 - Deploy Vercel: functions Node recebem (req,res); shared/http.ts adapta
   para Web Request/Response (imports relativos usam extensao .js pois a
   Vercel transpila TS->JS por arquivo sem bundlear)

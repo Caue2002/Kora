@@ -1,6 +1,8 @@
 # Spec: Reset de Cota por Provedor (alinhamento aos fusos reais)
 
-Status: proposto — aguardando aprovacao do usuario
+Status: implementado — janela dia por provedor em shared/models.ts,
+painel exibe reset_cota_em; migration 0022_metricas_reset_cota APLICADA
+em 27/11/2026 via MCP (verificado: reset_cota_em = proxima meia-noite PT)
 
 Origem: analise de 27/11/2026. A janela "dia" de `cotas_modelos` usa
 meia-noite do fuso do servidor (na Vercel = UTC), que nao corresponde ao

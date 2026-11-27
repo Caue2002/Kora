@@ -109,9 +109,21 @@ function renderQualidade(q) {
 function render(m, qualidade) {
   renderQualidade(qualidade);
   // Todos os agregados sao do dia corrente (fuso America/Sao_Paulo) — a RPC
-  // devolve 'dia' para o painel deixar explicito qual dia esta sendo medido
+  // devolve 'dia' para o painel deixar explicito qual dia esta sendo medido.
+  // 'reset_cota_em' e o proximo reset REAL da cota diaria do Gemini
+  // (meia-noite de America/Los_Angeles, RPD) — diferente do reset dos
+  // contadores do painel, que e so virada de data em SP
   const sub = document.querySelector('.sub');
-  if (sub) sub.textContent = `PROJETO KORA — MÉTRICAS DE ${formatarDiaCompleto(m.dia)} · RESET DIÁRIO`;
+  if (sub) {
+    let texto = `PROJETO KORA — MÉTRICAS DE ${formatarDiaCompleto(m.dia)}`;
+    if (m.reset_cota_em) {
+      const reset = new Date(m.reset_cota_em);
+      if (!Number.isNaN(reset.getTime())) {
+        texto += ` · COTA GEMINI RENOVA ${reset.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    }
+    sub.textContent = texto;
+  }
 
   const total = m.total_geral ?? 0;
   const cacheHits = m.cache_hits ?? 0;

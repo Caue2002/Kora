@@ -32,36 +32,135 @@ const usoMemoria = new Map<number, UsoMemoria>();
 const TTL_CACHE_USOS_MS = 10_000;
 let cacheUsos: { mapa: Map<number, UsoModelo>; expira: number } | null = null;
 
-function inicioJanelas(): { minuto: string; hora: string; dia: string } {
-  const agora = new Date();
-  const minuto = new Date(agora);
-  minuto.setSeconds(0, 0);
-  const hora = new Date(agora);
-  hora.setMinutes(0, 0, 0);
-  const dia = new Date(agora);
-  dia.setHours(0, 0, 0, 0);
-  return { minuto: minuto.toISOString(), hora: hora.toISOString(), dia: dia.toISOString() };
-}
-
 function limites(): { minuto: number; hora: number; dia: number } {
   const l = limitesJanela();
   return { minuto: l.minuto, hora: l.hora, dia: l.dia };
 }
 
+// Fuso de reset da janela "dia" por provedor (SPEC-cota-reset-pacifico):
+// o Gemini renova a cota diaria (RPD) a meia-noite de America/Los_Angeles
+// (doc oficial ai.google.dev/gemini-api/docs/rate-limits — "Requests per
+// day quotas reset at midnight Pacific time"); o Groq renova as cotas
+// diarias a meia-noite UTC; demais provedores usam UTC como bookkeeping
+// (nao ha cota diaria formal conhecida). Antes a janela zerava a 00:00
+// do fuso do servidor (UTC na Vercel) — horas depois do reset real do
+// Gemini, o que gerava 429 evitaveis na virada do dia de cota.
+// Minuto/hora nao entram aqui: sao janelas de duracao fixa, sem reset
+// diario — o alinhamento de fuso so importa para a janela "dia".
+function fusoResetDia(provedor: string): string {
+  return provedor === 'gemini' ? 'America/Los_Angeles' : 'UTC';
+}
+
+// Mapa lazy id -> provedor do catalogo (env pode sobrescrever nomes,
+// mas id/provedor sao estaveis)
+let provedorPorId: Map<number, string> | null = null;
+function provedorDoModelo(modeloId: number): string {
+  if (!provedorPorId) {
+    provedorPorId = new Map(catalogoModelos().map((m) => [m.id, m.provedor]));
+  }
+  return provedorPorId.get(modeloId) ?? '';
+}
+
+// Formatters Intl sao caros de criar — um par por fuso, reutilizado
+const formatadoresPorFuso = new Map<
+  string,
+  { data: Intl.DateTimeFormat; partes: Intl.DateTimeFormat }
+>();
+function formatadoresDo(fuso: string): { data: Intl.DateTimeFormat; partes: Intl.DateTimeFormat } {
+  let par = formatadoresPorFuso.get(fuso);
+  if (!par) {
+    par = {
+      data: new Intl.DateTimeFormat('en-CA', {
+        timeZone: fuso,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+      partes: new Intl.DateTimeFormat('en-US', {
+        timeZone: fuso,
+        hour12: false,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+    };
+    formatadoresPorFuso.set(fuso, par);
+  }
+  return par;
+}
+
+// Offset em ms entre o relogio do fuso e o UTC no instante t:
+// o wall clock do fuso lido como se fosse UTC, menos o instante UTC
+function offsetFusoMs(fuso: string, t: Date): number {
+  const { partes } = formatadoresDo(fuso);
+  const pedacos = partes.formatToParts(t);
+  const v = (tipo: string) => Number(pedacos.find((p) => p.type === tipo)?.value ?? 0);
+  const paredeComoUtc = Date.UTC(v('year'), v('month') - 1, v('day'), v('hour') % 24, v('minute'), v('second'));
+  return paredeComoUtc - Math.floor(t.getTime() / 1000) * 1000;
+}
+
+// ISO do inicio (meia-noite mais recente) do dia civil corrente no fuso
+// informado — e o valor de janela_inicio da janela "dia". A segunda
+// passada de offset cobre os dias de virada de horario de verao, em que
+// o offset na meia-noite difere do offset do chute inicial.
+export function inicioDiaEmFuso(fuso: string, agora = new Date()): string {
+  if (fuso === 'UTC') {
+    return new Date(Date.UTC(agora.getUTCFullYear(), agora.getUTCMonth(), agora.getUTCDate())).toISOString();
+  }
+  const { data } = formatadoresDo(fuso);
+  const partes = data.format(agora).split('-').map(Number);
+  const [ano = 0, mes = 1, dia = 1] = partes;
+  const chuteUtc = Date.UTC(ano, mes - 1, dia);
+  const instante = chuteUtc - offsetFusoMs(fuso, new Date(chuteUtc));
+  return new Date(chuteUtc - offsetFusoMs(fuso, new Date(instante))).toISOString();
+}
+
+// Consumo nas janelas correntes: minuto/hora seguem o relogio do
+// servidor (duracao fixa); dia usa o fuso de reset do provedor do modelo
+function inicioJanelas(provedor = 'UTC'): { minuto: string; hora: string; dia: string } {
+  const agora = new Date();
+  const minuto = new Date(agora);
+  minuto.setSeconds(0, 0);
+  const hora = new Date(agora);
+  hora.setMinutes(0, 0, 0);
+  return {
+    minuto: minuto.toISOString(),
+    hora: hora.toISOString(),
+    dia: inicioDiaEmFuso(fusoResetDia(provedor), agora),
+  };
+}
+
 // Consumo das janelas correntes para varios modelos em uma unica consulta
-// (antes era uma query por modelo, em sequencia — atrasava a escolha do modelo)
+// (antes era uma query por modelo, em sequencia — atrasava a escolha do modelo).
+// A janela "dia" tem um janela_inicio por provedor (PT p/ Gemini, UTC
+// p/ demais): a query pede todos os candidatos e cada linha so conta se
+// o janela_inicio bater com o esperado para o provedor daquele modelo —
+// linhas orfas de fusos antigos (ex.: dia-UTC gravado antes desta
+// mudanca) sao ignoradas em vez de inflar o consumo.
 async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoModelo>> {
   const mapa = new Map<number, UsoModelo>();
   const j = inicioJanelas();
+  const diaEsperado = new Map<number, string>();
+  const candidatos = new Set([j.minuto, j.hora]);
+  for (const id of modeloIds) {
+    const dia = inicioDiaEmFuso(fusoResetDia(provedorDoModelo(id)));
+    diaEsperado.set(id, dia);
+    candidatos.add(dia);
+  }
+  const janelaInicioIn = [...candidatos].map((v) => `"${v}"`).join(',');
   try {
     const linhas = await consultar<{
       modelo_id: number;
       janela_tipo: string;
+      janela_inicio: string;
       tokens_estimados: number;
       esgotado: boolean;
     }>(
       'cotas_modelos',
-      `modelo_id=in.(${modeloIds.join(',')})&janela_inicio=in.("${j.minuto}","${j.hora}","${j.dia}")&select=modelo_id,janela_tipo,tokens_estimados,esgotado`,
+      `modelo_id=in.(${modeloIds.join(',')})&janela_inicio=in.(${janelaInicioIn})&select=modelo_id,janela_tipo,janela_inicio,tokens_estimados,esgotado`,
     );
     for (const l of linhas) {
       const uso = mapa.get(l.modelo_id) ?? { tokensMinuto: 0, tokensHora: 0, tokensDia: 0, esgotado: false };
@@ -69,6 +168,11 @@ async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoMo
       // sao restos do bug antigo (que marcava as 3 janelas) e bloqueariam o
       // modelo ate o fim do dia sem motivo
       if (l.esgotado && l.janela_tipo === 'minuto') uso.esgotado = true;
+      // Confere o inicio da janela antes de somar: um registro de "dia"
+      // gravado com a fronteira antiga nao pode contar na janela nova
+      const esperado =
+        l.janela_tipo === 'minuto' ? j.minuto : l.janela_tipo === 'hora' ? j.hora : diaEsperado.get(l.modelo_id);
+      if (esperado && new Date(l.janela_inicio).getTime() !== new Date(esperado).getTime()) continue;
       if (l.janela_tipo === 'minuto') uso.tokensMinuto += Number(l.tokens_estimados);
       if (l.janela_tipo === 'hora') uso.tokensHora += Number(l.tokens_estimados);
       if (l.janela_tipo === 'dia') uso.tokensDia += Number(l.tokens_estimados);
@@ -84,7 +188,7 @@ async function consumoBancoTodos(modeloIds: number[]): Promise<Map<number, UsoMo
 // contadores de janelas que viraram voltam a zero e o esgotado (que so vale
 // para a janela de minuto) expira junto — mesmo comportamento do banco
 function usoMemoriaInterno(modeloId: number): UsoMemoria {
-  const j = inicioJanelas();
+  const j = inicioJanelas(provedorDoModelo(modeloId));
   let u = usoMemoria.get(modeloId);
   if (!u) {
     u = {
@@ -181,7 +285,7 @@ export async function selecionarModelo(
 // nao deve bloquear o modelo por uma hora ou um dia; as cotas maiores sao
 // controladas pelos contadores de tokens de cada janela
 export async function marcarEsgotado(modeloId: number): Promise<void> {
-  const j = inicioJanelas();
+  const j = inicioJanelas(provedorDoModelo(modeloId));
   const lim = limites();
   for (const janela_tipo of ['minuto'] as const) {
     try {
@@ -201,7 +305,7 @@ export async function marcarEsgotado(modeloId: number): Promise<void> {
 // Registra o consumo de tokens apos a resposta (real quando informado, senao estimativa)
 export async function registrarConsumo(modeloId: number, tokens: number): Promise<void> {
   if (tokens <= 0) return;
-  const j = inicioJanelas();
+  const j = inicioJanelas(provedorDoModelo(modeloId));
   const lim = limites();
   // As 3 janelas sao independentes: registram em paralelo em vez de
   // somar 3 round-trips sequenciais ao caminho da resposta

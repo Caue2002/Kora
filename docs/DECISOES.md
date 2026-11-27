@@ -146,3 +146,23 @@ Manter atualizado a cada decisao relevante para evitar reversoes indevidas.
   causa ser identificada via `vercel inspect --logs`.
 - Ressalva: qualquer NOVO endpoint em api/ exige consolidar outro par
   ou migrar para Pro; contar `ls api/*.ts` antes de adicionar rotas.
+
+## D17 - Janela diaria de cota alinhada ao fuso de reset de cada provedor
+
+- Decisao: a janela "dia" de cotas_modelos (e do fallback em memoria)
+  renova na meia-noite do fuso de reset do provedor do modelo —
+  America/Los_Angeles para slots Gemini (RPD renova a meia-noite do
+  Pacifico, conforme doc oficial do Gemini API) e UTC para Groq e
+  Pollinations. Minuto/hora seguem janelas de duracao fixa, sem reset
+  diario. O painel /metricas exibe reset_cota_em (proxima meia-noite PT)
+  para distinguir o "dia" dos contadores (Sao Paulo) do reset real.
+- Motivo: a janela zerava as 00:00 UTC (fuso do servidor na Vercel) —
+  depois do reset real do Gemini, fazendo o sistema tentar modelos com
+  cota ja renovada no relogio interno mas ainda esgotada no provedor
+  (429 evitaveis na virada). Calculo via Intl.DateTimeFormat com
+  timeZone, sem dependencias; linhas antigas de janela-UTC ficam orfas
+  e equivalem a um reset unico (sem migration de schema).
+- Ressalva: RPM/TPM sao janelas movel/continua nos provedores — nao ha
+  "horario de reset" para elas e a marcacao de esgotado continua so na
+  janela de minuto. Nao existe API de quota restante: a confirmacao
+  real de renovacao e o primeiro 200 apos um 429.
