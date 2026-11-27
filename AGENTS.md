@@ -99,8 +99,10 @@ Specs existentes (SDD): `SPEC-a2a-e-handoff`, `SPEC-evals-ci`,
 `SPEC-observabilidade-v2`, `SPEC-readme-vendavel`, `SPEC-ui-indicador-tools`,
 `SPEC-voz-neural`, `SPEC-voz-whisper`, `SPEC-supabase-mcp-governanca`, `SPEC-metricas-qualidade`
 e `SPEC-eval-retrieval`, `SPEC-roteamento-modelos` e `SPEC-eval-baseline-ci`
-(implementadas), `SPEC-cota-reset-pacifico` (implementada — janela dia
-de cota por provedor: Gemini=America/Los_Angeles, Groq=UTC).
+(implementadas), `SPEC-fallback-camadas`, `SPEC-fundo-inatividade`,
+`SPEC-inatividade-chat`, `SPEC-turnstile` e `SPEC-cota-reset-pacifico`
+(implementadas — a ultima alinha a janela dia de cota ao fuso de reset
+de cada provedor: Gemini=America/Los_Angeles, Groq=UTC).
 
 `capability-map.md` — iniciativa "impressionar na entrevista" (26/11/2026):
 7 modulos em fila de build (metricas-qualidade, eval-retrieval,

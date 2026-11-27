@@ -918,6 +918,18 @@ de entrega.
   1 flake do juiz (triagem 3/5 durante saturacao do Gemini — sem
   segundo juiz disponivel na hora; retry isolado deu 4/4), typecheck
   e build limpos, tudo commitado e sincronizado
+- Varredura de pendencias (27/11/2026, 2a rodada): CI confirmado
+  verde via API do GitHub (Testes e Validacao + Evals do Nori
+  success no ultimo push — secrets SUPABASE_*/GEMINI/GROQ ja
+  cadastrados, pendencia encerrada); deploy de producao mais
+  recente Ready (15:08) com endpoints saudaveis; suite agora tem
+  135 testes (models.test ganhou 4 — fluxo-kora atualizado);
+  AGENTS.md ganhou as 4 specs que faltavam na lista. UNICA
+  pendencia estrutural restante: auth-usuarios (fase 2) — spec
+  SPEC-auth-usuarios.md escrita neste dia, Status proposto,
+  aguardando aprovacao do usuario (padrao BFF: anon key no
+  frontend, JWT validado nas functions, user_id nas tabelas
+  pessoais, RLS como defesa em profundidade, login opcional)
 
 ## Em andamento
 
