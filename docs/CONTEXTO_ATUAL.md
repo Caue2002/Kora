@@ -931,6 +931,13 @@ de entrega.
   para entrevista, nao precisamos ir tao longe") — spec marcada
   como ADIADO/fora de escopo, capability-map idem. Com isso NAO
   resta nenhuma pendencia conhecida no projeto
+- Bug de perfil ressuscitando no refresh (27/11/2026): o botao
+  "trocar" do chip de perfil chamava so setPerfil(null), sem remover
+  CHAVE_PERFIL do localStorage — o menu aparecia, mas F5/abrir o site
+  restaurava o ultimo perfil (ex.: "entregador") como se tivesse sido
+  reselecionado. Novo limparPerfil() faz removeItem + setPerfil(null)
+  (mesmo par do encerramento); escolherPerfil segue gravando. Bug
+  introduzido em d0aaa8e (seletor de perfil), nao regressao recente
 
 ## Em andamento
 

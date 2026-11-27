@@ -818,6 +818,14 @@ export default function App() {
     if (podeFocarInput()) inputRef.current?.focus();
   }
 
+  // Volta a tela de escolha de perfil E esquece a escolha anterior:
+  // sem o removeItem o localStorage ressuscitava o perfil no refresh
+  // (botao "trocar" mostrava o menu, mas F5 trazia o perfil de volta)
+  function limparPerfil() {
+    localStorage.removeItem(CHAVE_PERFIL);
+    setPerfil(null);
+  }
+
   // Para a gravacao/transcricao em andamento sem transcrever (usado antes
   // de enviar a mensagem: o audio parcial e descartado, como no fluxo antigo)
   function pararDitadoSilencioso() {
@@ -1484,7 +1492,7 @@ function pararAudio() {
                 </div>
               ) : (
                 <>
-                  <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
+                  <button className="perfil-chip" onClick={limparPerfil} title="Trocar perfil">
                     {PERFIS.find((p) => p.id === perfil)?.label} · trocar
                   </button>
                   <div className="chat-sugestoes">
