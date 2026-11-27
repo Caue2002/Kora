@@ -836,10 +836,9 @@ de entrega.
   pela camada de permissoes — usuario rodou no SQL Editor:
   DELETE FROM eval_runs WHERE suite='retrieval' AND id IN
   (78,79,81,86,93,100) removeu os 6 runs degradados (1/18, 3/18, 4/18,
-  0/18 local+ci, 7/25 dataset antigo); verificado via SELECT — restam
-  so runs 18/18. Resíduo conhecido: id 76 (local, 6/18, mesma noite)
-  segue na tabela, remocao opcional com DELETE FROM eval_runs WHERE
-  id=76; evals-juiz teve 2 flakes do
+  0/18 local+ci, 7/25 dataset antigo) + id 76 (6/18) removido em
+  seguida; verificado via SELECT — restam APENAS runs 18/18 (12
+  linhas); evals-juiz teve 2 flakes do
   juiz (triagem nota 3, injecao nota 2 — drift conhecido ja
   documentado). CI verde na main (Testes e Validacao + Evals do
   Nori). Correcos da mesma varredura: (a) Turnstile saiu do modo
@@ -879,7 +878,8 @@ de entrega.
   conhecido nao apareceu; Gemini respondeu com varios 503 "high
   demand" absorvidos pelo failover). Limpeza das linhas ruins de
   eval_runs FEITA em 27/11 via SQL Editor (ver detalhe na secao de
-  varredura acima; residuo opcional: id 76, 6/18)
+  varredura acima — todos os runs degradados removidos, incluindo o
+  residuo id 76)
 
 ## Em andamento
 
