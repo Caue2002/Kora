@@ -137,7 +137,6 @@ const PERFIS = [
 ] as const;
 
 type PerfilId = (typeof PERFIS)[number]['id'];
-const CHAVE_PERFIL = 'kora-perfil';
 
 const CHAVE_TEMA = 'kora-tema';
 
@@ -459,10 +458,10 @@ export default function App() {
   // Anexo de evidencia: guardamos so a miniatura (dataURL) para exibir na bolha;
   // a imagem nao e enviada ao modelo — o agente apenas confirma o recebimento
   const [anexo, setAnexo] = useState<{ nome: string; preview: string } | null>(null);
-  const [perfil, setPerfil] = useState<PerfilId | null>(() => {
-    const salvo = localStorage.getItem(CHAVE_PERFIL);
-    return PERFIS.some((p) => p.id === salvo) ? (salvo as PerfilId) : null;
-  });
+  // Perfil NAO persiste entre cargas (decisao do usuario, 27/11/2026):
+  // toda entrada — refresh, nova aba, PWA — abre sempre no menu de
+  // escolha de perfil, mesmo com historico de conversas na sessao
+  const [perfil, setPerfil] = useState<PerfilId | null>(null);
   // Instalacao do PWA: o evento beforeinstallprompt fica guardado para o
   // item "Baixar app" do menu disparar o prompt nativo do navegador
   const installPromptRef = useRef<EventoInstalacaoPwa | null>(null);
@@ -532,21 +531,6 @@ export default function App() {
   // do encerramento automatico (5min sem atividade com chat em andamento)
   const mostrarAvisoInatividade = temChat && !processando && segundosInativo >= 240;
   const segundosParaEncerrar = Math.max(1, 300 - segundosInativo);
-
-  // Na primeira carga, abre a conversa mais recente que NAO foi encerrada:
-  // conversa encerrada pelo usuario nunca volta sozinha ao atualizar a pagina
-  useEffect(() => {
-    if (conversaId === null && conversas.length > 0) {
-      const maisRecente = [...conversas]
-        .filter((c) => !c.encerrada)
-        .sort((a, b) => b.atualizadoEm - a.atualizadoEm)[0];
-      if (maisRecente) {
-        setConversaId(maisRecente.id);
-        setMensagens(maisRecente.mensagens);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Aplica o tema escuro/claro no elemento raiz e persiste a escolha
   useEffect(() => {
@@ -829,19 +813,11 @@ export default function App() {
     return () => clearInterval(id);
   }, [temChat, processando]);
 
-  // Define o perfil do usuario (cliente, parceiro ou entregador) e persiste
+  // Define o perfil do usuario (cliente, parceiro ou entregador)
+  // Sem persistencia: a proxima carga sempre volta ao menu de perfis
   function escolherPerfil(p: PerfilId) {
     setPerfil(p);
-    localStorage.setItem(CHAVE_PERFIL, p);
     if (podeFocarInput()) inputRef.current?.focus();
-  }
-
-  // Volta a tela de escolha de perfil E esquece a escolha anterior:
-  // sem o removeItem o localStorage ressuscitava o perfil no refresh
-  // (botao "trocar" mostrava o menu, mas F5 trazia o perfil de volta)
-  function limparPerfil() {
-    localStorage.removeItem(CHAVE_PERFIL);
-    setPerfil(null);
   }
 
   // Para a gravacao/transcricao em andamento sem transcrever (usado antes
@@ -1224,7 +1200,6 @@ export default function App() {
     setPerguntaEncerramentoId(null);
     setErro(null);
     const cid = conversaId;
-    localStorage.removeItem(CHAVE_PERFIL);
     setPerfil(null);
     // Marca a conversa como encerrada ANTES de limpar a tela: o refresh nao
     // pode reabri-la sozinho (ela continua acessivel pelo historico)
@@ -1510,7 +1485,7 @@ function pararAudio() {
                 </div>
               ) : (
                 <>
-                  <button className="perfil-chip" onClick={limparPerfil} title="Trocar perfil">
+                  <button className="perfil-chip" onClick={() => setPerfil(null)} title="Trocar perfil">
                     {PERFIS.find((p) => p.id === perfil)?.label} · trocar
                   </button>
                   <div className="chat-sugestoes">

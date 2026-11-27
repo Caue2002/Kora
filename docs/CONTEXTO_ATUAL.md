@@ -938,6 +938,16 @@ de entrega.
   reselecionado. Novo limparPerfil() faz removeItem + setPerfil(null)
   (mesmo par do encerramento); escolherPerfil segue gravando. Bug
   introduzido em d0aaa8e (seletor de perfil), nao regressao recente
+- Entrada sempre no menu de perfil (27/11/2026, decisao do usuario —
+  "ja havia pedido isso e foi alterado sem consentimento"): perfil
+  NAO persiste mais (CHAVE_PERFIL removida — useState sempre null,
+  escolherPerfil sem localStorage) e a conversa atual NAO reabre
+  sozinha na carga (useEffect de auto-open removido). Refresh, nova
+  aba e PWA sempre abrem nos 3 cards de perfil; o historico segue
+  acessivel pela sidebar e reabrir continua acao explicita
+  (selecionarConversa). O flag `encerrada` segue existindo nas
+  conversas mas virou so marcador para a reabertura manual. ARQUITETURA.md
+  atualizado (historico e sessionStorage, nao localStorage)
 
 ## Em andamento
 

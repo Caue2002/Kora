@@ -30,7 +30,8 @@ e compensacao sugerida.
 ### Estado da implementacao (V1)
 
 - frontend/: chat mobile-first implementado (Vite+React+TS, historico no
-  localStorage, sidebar estilo Gemini, streaming token a token, markdown
+  sessionStorage — morre com a aba, sidebar estilo Gemini, streaming
+  token a token, markdown
   completo, acoes copiar/exportar/feedback com comentario, PWA instalavel)
 - api/: endpoints POST /api/chat (com modo stream), /api/feedback e /api/parecer
 - shared/: config por env, cliente Supabase (PostgREST+RPC), cliente LLM dos
@@ -55,8 +56,9 @@ e compensacao sugerida.
 - Streaming token a token com status contextual ("Consultando a base...",
   "Gerando resposta..."); markdown completo (tabelas, codigo, checklist
   clicavel, citacoes); popover de fontes do RAG sob demanda.
-- Historico persistente em localStorage; PWA instalavel; ditado por voz;
-  modo foco para leitura; timestamps relativos.
+- Historico de conversas em sessionStorage (aba); entrada sempre no menu
+  de perfil — sem restaurar conversa/perfil anterior; PWA instalavel;
+  ditado por voz; modo foco para leitura; timestamps relativos.
 
 ## RAG e prevencao de alucinacao (rag/)
 
